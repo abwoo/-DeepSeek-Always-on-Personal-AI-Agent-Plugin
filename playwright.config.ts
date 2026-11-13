@@ -7,6 +7,8 @@ export default defineConfig({
   reporter: [['list'], ['html', { open: 'never' }]],
   use: {
     browserName: 'chromium',
+    actionTimeout: 15000,
+    navigationTimeout: 30000,
     launchOptions: process.env.CHROMIUM_PATH
       ? { executablePath: process.env.CHROMIUM_PATH }
       : undefined,
