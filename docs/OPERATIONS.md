@@ -10,4 +10,4 @@ The task ledger and notification outbox share local SQLite transactions. Web Pus
 
 Memory deletion stops future retrieval. It does not purge already logged prompts or backups. Uninstalling the bundle leaves persistent data intact. Disable/uninstall through native Harness Plugins / CLI, and remove storage only when intentionally retiring the Host and after backup.
 
-This alpha bounds each task by lifetime runs, steps and elapsed time. Native model output limits still come from Harness configuration. It does not provide an independently enforced monetary budget; configure provider spending caps before unattended production use.
+This alpha bounds each task by lifetime runs, steps and elapsed time. The plugin caps unattended request output at 2,048 tokens by default and stops after 50,000 reported aggregate tokens, or when token accounting is missing. This is a post-request threshold: one call and provider retries can overshoot it. The provider remains the spending authority. It does not provide an independently enforced monetary budget; configure provider spending caps before unattended production use.

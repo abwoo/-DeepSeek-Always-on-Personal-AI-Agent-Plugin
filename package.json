@@ -55,7 +55,7 @@
   },
   "dependencies": {
     "web-push": "3.6.7",
-    "zod": "^4.6.6"
+    "zod": "4.6.6"
   },
   "devDependencies": {
     "@deepseek-ai/cordis": "4.1.0",

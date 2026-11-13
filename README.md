@@ -8,11 +8,12 @@ A native **DeepSeek Harness / Cordis plugin** for persistent personal tasks, con
 
 ## Install
 
-Requires Node **24.9+** and exactly **`@deepseek-ai/dsh@0.2.2-rc.3`**. Preview APIs are version-sensitive; see [compatibility](docs/COMPATIBILITY.md).
+Requires pnpm on PATH, Node **24.9+** and exactly **`@deepseek-ai/dsh@0.2.2-rc.3`**. Preview APIs are version-sensitive; see [compatibility](docs/COMPATIBILITY.md).
 
 ```bash
 git clone https://github.com/abwoo/-DeepSeek-Always-on-Personal-AI-Agent-Plugin.git
 cd -- -DeepSeek-Always-on-Personal-AI-Agent-Plugin
+npm install -g pnpm@11.28.5
 npm ci
 npm run check
 npm pack
@@ -22,7 +23,7 @@ npx --package @deepseek-ai/dsh@0.2.2-rc.3 dsh web --no-open --host 127.0.0.1 --p
 
 Open the launch URL locally to authenticate. Configure your DeepSeek model and credentials through Harness Settings. On a server use an authenticated HTTPS gateway; read [deployment](deploy/README.md) before exposing any endpoint. Phone and desktop must access **the same Host URL**. A local Harness Desktop installation is a different Host.
 
-The **Always-on** sidebar entry contains Agent, Tasks, Memory and Inbox. Create a once, interval or daily task. Tasks have dedicated Harness Sessions and default to 30 lifetime runs, 8 model steps per run and a 180-second timeout. Only explicitly selected built-in `web_search` / `web_fetch` tools plus the plugin's report/retrieval tools are permitted during an unattended run. No shell, outbound writes, purchasing, publishing or email dispatch is admitted. Unsupported actions remain interactive Harness work.
+The **Always-on** sidebar entry contains Agent, Tasks, Memory and Inbox. Create a once, interval or daily task. Tasks have dedicated Harness Sessions and default to 30 lifetime runs, 8 model steps per run a 180-second timeout, a 2,048-token per-request output cap and a 50,000 reported-token per-run budget. The total-token threshold stops the next request after provider accounting arrives; one request can overshoot it. Missing accounting stops further model steps. Only explicitly selected built-in `web_search` / `web_fetch` tools plus the plugin's report/retrieval tools are permitted during an unattended run. No shell, outbound writes, purchasing, publishing or email dispatch is admitted. Unsupported actions remain interactive Harness work.
 
 ## Memory and notifications
 
