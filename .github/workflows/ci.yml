@@ -19,6 +19,9 @@ jobs:
         with:
           node-version: '24'
           cache: npm
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.28.5
       - run: npm ci
       - run: npm run check
       - name: Install bundle in disposable real Harness Web profile

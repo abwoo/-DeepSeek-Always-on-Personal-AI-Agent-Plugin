@@ -46,33 +46,33 @@
     "test": "node --import tsx --test tests/unit/*.test.ts tests/integration/*.test.ts",
     "test:e2e": "playwright test",
     "prepack": "npm run build",
-    "check": "npm run typecheck && npm test && npm run build"
+    "check": "npm run typecheck && npm run build && npm test"
   },
   "peerDependencies": {
     "@deepseek-ai/cordis": "4.1.0",
-    "@deepseek-ai/dsh-tools": "0.2.2-rc.3",
-    "@deepseek-ai/dsh-llm": "0.2.2-rc.3"
+    "@deepseek-ai/dsh-llm": "0.2.2-rc.3",
+    "@deepseek-ai/dsh-tools": "0.2.2-rc.3"
   },
   "dependencies": {
     "web-push": "3.6.7",
-    "zod": "4.1.12"
+    "zod": "^4.6.6"
   },
   "devDependencies": {
     "@deepseek-ai/cordis": "4.1.0",
     "@deepseek-ai/dsh": "0.2.2-rc.3",
-    "@deepseek-ai/dsh-tools": "0.2.2-rc.3",
-    "@deepseek-ai/dsh-llm": "0.2.2-rc.3",
     "@deepseek-ai/dsh-agent": "0.2.2-rc.3",
-    "@deepseek-ai/dsh-session": "0.2.2-rc.3",
-    "@deepseek-ai/dsh-schedule": "0.2.2-rc.3",
     "@deepseek-ai/dsh-client-connection": "0.2.2-rc.3",
     "@deepseek-ai/dsh-host-webserver": "0.2.2-rc.3",
+    "@deepseek-ai/dsh-llm": "0.2.2-rc.3",
+    "@deepseek-ai/dsh-schedule": "0.2.2-rc.3",
+    "@deepseek-ai/dsh-session": "0.2.2-rc.3",
+    "@deepseek-ai/dsh-tools": "0.2.2-rc.3",
+    "@playwright/test": "1.56.1",
     "@types/node": "^24.0.0",
     "@types/web-push": "3.6.4",
-    "typescript": "5.9.3",
-    "tsx": "4.20.6",
     "esbuild": "0.25.12",
-    "@playwright/test": "1.56.1"
+    "tsx": "4.20.6",
+    "typescript": "5.9.3"
   },
   "repository": {
     "type": "git",

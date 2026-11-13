@@ -3,7 +3,7 @@ import type {Coordinator} from './tasks.js';
 import type {MemoryService} from './memory.js';
 import type {Notifications} from './notifications.js';
 export function createApi(c:Coordinator,m:MemoryService,n:Notifications,publicKey?:string){return async(request:Request)=>{try{
- if(request.method==='GET')return Response.json({online:c.enabled,tasks:c.tasks(),runs:c.runs().slice(0,200),memories:m.list(),inbox:n.list().slice(0,200),pushPublicKey:publicKey??null},{headers:{'Cache-Control':'no-store'}});
+ if(request.method==='GET'){const native=await c.scheduler.catalog?.()??[];return Response.json({online:c.enabled,tasks:c.tasks().map(t=>({...t,nextScheduledAt:native.find(n=>n.id===t.scheduleId&&n.status==='active')?.scheduledAt})),runs:c.runs().slice(0,200),memories:m.list(),inbox:n.list().slice(0,200),pushPublicKey:publicKey??null},{headers:{'Cache-Control':'no-store'}});}
  if(request.method!=='POST')return new Response('Method not allowed',{status:405});
  if(!request.headers.get('content-type')?.startsWith('application/json'))return new Response('JSON required',{status:415});
  const body=await request.text();if(body.length>65536)return new Response('Request too large',{status:413});

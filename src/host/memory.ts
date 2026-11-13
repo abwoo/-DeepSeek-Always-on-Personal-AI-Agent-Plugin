@@ -4,7 +4,7 @@ import type { Store } from './storage.js';
 export interface Memory {id:string;kind:string;content:string;source:string;updatedAt:string;consent:boolean}
 export class MemoryService {
  constructor(private store:Store){}
- save(input:unknown) {const data=memorySchema.parse(input);const id=data.id??randomUUID();const entry={...data,id,updatedAt:new Date().toISOString()};this.store.put('memory',id,entry);return entry;}
+ save(input:unknown) {if(this.list().length>=500&&!((input as {id?:string})?.id))throw new Error('Memory limit (500) reached');const data=memorySchema.parse(input);const id=data.id??randomUUID();const entry={...data,id,updatedAt:new Date().toISOString()};this.store.put('memory',id,entry);return entry;}
  propose(input:unknown){const data=memorySchema.omit({consent:true}).parse(input);const id=randomUUID();const entry={...data,id,consent:false,updatedAt:new Date().toISOString()};this.store.put('memory',id,entry);return entry;}
  list(){return this.store.all<Memory>('memory');}
  remove(id:string){return this.store.delete('memory',id)>0;}

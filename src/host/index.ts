@@ -26,7 +26,7 @@ export async function apply(ctx:Context,config:Config={}){
  const store=new Store(resolve(dataDir,'state.sqlite'));
  const vapid=process.env.VAPID_PUBLIC_KEY&&process.env.VAPID_PRIVATE_KEY&&process.env.VAPID_SUBJECT?{publicKey:process.env.VAPID_PUBLIC_KEY,privateKey:process.env.VAPID_PRIVATE_KEY,subject:process.env.VAPID_SUBJECT}:undefined;
  const notifications=new Notifications(store,vapid);const memory=new MemoryService(store);
- const scheduler:Scheduler={create:async input=>{const s=await ctx.schedule.create(input);return {id:s.id,target:'sessionId' in s.target?{sessionId:s.target.sessionId}:undefined};},edit:input=>ctx.schedule.edit({...input,id:input.id as Parameters<typeof ctx.schedule.edit>[0]['id']}),run:input=>ctx.schedule.run({id:input.id as Parameters<typeof ctx.schedule.run>[0]['id']})};
+ const scheduler:Scheduler={create:async input=>{const s=await ctx.schedule.create(input);return {id:s.id,target:'sessionId' in s.target?{sessionId:s.target.sessionId}:undefined};},edit:input=>ctx.schedule.edit({...input,id:input.id as Parameters<typeof ctx.schedule.edit>[0]['id']}),run:input=>ctx.schedule.run({id:input.id as Parameters<typeof ctx.schedule.run>[0]['id']}),catalog:()=>ctx.schedule.catalog()};
  const c=new Coordinator(store,scheduler,notifications);new AlwaysOnService(ctx,c,memory,notifications);
  c.recover();
  // Only plugin-owned schedules are rearmed. Cancelled, exhausted, paused, and orphaned creations stay closed.
@@ -64,7 +64,7 @@ export async function apply(ctx:Context,config:Config={}){
   messages.splice(0,messages.length,...filtered);
   return next();
  });
- ctx.tools.guard(exec=>{const session=exec.agent?.session.id;if(!session)return;const r=c.active(session);if(!r)return;const t=c.requireTask(r.taskId);const allowed=new Set(['always_on_report','always_on_memory_search',...t.allowedTools.filter(x=>['web_search','web_fetch'].includes(x))]);if(!c.enabled||!allowed.has(exec.name))return 'Always-on unattended run: this tool is not authorized. External writes require a separate interactive session and native approval.';});
+ ctx.tools.guard(exec=>exec.agent?c.guardTool(exec.agent.session.id,exec.name):undefined);
  ctx.tools.register(defineTool({name:'always_on_report',description:'Record a verified result for the current Always-on task. This is a business-result acknowledgment, not a notification send.',parameters:{summary:{type:'string',required:true},sources:{type:'array',items:{type:'string'},required:true},changed:{type:'boolean',required:true}},output,execute:async(args,exec)=>{if(!exec.agent)throw new Error('Agent required');return JSON.stringify(c.report(exec.agent.session.id,args));}}));
  ctx.tools.register(defineTool({name:'always_on_memory_search',description:'Retrieve only user-confirmed personal memories.',parameters:{query:{type:'string',required:true}},output,execute:async({query})=>JSON.stringify(memory.search(query))}));
  ctx.tools.register(defineTool({name:'always_on_memory_propose',description:'Propose a memory based on the user request. It is NOT saved as active memory until the user confirms it in the Memory panel.',parameters:{kind:{type:'string',enum:['fact','preference','project','goal'],required:true},content:{type:'string',required:true},source:{type:'string',required:true}},output,execute:async(args)=>JSON.stringify(memory.propose(args))}));
@@ -72,7 +72,7 @@ export async function apply(ctx:Context,config:Config={}){
  ctx.on('session/event',(session,event)=>{if(event.type!=='turn/end')return;const run=c.active(session.id);if(!run||run.turn!==event.data.turn)return;const timer=timers.get(run.id);if(timer)clearTimeout(timer);timers.delete(run.id);
   track((async()=>{const flushed=await ctx.sessions.flush(session);if(!flushed){c.finish(run.id,'persistence_failure');return;}c.finish(run.id,event.data.reason.kind,`session:${session.id}#event:${event.seq}`);await notifications.deliver();})());
  });
- ctx.on('schedule/changed',()=>{track((async()=>{for(const entry of await ctx.schedule.catalog()){const task=c.tasks().find(t=>t.scheduleId===entry.id);const receipt=entry.lastDelivery;if(task&&receipt)c.delivered(task.id,receipt.scheduledAt,receipt.targetSessionId);}})());});
- const pushTimer=setInterval(()=>track(notifications.deliver()),60000);pushTimer.unref();
+ ctx.on('schedule/changed',()=>{if(!c.enabled)return;track((async()=>{for(const entry of await ctx.schedule.catalog()){const task=c.tasks().find(t=>t.scheduleId===entry.id);const receipt=entry.lastDelivery;if(task&&receipt)c.delivered(task.id,receipt.scheduledAt,receipt.targetSessionId);}})());});
+ const pushTimer=setInterval(()=>{for(const run of c.runs().filter(r=>r.status==='queued')){const task=c.requireTask(run.taskId);if(Date.now()-Date.parse(run.startedAt)>task.timeoutSeconds*1000){run.status='failed';run.error='Delivered but model execution did not start within its time budget';run.finishedAt=new Date().toISOString();c.save(run);notifications.create(run.id,task.title,run.error);}}track(notifications.deliver());},60000);pushTimer.unref();
  ctx.effect(()=>async()=>{c.enabled=false;clearInterval(pushTimer);for(const timer of timers.values())clearTimeout(timer);for(const run of c.runs().filter(r=>r.status==='running'))ctx.agents.get(run.sessionId as Parameters<typeof ctx.agents.get>[0])?.cancel({kind:'hook',reason:'Always-on plugin disabled'});await Promise.allSettled([...pending]);try{await c.shutdown();}finally{c.recover();store.close();}});
 }
