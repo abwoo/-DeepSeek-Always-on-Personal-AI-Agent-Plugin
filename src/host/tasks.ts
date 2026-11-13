@@ -51,19 +51,18 @@ export interface Scheduler {
 export const marker = '[ALWAYS_ON_TRIGGER]';
 export class Coordinator {
   enabled = true;
+  cancelSession?: (sessionId: string) => void;
   constructor(
     readonly store: Store,
     readonly scheduler: Scheduler,
     readonly notices: Notifications,
   ) {}
   tasks() {
-    return this.store
-      .all<Task>('tasks')
-      .map((t) => ({
-        ...t,
-        maxOutputTokens: t.maxOutputTokens ?? 2048,
-        maxTotalTokens: t.maxTotalTokens ?? 50000,
-      }));
+    return this.store.all<Task>('tasks').map((t) => ({
+      ...t,
+      maxOutputTokens: t.maxOutputTokens ?? 2048,
+      maxTotalTokens: t.maxTotalTokens ?? 50000,
+    }));
   }
   runs() {
     return this.store.all<Run>('runs');
@@ -114,6 +113,9 @@ export class Coordinator {
     } else {
       t.state = state;
       this.store.put('tasks', id, t);
+      if (state === 'cancelled')
+        for (const run of this.runs().filter((r) => r.taskId === id && r.status === 'running'))
+          this.cancelSession?.(run.sessionId);
       await this.scheduler.edit({ id: t.scheduleId, action: 'update', patch: { active: false } });
     }
     return t;
@@ -206,7 +208,7 @@ export class Coordinator {
     this.save(run);
     return { accepted: true, runId: run.id, notice: 'Pending durable model turn completion' };
   }
-  finish(id: string, reason: string, reference?: string) {
+  finish(id: string, reason: string, reference?: string, detail?: string) {
     const run = this.store.get<Run>('runs', id);
     if (!run || run.status !== 'running') return;
     run.status = run.deniedTool
@@ -221,7 +223,9 @@ export class Coordinator {
     run.resultReference = reference;
     run.finishedAt = new Date().toISOString();
     if (run.status !== 'completed')
-      run.error = `Model turn: ${reason}; business result ${run.result ? 'reported' : 'not confirmed'}`;
+      run.error = run.deniedTool
+        ? `Tool ${run.deniedTool} requires interactive authorization; unattended execution was denied.`
+        : `Model turn: ${reason}${detail ? ': ' + detail : ''}; business result ${run.result ? 'reported' : 'not confirmed'}`;
     this.store.transaction(() => {
       this.save(run);
       const task = this.requireTask(run.taskId);

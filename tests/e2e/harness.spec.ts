@@ -61,6 +61,10 @@ async function stop() {
 async function auth(context: BrowserContext) {
   const page = await context.newPage();
   await page.goto(url);
+  await page
+    .getByRole('dialog', { name: 'Preview Notice' })
+    .getByRole('button', { name: 'Continue', exact: true })
+    .click();
   return page;
 }
 test.describe.configure({ mode: 'serial' });

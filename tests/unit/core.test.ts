@@ -275,3 +275,17 @@ test('native token accounting is retained and missing accounting is explicit', a
   assert.equal(f.c.active('s')?.usageMissing, true);
   f.store.close();
 });
+test('owner cancellation stops the active native Session and keeps an audit record', async () => {
+  const f = fixture();
+  const t = await f.c.create(input);
+  const r = f.c.claim(t.id, '2026-11-14T00:00:00Z', 's', 1)!;
+  const stopped: string[] = [];
+  f.c.cancelSession = (id) => {
+    stopped.push(id);
+  };
+  await f.c.control(t.id, 'cancelled');
+  assert.deepEqual(stopped, ['s']);
+  assert.equal(f.c.requireTask(t.id).state, 'cancelled');
+  assert.equal(f.c.runs()[0]?.id, r.id);
+  f.store.close();
+});
