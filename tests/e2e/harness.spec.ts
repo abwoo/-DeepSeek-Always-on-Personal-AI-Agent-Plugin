@@ -81,6 +81,7 @@ test('native sidebar loads plugin, mobile task creation and cross-device memory 
 }) => {
   const phone = await browser.newContext({ viewport: { width: 390, height: 844 } });
   const p = await auth(phone);
+  await p.locator('[data-sidebar-opener]').click();
   await p.getByText('Always-on', { exact: true }).click();
   await expect(p.getByRole('heading', { name: 'Always-on', exact: true })).toBeVisible();
   await p.getByRole('button', { name: 'Tasks', exact: true }).click();

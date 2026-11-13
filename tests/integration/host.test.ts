@@ -1,6 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { spawn, type ChildProcess } from 'node:child_process';
+import { spawn, execFile, type ChildProcess } from 'node:child_process';
+import { promisify } from 'node:util';
 import { mkdtemp, writeFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
@@ -32,7 +33,7 @@ async function run(args: string[], env: NodeJS.ProcessEnv) {
 }
 test(
   'real Host: offline native Schedule → native Agent/tools → durable result → Inbox',
-  { timeout: 120000 },
+  { timeout: 180000 },
   async () => {
     const dir = await mkdtemp(join(tmpdir(), 'always-on-native-'));
     const env = {
@@ -45,7 +46,13 @@ test(
       patch,
       `- id: agent-default-model\n  config:\n    provider: always-on-test\n    model: fixture\n- insert:\n    - id: always-on-test-model\n      name: '${resolve('tests/fixtures/model.mjs')}'\n`,
     );
-    await run(['plugin', '--profile', 'web', 'add', process.cwd()], env);
+    const packed = await promisify(execFile)(
+      'npm',
+      ['pack', '--ignore-scripts', '--json', '--pack-destination', dir],
+      { env },
+    );
+    const filename = JSON.parse(packed.stdout)[0].filename;
+    await run(['plugin', '--profile', 'web', 'add', join(dir, filename)], env);
     const child = spawn(
       process.execPath,
       [
@@ -96,9 +103,15 @@ test(
         return body;
       };
       assert.equal((await fetch(origin + '/api/always-on')).status, 401);
+      const saved = await api('memory.save', {
+        kind: 'project',
+        content: 'FIXTURE_SAVED_MEMORY',
+        source: 'explicit test user',
+        consent: true,
+      });
       const created = await api('task.create', {
         title: 'Offline fixture',
-        instruction: 'Check fixture evidence once. No external services.',
+        instruction: 'EXPECT_MEMORY. Check fixture evidence once. No external services.',
         timing: { kind: 'after', after_seconds: 60 },
       });
       assert.ok(created.result.scheduleId);
@@ -124,6 +137,33 @@ test(
       assert.match(snapshot.runs[0].resultReference, /^session:.+#event:/);
       assert.equal(snapshot.inbox.length, 1);
       assert.match(snapshot.inbox[0].summary, /Deterministic fixture/);
+      await api('memory.delete', { id: saved.result.id });
+      const second = await api('task.create', {
+        title: 'New Session after deletion',
+        instruction: 'EXPECT_NO_MEMORY FIXTURE_NO_CHANGE. Check without deleted context.',
+        timing: { kind: 'after', after_seconds: 60 },
+      });
+      await api('task.run', { id: second.result.id });
+      const deadline = Date.now() + 10000;
+      while (Date.now() < deadline) {
+        snapshot = await api();
+        if (
+          snapshot.runs.some((r: any) => r.taskId === second.result.id && r.status === 'completed')
+        )
+          break;
+        await sleep(200);
+      }
+      assert.equal(
+        snapshot.runs.find((r: any) => r.taskId === second.result.id)?.status,
+        'completed',
+        JSON.stringify(snapshot),
+      );
+      assert.equal(
+        snapshot.inbox.length,
+        1,
+        'Native no-change result must not add an Inbox message',
+      );
+      assert.equal(snapshot.memories.length, 0);
     } finally {
       await stop(child);
       await rm(dir, { recursive: true, force: true });

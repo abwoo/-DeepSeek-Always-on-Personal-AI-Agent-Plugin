@@ -4,10 +4,15 @@ export const inject = ['llm'];
 class Fixture extends LlmAdapter {
   seen = new Set();
   async resolveModel(provider, model) {
-    return { provider, id: model, name: 'Deterministic test fixture', defaultMaxTokens: 128 };
+    return { provider, id: model, name: 'Deterministic test fixture', defaultMaxTokens: 4096 };
   }
   async *stream(options) {
     const text = JSON.stringify(options.messages);
+    if (text.includes('EXPECT_MEMORY') && !text.includes('FIXTURE_SAVED_MEMORY'))
+      throw new Error('Confirmed memory missing from a native model request');
+    if (text.includes('EXPECT_NO_MEMORY') && text.includes('FIXTURE_SAVED_MEMORY'))
+      throw new Error('Deleted memory leaked into a new native Session');
+    if (options.maxTokens > 2048) throw new Error('Unattended output cap was not applied');
     const run = [...text.matchAll(/Run ([0-9a-f-]{36})\./g)].at(-1)?.[1];
     if (run && !this.seen.has(run)) {
       this.seen.add(run);
