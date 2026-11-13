@@ -1,0 +1,4 @@
+- insert:
+    - id: abwoo-always-on
+      name: '@abwoo/deepseek-always-on'
+      config: {}

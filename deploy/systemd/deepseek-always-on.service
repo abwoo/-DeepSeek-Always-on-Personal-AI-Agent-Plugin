@@ -1,0 +1,26 @@
+[Unit]
+Description=DeepSeek Harness with Always-on personal agent plugin
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=deepseek-agent
+Group=deepseek-agent
+WorkingDirectory=/opt/deepseek-always-on
+Environment=DSH_HOME=/var/lib/deepseek-always-on/harness
+Environment=ALWAYS_ON_DATA_DIR=/var/lib/deepseek-always-on/plugin
+EnvironmentFile=/etc/deepseek-always-on.env
+ExecStart=/opt/deepseek-always-on/node_modules/.bin/dsh web --no-open --host 127.0.0.1 --port 8080 --public-url https://agent.example.com --trusted-host agent.example.com
+Restart=on-failure
+RestartSec=5
+TimeoutStopSec=45
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/deepseek-always-on
+
+[Install]
+WantedBy=multi-user.target
