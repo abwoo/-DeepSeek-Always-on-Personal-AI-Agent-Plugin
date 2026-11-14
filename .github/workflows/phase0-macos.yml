@@ -1,0 +1,74 @@
+name: Phase 0 official macOS Desktop probe
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/phase0-macos.yml
+      - scripts/probe-native-desktop.mjs
+permissions:
+  contents: read
+jobs:
+  actual-desktop:
+    runs-on: macos-15
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.28.5
+      - run: npm ci
+      - run: npm run build
+      - run: node scripts/build-phase0-probe.mjs
+      - name: Download official app and verify signature and architecture
+        shell: bash
+        run: |
+          test "$(uname -m)" = arm64
+          mkdir -p .artifacts/macos-desktop
+          disk="$RUNNER_TEMP/dsh-official.dmg"
+          mount="$RUNNER_TEMP/dsh-mount"
+          curl --fail --location --retry 2 https://download.deepseek.com/desktop/dsh-latest-macos-arm64.dmg --output "$disk"
+          shasum -a 256 "$disk" > .artifacts/macos-desktop/installer-sha256.txt
+          mkdir -p "$mount"
+          hdiutil attach "$disk" -nobrowse -readonly -mountpoint "$mount"
+          app="$RUNNER_TEMP/DeepSeek Harness.app"
+          ditto "$mount/DeepSeek Harness.app" "$app"
+          hdiutil detach "$mount"
+          codesign --verify --deep --strict "$app"
+          codesign -dv --verbose=4 "$app" 2> .artifacts/macos-desktop/signature.txt
+          rg '^Authority=Developer ID Application:' .artifacts/macos-desktop/signature.txt
+          exe="$app/Contents/MacOS/DeepSeek Harness"
+          cli="$app/Contents/Resources/runtime/cli/bin/dsh"
+          version="$("$cli" --version)"
+          echo "$version" > .artifacts/macos-desktop/actual-version.txt
+          test "$version" = 0.2.2-rc.3
+          echo "ALWAYS_ON_DESKTOP_EXE=$exe" >> "$GITHUB_ENV"
+          echo "ALWAYS_ON_DESKTOP_CLI=$cli" >> "$GITHUB_ENV"
+          echo "DSH_HOME=$RUNNER_TEMP/always-on-native-profile" >> "$GITHUB_ENV"
+          echo "ALWAYS_ON_DATA_DIR=$RUNNER_TEMP/always-on-native-data" >> "$GITHUB_ENV"
+      - name: Initialize actual macOS Desktop
+        run: node scripts/probe-native-desktop.mjs --initialize
+      - name: Install bundles using Desktop-owned command
+        shell: bash
+        run: |
+          npm pack --ignore-scripts
+          "$ALWAYS_ON_DESKTOP_CLI" plugin --profile desktop add "$PWD/abwoo-deepseek-always-on-$(node -p 'require("./package.json").version').tgz"
+          npm pack ./probes/desktop-remote --ignore-scripts
+          "$ALWAYS_ON_DESKTOP_CLI" plugin --profile desktop add "$PWD/abwoo-always-on-desktop-remote-probe-0.0.0-phase0.tgz"
+      - name: Native panel, independent remote Session and process restart
+        run: node scripts/probe-native-desktop.mjs
+      - name: Uninstall bundles using Desktop-owned command
+        shell: bash
+        run: |
+          "$ALWAYS_ON_DESKTOP_CLI" plugin --profile desktop remove '@abwoo/deepseek-always-on'
+          "$ALWAYS_ON_DESKTOP_CLI" plugin --profile desktop remove '@abwoo/always-on-desktop-remote-probe'
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: phase0-macos-native-evidence
+          path: .artifacts/macos-desktop/
+          retention-days: 14

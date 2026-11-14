@@ -1,4 +1,4 @@
-// Runs only against an actual official installed Windows application in disposable CI.
+// Runs only against an actual official installed macOS/Windows application in disposable CI.
 // It validates local native plugin integration, not remote Sessions or MVP readiness.
 import { chromium, expect } from '@playwright/test';
 import { spawn, execFile } from 'node:child_process';
@@ -8,12 +8,23 @@ import { setTimeout as delay } from 'node:timers/promises';
 import { join, resolve } from 'node:path';
 import { connectProbe } from '../dist/remote/probe-connection.js';
 const executable = process.env.ALWAYS_ON_DESKTOP_EXE;
-if (process.platform !== 'win32' || !executable) throw new Error('Real installed Windows Desktop required');
-const output = '.artifacts/windows-desktop';
+if (!['win32', 'darwin'].includes(process.platform) || !executable) throw new Error('Real installed native Desktop required');
+const output = process.platform === 'win32' ? '.artifacts/windows-desktop' : '.artifacts/macos-desktop';
 await mkdir(output, { recursive: true });
 const evidence = { platform: process.platform, nativePlugin: false, restartPersistence: false,
   remoteDesktopSession: false, realDeepSeek: false, realPhone: false, mvpReady: false };
 let remoteProcess, observer;
+async function stopTree(child) {
+  if (!child?.pid) return;
+  if (process.platform === 'win32') {
+    await promisify(execFile)('taskkill', ['/PID', String(child.pid), '/T', '/F']).catch(() => {});
+  } else {
+    // Each disposable app/Host is spawned in its own process group.
+    try { process.kill(-child.pid, 'SIGTERM'); } catch {}
+    await delay(1000);
+    try { process.kill(-child.pid, 'SIGKILL'); } catch {}
+  }
+}
 async function startRemote() {
   const root = join(process.env.RUNNER_TEMP, 'always-on-remote-authority');
   const env = { ...process.env, DSH_HOME: join(root, 'profile'), ALWAYS_ON_DATA_DIR: join(root, 'data'),
@@ -23,7 +34,7 @@ async function startRemote() {
   await promisify(execFile)(process.execPath, [cli, 'plugin', '--profile', 'web', 'add',
     resolve(`abwoo-deepseek-always-on-${version}.tgz`)], { env, timeout: 120000 });
   remoteProcess = spawn(process.execPath, [cli, 'web', '--no-open', '--port', '0',
-    '--patch', resolve('deploy/headless.patch.yml')], { env, stdio: ['ignore', 'pipe', 'pipe'] });
+    '--patch', resolve('deploy/headless.patch.yml')], { env, detached: process.platform === 'darwin', stdio: ['ignore', 'pipe', 'pipe'] });
   const url = await new Promise((ok, fail) => {
     let output = '';
     const timer = setTimeout(() => fail(new Error('Real independent remote Harness startup timed out')), 90000);
@@ -57,7 +68,7 @@ async function capture(page, name) {
 
 async function boot(action) {
   const child = spawn(executable, ['--remote-debugging-port=16927', '--remote-debugging-address=127.0.0.1'],
-    { env: process.env, stdio: 'ignore' });
+    { env: process.env, detached: process.platform === 'darwin', stdio: 'ignore' });
   let browser;
   try {
     const deadline = Date.now() + 90000;
@@ -85,7 +96,7 @@ async function boot(action) {
   } finally {
     await browser?.close().catch(() => {});
     // Only this newly spawned disposable CI app tree. No user machine is touched.
-    if (child.pid) await promisify(execFile)('taskkill', ['/PID', String(child.pid), '/T', '/F']).catch(() => {});
+    await stopTree(child);
   }
 }
 try {
@@ -153,7 +164,7 @@ try {
   throw error;
 } finally {
   await observer?.close();
-  if (remoteProcess?.pid) await promisify(execFile)('taskkill', ['/PID', String(remoteProcess.pid), '/T', '/F']).catch(() => {});
+  await stopTree(remoteProcess);
   await writeFile(join(output, process.argv.includes('--initialize') ? 'initialize.json' : 'plugin.json'),
     JSON.stringify({ timestamp: new Date().toISOString(), ...evidence }, null, 2));
 }

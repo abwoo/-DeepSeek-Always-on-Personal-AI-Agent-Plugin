@@ -5,7 +5,7 @@ on:
     branches: [main]
     paths:
       - .github/workflows/phase0-windows.yml
-      - scripts/probe-windows-desktop.mjs
+      - scripts/probe-native-desktop.mjs
 permissions:
   contents: read
 jobs:
@@ -52,7 +52,7 @@ jobs:
           $version | Set-Content .artifacts/windows-desktop/actual-version.txt
           if ($LASTEXITCODE -ne 0 -or $version -notmatch '(?<![0-9.])0\.2\.2-rc\.3(?![0-9A-Za-z.-])') { throw 'Downloaded Desktop does not match the pinned Harness version' }
       - name: Initialize the actual native application
-        run: node scripts/probe-windows-desktop.mjs --initialize
+        run: node scripts/probe-native-desktop.mjs --initialize
       - name: Install bundle using Desktop-owned command
         shell: pwsh
         run: |
@@ -65,7 +65,7 @@ jobs:
           & $env:ALWAYS_ON_DESKTOP_CLI plugin --profile desktop add (Join-Path $PWD $probe[0].filename)
           if ($LASTEXITCODE -ne 0) { throw 'Private native remote probe install failed' }
       - name: Verify native panel, real persistence and process restart
-        run: node scripts/probe-windows-desktop.mjs
+        run: node scripts/probe-native-desktop.mjs
       - name: Uninstall through Desktop-owned command
         shell: pwsh
         run: |
