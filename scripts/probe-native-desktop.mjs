@@ -1,5 +1,5 @@
 // Runs only against an actual official installed macOS/Windows application in disposable CI.
-// It validates local native plugin integration, not remote Sessions or MVP readiness.
+// Native integration and remote Session control only; never certifies model execution or MVP readiness.
 import { chromium, expect } from '@playwright/test';
 import { spawn, execFile } from 'node:child_process';
 import { promisify } from 'node:util';
@@ -46,8 +46,7 @@ async function startRemote() {
   const version = JSON.parse(await readFile('package.json', 'utf8')).version;
   await promisify(execFile)(process.execPath, [cli, 'plugin', '--profile', 'web', 'add',
     resolve(`abwoo-deepseek-always-on-${version}.tgz`)], { env, timeout: 120000 });
-  remoteProcess = spawn(process.execPath, [cli, 'web', '--no-open', '--port', '0',
-    '--patch', resolve('deploy/headless.patch.yml')], { env, detached: process.platform === 'darwin', stdio: ['ignore', 'pipe', 'pipe'] });
+  remoteProcess = spawn(process.execPath, [cli, 'web', '--patch', resolve('deploy/headless.patch.yml'), '--no-open', '--port', '0'], { env, detached: process.platform === 'darwin', stdio: ['ignore', 'pipe', 'pipe'] });
   const url = await new Promise((ok, fail) => {
     let output = '';
     const timer = setTimeout(() => fail(new Error('Real independent remote Harness startup timed out')), 90000);
