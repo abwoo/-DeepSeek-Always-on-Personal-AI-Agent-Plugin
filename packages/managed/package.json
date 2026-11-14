@@ -1,0 +1,18 @@
+{
+  "name": "@abwoo/deepseek-always-on-managed",
+  "version": "0.2.0-dev.1",
+  "private": true,
+  "license": "MIT",
+  "type": "module",
+  "exports": {".": "./host.mjs"},
+  "files": ["host.mjs", "bundle.yml", "README.md"],
+  "dsh": {"bundle": {"patch": "./bundle.yml"}},
+  "peerDependencies": {
+    "@deepseek-ai/cordis": "4.1.0",
+    "@deepseek-ai/dsh-client-connection": "0.2.2-rc.3",
+    "@deepseek-ai/dsh-api-gateway": "0.2.2-rc.3",
+    "@deepseek-ai/dsh-api-session-controller": "0.2.2-rc.3",
+    "@deepseek-ai/dsh-typert-registry": "0.2.2-rc.3"
+  },
+  "dependencies": {"zod": "4.6.6"}
+}

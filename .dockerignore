@@ -1,0 +1,16 @@
+.git
+node_modules
+.artifacts
+*.tgz
+apps/mobile/node_modules
+apps/mobile/ios
+apps/mobile/android
+apps/mobile/dist
+playwright-report
+test-results
+
+.env*
+**/*.sqlite*
+**/*.pem
+**/*.key
+apps/mobile/.expo

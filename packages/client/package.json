@@ -1,0 +1,1 @@
+{"name":"@abwoo/always-on-client","version":"0.2.0-dev.1","private":true,"type":"module","exports":{".":{"types":"./index.d.ts","default":"./index.js"}},"files":["index.js","*.d.ts"],"dependencies":{"zod":"4.6.6"}}

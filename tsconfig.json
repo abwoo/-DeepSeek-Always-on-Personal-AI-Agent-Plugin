@@ -15,6 +15,7 @@
     "src/host/**/*.ts",
     "src/shared/**/*.ts",
     "src/remote/**/*.ts",
-    "src/desktop/**/*.ts"
+    "src/desktop/**/*.ts",
+    "src/managed/**/*.ts"
   ]
 }
