@@ -44,9 +44,12 @@ export class GatewayStore {
       this.db.close();
       throw new Error('Gateway database is newer; refusing downgrade');
     }
-    this.db
-      .exec(`PRAGMA journal_mode=WAL; PRAGMA synchronous=FULL; PRAGMA foreign_keys=ON; PRAGMA busy_timeout=5000;
-      CREATE TABLE IF NOT EXISTS meta(key TEXT PRIMARY KEY,value TEXT NOT NULL);
+    this.db.exec(
+      'PRAGMA journal_mode=WAL; PRAGMA synchronous=FULL; PRAGMA foreign_keys=ON; PRAGMA busy_timeout=5000',
+    );
+    try {
+      const identity = this.transaction(() => {
+        this.db.exec(`CREATE TABLE IF NOT EXISTS meta(key TEXT PRIMARY KEY,value TEXT NOT NULL);
       CREATE TABLE IF NOT EXISTS pairings(hash TEXT PRIMARY KEY,expires_at INTEGER NOT NULL,used INTEGER NOT NULL DEFAULT 0);
       CREATE TABLE IF NOT EXISTS devices(id TEXT PRIMARY KEY,owner_id TEXT NOT NULL,name TEXT NOT NULL,platform TEXT NOT NULL,token_hash TEXT NOT NULL,expires_at INTEGER NOT NULL,revoked INTEGER NOT NULL DEFAULT 0,created_at INTEGER NOT NULL);
       CREATE TABLE IF NOT EXISTS operations(device_id TEXT NOT NULL,id TEXT NOT NULL,fingerprint TEXT NOT NULL,status TEXT NOT NULL,result TEXT,created_at INTEGER NOT NULL,PRIMARY KEY(device_id,id));
@@ -54,29 +57,38 @@ export class GatewayStore {
       CREATE TABLE IF NOT EXISTS goals(id TEXT PRIMARY KEY,data TEXT NOT NULL);
       CREATE TABLE IF NOT EXISTS push_devices(device_id TEXT PRIMARY KEY,token TEXT NOT NULL,project_id TEXT NOT NULL,active INTEGER NOT NULL DEFAULT 1);
       CREATE TABLE IF NOT EXISTS deliveries(device_id TEXT NOT NULL,notice_id TEXT NOT NULL,status TEXT NOT NULL,ticket TEXT,attempts INTEGER NOT NULL DEFAULT 0,next_at INTEGER NOT NULL,error TEXT,PRIMARY KEY(device_id,notice_id));`);
-    const ensure = (key: string) => {
-      this.db.prepare('INSERT OR IGNORE INTO meta VALUES(?,?)').run(key, randomUUID());
-      return String(this.db.prepare('SELECT value FROM meta WHERE key=?').get(key)!.value);
-    };
-    const columns = this.db.prepare('PRAGMA table_info(push_devices)').all();
-    if (!columns.some((c) => c.name === 'registered_at'))
-      this.db.exec('ALTER TABLE push_devices ADD COLUMN registered_at INTEGER NOT NULL DEFAULT 0');
-    if (
-      !this.db
-        .prepare('PRAGMA table_info(deliveries)')
-        .all()
-        .some((c) => c.name === 'created_at')
-    )
-      this.db.exec('ALTER TABLE deliveries ADD COLUMN created_at INTEGER NOT NULL DEFAULT 0');
-    this.db.exec(
-      `CREATE TABLE IF NOT EXISTS push_acks(device_id TEXT NOT NULL,notice_id TEXT NOT NULL,kind TEXT NOT NULL,created_at INTEGER NOT NULL,PRIMARY KEY(device_id,notice_id,kind)); PRAGMA user_version=2`,
-    );
-    this.authorityId = ensure('authority_id');
-    this.ownerId = ensure('owner_id');
-    if (recoverPending)
-      this.db.exec(
-        "UPDATE operations SET status='unknown' WHERE status='pending'; UPDATE deliveries SET status='unknown',error='process_interrupted' WHERE status='sending';",
-      );
+        const ensure = (key: string) => {
+          this.db.prepare('INSERT OR IGNORE INTO meta VALUES(?,?)').run(key, randomUUID());
+          return String(this.db.prepare('SELECT value FROM meta WHERE key=?').get(key)!.value);
+        };
+        const columns = this.db.prepare('PRAGMA table_info(push_devices)').all();
+        if (!columns.some((c) => c.name === 'registered_at'))
+          this.db.exec(
+            'ALTER TABLE push_devices ADD COLUMN registered_at INTEGER NOT NULL DEFAULT 0',
+          );
+        if (
+          !this.db
+            .prepare('PRAGMA table_info(deliveries)')
+            .all()
+            .some((c) => c.name === 'created_at')
+        )
+          this.db.exec('ALTER TABLE deliveries ADD COLUMN created_at INTEGER NOT NULL DEFAULT 0');
+        this.db.exec(
+          `CREATE TABLE IF NOT EXISTS push_acks(device_id TEXT NOT NULL,notice_id TEXT NOT NULL,kind TEXT NOT NULL,created_at INTEGER NOT NULL,PRIMARY KEY(device_id,notice_id,kind)); PRAGMA user_version=2`,
+        );
+
+        if (recoverPending)
+          this.db.exec(
+            "UPDATE operations SET status='unknown' WHERE status='pending'; UPDATE deliveries SET status='unknown',error='process_interrupted' WHERE status='sending';",
+          );
+        return { authorityId: ensure('authority_id'), ownerId: ensure('owner_id') };
+      });
+      this.authorityId = identity.authorityId;
+      this.ownerId = identity.ownerId;
+    } catch (error) {
+      this.db.close();
+      throw error;
+    }
   }
   transaction<T>(fn: () => T): T {
     this.db.exec('BEGIN IMMEDIATE');
