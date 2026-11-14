@@ -187,6 +187,8 @@ try {
       await page.getByLabel('Message your agent').fill('Phase 1 actual native conversation input');
       await page.getByRole('button', { name: 'Send to agent', exact: true }).click();
       await expect.poll(async () => JSON.stringify(await observer.session.events({address:{kind:'session',sessionId:personalSessionId}}))).toContain('Phase 1 actual native conversation input');
+      await expect(page.getByText('Connected', { exact: true })).toBeVisible();
+      await expect(page.getByText('Phase 1 actual native conversation input', { exact: true })).toBeVisible();
       evidence.desktopSharedTaskId = sharedTaskId;
       evidence.desktopSessionId = personalSessionId;
       evidence.desktopSharedMemory = true;
