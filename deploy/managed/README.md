@@ -11,3 +11,5 @@ From the operator's private runtime console, `node scripts/managed-admin.mjs pai
 The device API allows snapshots, approved task/memory/Inbox mutations, native Session control, goals and device management. It exposes no generic RPC proxy, Shell, filesystem browser, model/provider settings or approval-answer endpoint. Native tool sandbox/approval remains the Harness boundary. Browser-based owner administration stays private.
 
 Current status: buildable operator template and real Harness engineering tests; not a deployed or production-audited service. Verify trusted public TLS, real provider execution, costs, recovery and actual device notifications before marking any production gate passed.
+
+For native notifications, configure `ALWAYS_ON_EXPO_PUSH_ENABLED=1`, `ALWAYS_ON_EXPO_PROJECT_ID` and server-only `ALWAYS_ON_EXPO_ACCESS_TOKEN`; enable Expo enhanced push security and provision the same project's actual APNs/FCM credentials. Mobile's public EAS project ID must match. Users opt in from the installed native app. Inbox works even when this channel is unavailable. See `docs/V02_PHASE5.md` for delivery-state meanings and explicit physical-device gates.

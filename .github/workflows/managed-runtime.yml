@@ -2,7 +2,7 @@ name: Managed authority and device protocol
 on:
   push:
     branches: [main]
-    paths: [src/**, packages/managed/**, packages/client/**, scripts/build-managed*, scripts/managed-admin.mjs, deploy/managed/**, tests/unit/managed-auth.test.ts, .github/workflows/managed-runtime.yml]
+    paths: [src/**, packages/managed/**, packages/client/**, scripts/build-managed*, scripts/managed-admin.mjs, deploy/managed/**, tests/unit/managed-auth.test.ts, tests/unit/native-push.test.ts, scripts/verify-real-deepseek.mjs, .github/workflows/managed-runtime.yml]
   workflow_dispatch:
 permissions:
   contents: read
@@ -18,17 +18,24 @@ jobs:
         with: {version: 11.28.5}
       - run: npm ci
       - run: npm run build
-      - run: node --import tsx --test tests/unit/managed-auth.test.ts
+      - run: node --import tsx --test tests/unit/managed-auth.test.ts tests/unit/native-push.test.ts
       - run: node scripts/build-managed.mjs
       - run: node scripts/build-managed-client.mjs
       - run: npm pack --ignore-scripts
       - run: npm pack ./packages/managed --ignore-scripts
       - run: node scripts/build-managed-test.mjs
+      - name: Verify actual DeepSeek provider or record an explicit configuration blocker
+        run: node scripts/verify-real-deepseek.mjs
+        env:
+          DEEPSEEK_API_KEY: ${{ secrets.ALWAYS_ON_DEEPSEEK_API_KEY }}
+          DEEPSEEK_MODEL: ${{ vars.ALWAYS_ON_DEEPSEEK_MODEL }}
       - name: Build operator runtime container
         run: docker build -f deploy/managed/Dockerfile -t always-on-managed:test .
       - uses: actions/upload-artifact@v4
         if: always()
         with:
           name: managed-authority-evidence
-          path: test-results/managed-authority.json
+          path: |
+            test-results/managed-authority.json
+            test-results/real-deepseek.json
           retention-days: 14

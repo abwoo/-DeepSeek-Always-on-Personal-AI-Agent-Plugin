@@ -22,7 +22,12 @@ const children=[];let stopping=false;
 function stop(code=0){if(stopping)return;stopping=true;for(const child of children)child.kill('SIGTERM');const timer=setTimeout(()=>{for(const child of children)child.kill('SIGKILL');process.exit(code);},10000);timer.unref();Promise.all(children.map(c=>new Promise(r=>c.exitCode!==null?r():c.once('exit',r)))).then(()=>process.exit(code));}
 for(const [program,args]of [[process.execPath,[cli,'web','--patch','/data/runtime.patch.yml','--host','127.0.0.1','--port','3080','--no-open']],['caddy',['run','--config','/data/Caddyfile','--adapter','caddyfile']]]){
  const child=spawn(program,args,{stdio:['ignore','pipe','pipe'],env:process.env});children.push(child);
- for(const stream of [child.stdout,child.stderr])stream.on('data',chunk=>process.stdout.write(chunk.toString().replace(/token=[^\s]+/g,'token=REDACTED')));
+ for(const stream of [child.stdout,child.stderr]){
+  let buffer='',discard=false;
+  const redact=line=>{let safe=line.replace(/token=[^\s]+/g,'token=REDACTED');for(const value of [process.env.DEEPSEEK_API_KEY,process.env.ALWAYS_ON_EXPO_ACCESS_TOKEN].filter(Boolean))safe=safe.replaceAll(value,'REDACTED');return safe;};
+  stream.on('data',chunk=>{buffer+=chunk;let i;while((i=buffer.indexOf('\n'))>=0){const line=buffer.slice(0,i);buffer=buffer.slice(i+1);if(!discard)process.stdout.write(redact(line)+'\n');discard=false;}if(buffer.length>65536){buffer='';discard=true;process.stdout.write('[runtime log line omitted: size limit]\n');}});
+  stream.on('end',()=>{if(buffer&&!discard)process.stdout.write(redact(buffer)+'\n');});
+ }
  child.once('exit',code=>{if(!stopping)stop(code||1);});child.once('error',()=>stop(1));
 }
 process.on('SIGTERM',()=>stop());process.on('SIGINT',()=>stop());

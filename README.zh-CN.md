@@ -1,14 +1,14 @@
 # DeepSeek Always-on
 
-[Phase 1 Desktop 开发预览](docs/V02_PHASE1.md) 已通过官方 macOS / Windows 应用的共享任务、记忆和会话验证；生产设备配对和托管执行仍待完成。
+**v0.2 正在开发：** 已实现托管 Harness 设备网关、可配对的原生 Desktop 面板、独立 React Native / Expo 手机工程，以及持久化原生推送队列，复用原有调度、Memory、Inbox 和 Run Ledger。**尚未部署生产服务，也未完成真实手机、真实模型和原生推送的发布验收。**
 
-**v0.2 Phase 0 原生可行性已验证。** 已在官方 macOS / Windows Desktop 中通过独立验证插件读写同一独立 Host 的真实 Session；托管服务、真实模型执行与原生手机 App 尚未交付。见 [架构验证与阻塞项](docs/V02_PHASE0.md) · [v0.2 分阶段计划](docs/V02_PLAN.md)。
+阶段记录：[托管端](docs/V02_PHASE2.md) · [手机原生应用](docs/V02_PHASE3.md) · [跨设备共享](docs/V02_PHASE4.md) · [原生通知](docs/V02_PHASE5.md) · [发布门槛](docs/V02_PLAN.md)。下文保留的 Web/PWA alpha 安装方法不代表 v0.2 原生手机 App 已交付。
 
 [English](README.md) · [开发计划](PLAN.md) · [验收记录](docs/ACCEPTANCE.md)
 
 DeepSeek Harness / Cordis 原生个人智能体插件。手机和电脑访问同一个云端 Host，共享任务、记忆与收件箱。复用官方聊天、Agent、Session、Schedule 和工具，不引入独立 Agent Runtime。
 
-**当前版本：0.1.0-alpha.2，工程验收通过，真实部署待验收，尚未标记 MVP Ready。** 仓库不等于已部署的常驻服务器。GitHub Actions 负责构建和测试；真实模型调用、HTTPS 服务器和设备推送仍需要用户配置。
+**当前版本：0.1.0-alpha.2，工程验收通过，真实部署待验收，尚未标记 MVP Ready。** 仓库不等于已部署的常驻服务器。GitHub Actions 负责构建和测试；真实模型调用、托管服务和设备推送由服务运营者配置，最终用户不需要购买或维护 VPS。
 
 安装要求 Node 24.9+ 与固定的 `@deepseek-ai/dsh@0.2.2-rc.3`。完整命令见英文 README。运行 `npm ci`、`npm run check`、`npm pack` 后，通过 `dsh plugin --profile web add <包路径>` 安装，再启动 `dsh web`。
 

@@ -8,7 +8,8 @@
     "android": "expo run:android",
     "ios": "expo run:ios",
     "typecheck": "tsc --noEmit",
-    "export:native": "expo export --platform ios --platform android --output-dir dist"
+    "export:native": "expo export --platform ios --platform android --output-dir dist",
+    "eas-build-pre-install": "node eas-pre-install.mjs"
   },
   "dependencies": {
     "@abwoo/always-on-client": "file:../../packages/client",

@@ -6,6 +6,8 @@ import { homedir } from 'node:os';
 import { randomUUID } from 'node:crypto';
 import { z } from 'zod';
 import { GatewayStore, GatewayError, hash, type Device } from './store.js';
+import { NativePush } from './push.js';
+import type {} from '../host/index.js';
 import { nativeClient } from './native.js';
 import { pairClaim, mutationSchema, opaqueId, goalSchema } from '../shared/managed-contract.js';
 
@@ -16,6 +18,9 @@ export async function apply(ctx:Context,config:Config={}) {
   const store=new GatewayStore(resolve(dir,'gateway.sqlite'));
   ctx.effect(()=>()=>store.close());
   const native=await nativeClient(ctx);ctx.effect(()=>()=>native.close());
+  const push=new NativePush(store,()=>ctx.alwaysOn.notifications.list(),{enabled:process.env.ALWAYS_ON_EXPO_PUSH_ENABLED==='1',projectId:process.env.ALWAYS_ON_EXPO_PROJECT_ID,accessToken:process.env.ALWAYS_ON_EXPO_ACCESS_TOKEN});
+  const pushTimer=setInterval(()=>{void push.tick().catch(()=>ctx.logger.warn('Native push worker unavailable; Inbox retained'));},10000);pushTimer.unref();
+  ctx.effect(()=>async()=>{clearInterval(pushTimer);await push.close();});
   const publicOrigin=config.publicOrigin??process.env.ALWAYS_ON_PUBLIC_ORIGIN;
   if(publicOrigin){const u=new URL(publicOrigin);if(u.protocol!=='https:'||u.username||u.password||u.pathname!=='/'||u.search||u.hash)throw new Error('Public origin must be an HTTPS origin');}
   const proxies=config.trustedProxyAddresses??(process.env.ALWAYS_ON_TRUSTED_PROXIES??'').split(',').filter(Boolean);
@@ -86,6 +91,11 @@ export async function apply(ctx:Context,config:Config={}) {
         const goal={id:goalId,...body.goal,taskId:task.result.id,createdAt:new Date().toISOString()};store.saveGoal(goalId,goal);return goal;
       });return json({authorityId:store.authorityId,operationId:body.operationId,operationStatus:'committed',revision:store.revision(),result});});
     }
+    if(req.method==='GET'&&path.startsWith('/inbox/')){const id=z.uuid().parse(path.slice('/inbox/'.length));const notice=ctx.alwaysOn.notifications.list().find(n=>n.id===id);if(!notice)throw new GatewayError(404,'notice_not_found');return json(notice);}
+    if(req.method==='GET'&&path==='/push/status')return json(push.status(device.id));
+    if(req.method==='POST'&&path==='/push/register')return json(push.register(device.id,await readBody(req)));
+    if(req.method==='POST'&&path==='/push/disable')return json(push.disable(device.id));
+    if(req.method==='POST'&&path==='/push/ack')return json(push.ack(device.id,await readBody(req)));
     if(req.method==='GET'&&path==='/devices')return json({items:store.devices()});
     if(req.method==='POST'&&path==='/devices/pair-code')return json(store.pairCode());
     if(req.method==='POST'&&path==='/devices/revoke'){

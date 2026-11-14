@@ -1,8 +1,8 @@
 # DeepSeek Always-on
 
-The [Phase 1 Desktop development preview](docs/V02_PHASE1.md) now verifies shared remote tasks, memory and conversations on official macOS/Windows applications. Production device pairing and managed execution are still pending.
+**v0.2 development is in progress:** a managed Harness device gateway, paired native Desktop panel, independent React Native / Expo app and durable native-push outbox are implemented. Existing task scheduling, memory, Inbox and Run Ledger are reused. **No production hosted URL or real-phone/model/push release acceptance is claimed.**
 
-**v0.2 Phase 0 native feasibility is verified.** Official macOS/Windows Desktop applications loaded the plugin and accessed the same independent Host’s real Session through a private probe. Managed hosting, actual DeepSeek execution and native mobile apps are still unaccepted. See the [Phase 0 evidence](docs/V02_PHASE0.md) and [v0.2 implementation plan](docs/V02_PLAN.md).
+See [managed runtime](docs/V02_PHASE2.md), [native mobile](docs/V02_PHASE3.md), [shared devices](docs/V02_PHASE4.md), [native notifications](docs/V02_PHASE5.md) and [release gates](docs/V02_PLAN.md). The original Web/PWA alpha remains available below; it is not the v0.2 native phone delivery.
 
 [简体中文](README.zh-CN.md) · [Development plan](PLAN.md) · [Acceptance evidence](docs/ACCEPTANCE.md)
 

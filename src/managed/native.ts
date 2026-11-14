@@ -20,7 +20,7 @@ export async function nativeClient(host:Context) {
       const response=await handler.fetch(new Request('http://personal-agent.internal/api/always-on',{method,headers:{'content-type':'application/json'},...(method==='POST'?{body:JSON.stringify(body)}:{})}),peer);
       const data=await response.json();if(!response.ok||data.ok===false)throw new Error('native_core_rejected');return data;
     },
-    flush:async(id:string)=>{const session=host.sessions.get(id as never);if(session&&!await host.sessions.flush(session))throw new Error('session_flush_failed');},
+    flush:async(id:string)=>{const session=host.sessions.get(id as never);if(!session||!await host.sessions.flush(session))throw new Error('session_flush_failed');},
     close:async()=>{await client.fiber.dispose();await peer.dispose();},
   };
 }

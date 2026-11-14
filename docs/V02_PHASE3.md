@@ -1,0 +1,11 @@
+# v0.2 Phase 3 — Independent native mobile app
+
+`apps/mobile` is a standalone React Native / Expo SDK 58 application with iOS and Android native targets, not a PWA, browser wrapper or WebView. It contains no Agent runtime and no model API key. The app uses real managed endpoints for device pairing, native Session input/history, tasks, goals, consented memory, Inbox, device revocation and native notification registration. There are no seeded demo tasks or fake model responses.
+
+The shared client contract validates requests and snapshots. SecureStore holds this device's revocable credential and bounded operation metadata, never prompts or whole snapshots. Expo native Fetch rejects redirects; authentication does not fall back to a public owner token. Foreground polling stops in the background. Uncertain mutations are restored for status reconciliation without automatic replay. A disconnected phone therefore stops displaying fresh data while the sole hosted Harness keeps working.
+
+GitHub Actions performs type checks, separate iOS/Android Hermes bundle export, native prebuild, Gradle APK compilation and an unsigned iOS Simulator application build. The iOS application scheme must match the generated app workspace rather than an alphabetically first Pods scheme; CI checks for an actual `.app` before recording success. The simulator job also installs, launches and captures that app. A simulator build cannot be installed on a physical iPhone. Android's preview APK uses a development signing key and is not a store release.
+
+Native push requires an actual matching Expo project, APNs/FCM credentials and physical device permission. Android's operator supplies `GOOGLE_SERVICES_FILE` for its actual project; iOS physical builds require Apple signing and provisioning. Public EAS project IDs/service addresses may be compiled into the app; model and Expo server access keys may not.
+
+Build failures and missing external credentials remain visible gates. JS export, simulator screenshots, APK compilation and transport fixtures cannot stand in for the requested real-phone/model/native-push production chain. No App Store, Google Play or MVP Ready publication is authorized by engineering builds alone.
