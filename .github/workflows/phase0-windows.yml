@@ -23,6 +23,7 @@ jobs:
           version: 11.28.5
       - run: npm ci
       - run: npm run build
+      - run: node scripts/build-phase0-probe.mjs
       - name: Download and verify official signed installer
         shell: pwsh
         run: |
@@ -33,6 +34,7 @@ jobs:
           $hash = (Get-FileHash $installer -Algorithm SHA256).Hash
           @{source='https://download.deepseek.com/desktop/dsh-latest-windows-x64.exe'; sha256=$hash; signature=[string]$signature.Status; signer=$signature.SignerCertificate.Subject; mvpReady=$false} | ConvertTo-Json | Set-Content .artifacts/windows-desktop/installer.json
           if ($signature.Status -ne 'Valid') { throw 'Official installer signature is not valid' }
+          if ($hash -ne '786C9B26050C35B62C7BE6A01DEE2541DC1C2C5D9BD5F2DBE77BEEEB8D50704E') { throw 'Official latest installer changed; review and repin its exact build before execution' }
           $root = Join-Path $env:RUNNER_TEMP 'always-on-desktop'
           $process = Start-Process $installer -ArgumentList '/S', "/D=$root" -Wait -PassThru
           if ($process.ExitCode -ne 0) { throw "Installer exit $($process.ExitCode)" }
@@ -58,6 +60,10 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw 'Plugin packaging failed' }
           & $env:ALWAYS_ON_DESKTOP_CLI plugin --profile desktop add (Join-Path $PWD $packed[0].filename)
           if ($LASTEXITCODE -ne 0) { throw 'Native Desktop plugin install failed' }
+          $probe = npm pack ./probes/desktop-remote --ignore-scripts --json | ConvertFrom-Json
+          if ($LASTEXITCODE -ne 0) { throw 'Private Phase 0 probe packaging failed' }
+          & $env:ALWAYS_ON_DESKTOP_CLI plugin --profile desktop add (Join-Path $PWD $probe[0].filename)
+          if ($LASTEXITCODE -ne 0) { throw 'Private native remote probe install failed' }
       - name: Verify native panel, real persistence and process restart
         run: node scripts/probe-windows-desktop.mjs
       - name: Uninstall through Desktop-owned command
@@ -65,6 +71,8 @@ jobs:
         run: |
           & $env:ALWAYS_ON_DESKTOP_CLI plugin --profile desktop remove '@abwoo/deepseek-always-on'
           if ($LASTEXITCODE -ne 0) { throw 'Native Desktop plugin removal failed' }
+          & $env:ALWAYS_ON_DESKTOP_CLI plugin --profile desktop remove '@abwoo/always-on-desktop-remote-probe'
+          if ($LASTEXITCODE -ne 0) { throw 'Native remote probe removal failed' }
       - uses: actions/upload-artifact@v4
         if: always()
         with:

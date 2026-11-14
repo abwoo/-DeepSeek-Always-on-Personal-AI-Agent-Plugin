@@ -1,0 +1,3 @@
+- insert:
+    - id: always-on-desktop-remote-probe
+      name: '@abwoo/always-on-desktop-remote-probe'
