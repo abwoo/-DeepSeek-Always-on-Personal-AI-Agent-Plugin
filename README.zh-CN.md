@@ -4,6 +4,8 @@
 
 阶段记录：[托管端](docs/V02_PHASE2.md) · [手机原生应用](docs/V02_PHASE3.md) · [跨设备共享](docs/V02_PHASE4.md) · [原生通知](docs/V02_PHASE5.md) · [发布门槛](docs/V02_PLAN.md)。下文保留的 Web/PWA alpha 安装方法不代表 v0.2 原生手机 App 已交付。
 
+[原生预览安装、配对与当前阻塞](docs/V02_QUICKSTART.md) · [安全检查范围](docs/V02_SECURITY.md)
+
 [English](README.md) · [开发计划](PLAN.md) · [验收记录](docs/ACCEPTANCE.md)
 
 DeepSeek Harness / Cordis 原生个人智能体插件。手机和电脑访问同一个云端 Host，共享任务、记忆与收件箱。复用官方聊天、Agent、Session、Schedule 和工具，不引入独立 Agent Runtime。

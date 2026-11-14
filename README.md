@@ -4,6 +4,8 @@
 
 See [managed runtime](docs/V02_PHASE2.md), [native mobile](docs/V02_PHASE3.md), [shared devices](docs/V02_PHASE4.md), [native notifications](docs/V02_PHASE5.md) and [release gates](docs/V02_PLAN.md). The original Web/PWA alpha remains available below; it is not the v0.2 native phone delivery.
 
+[Native preview setup and current blockers](docs/V02_QUICKSTART.md) · [Security scope](docs/V02_SECURITY.md)
+
 [简体中文](README.zh-CN.md) · [Development plan](PLAN.md) · [Acceptance evidence](docs/ACCEPTANCE.md)
 
 A native **DeepSeek Harness / Cordis plugin** for persistent personal tasks, consented memory, a shared Inbox and Web Push. One cloud Host serves your phone and computer. Harness owns the model, chat, tools, Sessions and scheduling; this plugin does not implement an Agent loop.

@@ -14,3 +14,9 @@ test-results
 **/*.pem
 **/*.key
 apps/mobile/.expo
+**/*.p8
+**/*.p12
+**/*.jks
+**/*.keystore
+**/*.mobileprovision
+apps/mobile/credentials.json
