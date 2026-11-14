@@ -2,7 +2,7 @@ name: Phase 0 official Windows Desktop probe
 on:
   workflow_dispatch:
   push:
-    branches: [main]
+    branches: [main, "v0.3/**"]
     paths:
       - .github/workflows/phase0-windows.yml
       - scripts/probe-native-desktop.mjs
@@ -72,12 +72,12 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw 'Native Desktop plugin install failed' }
           $desktop = npm pack ./packages/desktop --ignore-scripts --json | ConvertFrom-Json
           if ($LASTEXITCODE -ne 0) { throw 'Desktop preview packaging failed' }
-          & $env:ALWAYS_ON_DESKTOP_CLI plugin --profile desktop add (Join-Path $PWD $desktop[0].filename)
-          if ($LASTEXITCODE -ne 0) { throw 'Desktop preview install failed' }
           $probe = npm pack ./probes/desktop-remote --ignore-scripts --json | ConvertFrom-Json
           if ($LASTEXITCODE -ne 0) { throw 'Private Phase 0 probe packaging failed' }
           & $env:ALWAYS_ON_DESKTOP_CLI plugin --profile desktop add (Join-Path $PWD $probe[0].filename)
           if ($LASTEXITCODE -ne 0) { throw 'Private native remote probe install failed' }
+      - name: Install and manage plugin through actual official Plugins UI
+        run: node scripts/probe-native-desktop.mjs --plugins-ui
       - name: Verify native panel, real persistence and process restart
         run: node scripts/probe-native-desktop.mjs
       - name: Uninstall through Desktop-owned command
@@ -99,6 +99,6 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: always-on-desktop-preview-windows
-          path: abwoo-deepseek-always-on-desktop-0.2.0-dev.1.tgz
+          path: abwoo-deepseek-always-on-desktop-0.3.0-dev.1.tgz
           retention-days: 14
           if-no-files-found: error

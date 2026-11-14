@@ -1,7 +1,7 @@
 name: Managed authority and device protocol
 on:
   push:
-    branches: [main]
+    branches: [main, "v0.3/**"]
     paths: [.dockerignore, src/**, packages/managed/**, packages/client/**, scripts/build-managed*, scripts/managed-admin.mjs, deploy/managed/**, tests/unit/managed-auth.test.ts, tests/unit/native-push.test.ts, scripts/verify-real-deepseek.mjs, scripts/verify-managed-container.mjs, .github/workflows/managed-runtime.yml]
   workflow_dispatch:
 permissions:

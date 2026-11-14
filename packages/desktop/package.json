@@ -1,16 +1,22 @@
 {
   "name": "@abwoo/deepseek-always-on-desktop",
-  "version": "0.2.0-dev.1",
+  "version": "0.3.0-dev.1",
   "private": true,
   "type": "module",
   "exports": {
     ".": "./host.mjs",
-    "./client": "./client.js"
+    "./client": "./client.js",
+    "./icon": "./icon.svg",
+    "./locale/*.json": "./locale/*.json"
   },
   "files": [
     "host.mjs",
     "client.js",
-    "bundle.yml"
+    "bundle.yml",
+    "icon.svg",
+    "locale",
+    "README.md",
+    "LICENSE"
   ],
   "dsh": {
     "bundle": {
@@ -37,5 +43,22 @@
     "ws": "8.23.0",
     "zod": "4.6.6"
   },
-  "license": "MIT"
+  "license": "MIT",
+  "description": "Always-on personal agent for DeepSeek Harness Desktop: shared chats, tasks, goals, memory and Inbox",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/abwoo/-DeepSeek-Always-on-Personal-AI-Agent-Plugin.git",
+    "directory": "packages/desktop"
+  },
+  "homepage": "https://github.com/abwoo/-DeepSeek-Always-on-Personal-AI-Agent-Plugin",
+  "engines": {
+    "node": ">=24.9.0",
+    "dsh": "0.2.2-rc.3"
+  },
+  "keywords": [
+    "deepseek",
+    "harness",
+    "cordis",
+    "personal-agent"
+  ]
 }

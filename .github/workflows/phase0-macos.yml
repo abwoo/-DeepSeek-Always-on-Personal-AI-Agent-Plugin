@@ -2,7 +2,7 @@ name: Phase 0 official macOS Desktop probe
 on:
   workflow_dispatch:
   push:
-    branches: [main]
+    branches: [main, "v0.3/**"]
     paths:
       - .github/workflows/phase0-macos.yml
       - scripts/probe-native-desktop.mjs
@@ -69,9 +69,10 @@ jobs:
           npm pack --ignore-scripts
           "$ALWAYS_ON_DESKTOP_CLI" plugin --profile desktop add "$PWD/abwoo-deepseek-always-on-$(node -p 'require("./package.json").version').tgz"
           npm pack ./packages/desktop --ignore-scripts
-          "$ALWAYS_ON_DESKTOP_CLI" plugin --profile desktop add "$PWD/abwoo-deepseek-always-on-desktop-0.2.0-dev.1.tgz"
           npm pack ./probes/desktop-remote --ignore-scripts
           "$ALWAYS_ON_DESKTOP_CLI" plugin --profile desktop add "$PWD/abwoo-always-on-desktop-remote-probe-0.0.0-phase0.tgz"
+      - name: Install and manage plugin through actual official Plugins UI
+        run: node scripts/probe-native-desktop.mjs --plugins-ui
       - name: Native panel, independent remote Session and process restart
         run: node scripts/probe-native-desktop.mjs
       - name: Uninstall bundles using Desktop-owned command
@@ -90,6 +91,6 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: always-on-desktop-preview-macos
-          path: abwoo-deepseek-always-on-desktop-0.2.0-dev.1.tgz
+          path: abwoo-deepseek-always-on-desktop-0.3.0-dev.1.tgz
           retention-days: 14
           if-no-files-found: error

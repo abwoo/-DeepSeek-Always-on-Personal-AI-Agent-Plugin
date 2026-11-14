@@ -1,7 +1,7 @@
 name: Native mobile builds
 on:
   push:
-    branches: [main]
+    branches: [main, "v0.3/**"]
     paths: [apps/mobile/**, packages/client/**, src/shared/**, scripts/build-managed-client.mjs, scripts/mobile-android-smoke.py, scripts/check-ios-screen.swift, scripts/verify-ios-simulator.py, .github/workflows/mobile-native.yml]
   workflow_dispatch:
 permissions:

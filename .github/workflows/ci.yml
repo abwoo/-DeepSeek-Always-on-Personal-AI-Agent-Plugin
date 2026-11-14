@@ -1,7 +1,7 @@
 name: Validate Harness plugin and remote Session protocol
 on:
   push:
-    branches: [main]
+    branches: [main, "v0.3/**"]
   pull_request:
   workflow_dispatch:
 permissions:

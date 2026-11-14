@@ -5,6 +5,7 @@ import { spawn, execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { setTimeout as delay } from 'node:timers/promises';
+import { createServer } from 'node:http';
 import { dirname, join, resolve } from 'node:path';
 import { ManagedClient } from '../dist/shared/managed-client.js';
 import { connectProbe } from '../dist/remote/probe-connection.js';
@@ -118,7 +119,7 @@ async function boot(action) {
         if (e.name !== 'TimeoutError') throw e; return false;
       })) await dialog.getByRole('button', { name: button, exact: true }).click();
     }
-    if(!process.argv.includes('--initialize'))await expect.poll(async()=>page.evaluate(async()=>{try{return (await fetch('/api/always-on')).status;}catch{return 0;}}),{timeout:30000}).toBe(200);
+    if(!process.argv.includes('--initialize')&&!process.argv.includes('--plugins-ui'))await expect.poll(async()=>page.evaluate(async()=>{try{return (await fetch('/api/always-on')).status;}catch{return 0;}}),{timeout:30000}).toBe(200);
     await action(page);
   } finally {
     await browser?.close().catch(() => {});
@@ -126,6 +127,48 @@ async function boot(action) {
     await stopTree(child);
   }
 }
+async function pluginsUi() {
+  const archive = await readFile(resolve('abwoo-deepseek-always-on-desktop-0.3.0-dev.1.tgz'));
+  const server = createServer((req,res) => {
+    if(req.url!=='/desktop.tgz'){res.writeHead(404);res.end();return;}
+    res.writeHead(200,{'content-type':'application/gzip','content-length':archive.length});res.end(archive);
+  });
+  await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
+  const spec=`http://127.0.0.1:${server.address().port}/desktop.tgz`;
+  try {
+    await boot(async page=>{
+      async function install(){
+        await page.getByText('Plugins',{exact:true}).first().click();
+        await page.getByRole('button',{name:'Add plugin',exact:true}).click();
+        await page.getByRole('textbox',{name:'Package name or address',exact:true}).fill(spec);
+        await page.getByRole('button',{name:'Install',exact:true}).click();
+        const confirm=page.getByRole('button',{name:'Install',exact:true});
+        if(await confirm.waitFor({state:'visible',timeout:10000}).then(()=>true).catch(()=>false))await confirm.click();
+        const enable=page.getByRole('button',{name:'Enable now',exact:true});
+        await enable.waitFor({state:'visible',timeout:150000});await enable.click();
+        await expect(page.getByText('Personal Agent',{exact:true}).first()).toBeVisible({timeout:45000});
+      }
+      try {
+        await install();evidence.graphicalInstallation=true;
+        await page.getByText('Plugins',{exact:true}).first().click();
+        await page.getByRole('button',{name:'View DeepSeek Always-on',exact:true}).click();
+        const toggle=page.getByRole('switch',{name:'Enable DeepSeek Always-on',exact:true});
+        await toggle.click();await expect(page.getByText('Personal Agent',{exact:true})).toHaveCount(0,{timeout:30000});
+        evidence.graphicalDisable=true;await toggle.click();
+        await expect(page.getByText('Personal Agent',{exact:true}).first()).toBeVisible({timeout:30000});evidence.graphicalEnable=true;
+        await capture(page,'plugins-ui.png');
+        await page.getByRole('button',{name:'Uninstall DeepSeek Always-on',exact:true}).click();
+        const dialog=page.getByRole('dialog');await dialog.getByRole('button',{name:'Uninstall',exact:true}).click();
+        await expect(page.getByText('Personal Agent',{exact:true})).toHaveCount(0,{timeout:60000});evidence.graphicalUninstall=true;
+        await install();evidence.graphicalReinstall=true;
+      }catch(e){await writeFile(join(output,'plugins-ui-dom.txt'),await page.locator('body').innerText());await capture(page,'plugins-ui-failure.png');throw e;}
+    });
+    await boot(async page=>{await expect(page.getByText('Personal Agent',{exact:true}).first()).toBeVisible({timeout:30000});});
+    evidence.graphicalRestart=true;
+    evidence.distribution='actual official Plugins UI, local HTTP immutable tarball fixture; not published npm/live service';
+  }finally{await new Promise(resolve=>server.close(resolve));}
+}
+
 try {
   await verifyRuntime();
   if (process.argv.includes('--initialize')) {
@@ -133,6 +176,8 @@ try {
       await capture(page, 'initialized.png');
     });
     evidence.profileInitialized = true;
+  } else if (process.argv.includes('--plugins-ui')) {
+    await pluginsUi();
   } else {
     await startRemote();
     let id, remoteId, personalSessionId, sharedTaskId;
@@ -268,6 +313,6 @@ try {
 } finally {
   await observer?.close();
   await stopTree(remoteProcess);
-  await writeFile(join(output, process.argv.includes('--initialize') ? 'initialize.json' : 'plugin.json'),
+  await writeFile(join(output, process.argv.includes('--initialize') ? 'initialize.json' : process.argv.includes('--plugins-ui') ? 'plugins-ui.json' : 'plugin.json'),
     JSON.stringify({ timestamp: new Date().toISOString(), ...evidence }, null, 2));
 }
