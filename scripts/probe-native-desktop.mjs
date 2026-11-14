@@ -20,7 +20,7 @@ async function verifyRuntime() {
     : join(dirname(executable), '..', 'Resources', 'app.asar', 'dsh');
   const script = `const fs=require('node:fs'); const path=require('node:path');
     const p=path.join(process.env.ALWAYS_ON_PHASE0_RESOURCE_ROOT,'node_modules','@deepseek-ai','cordis','package.json');
-    console.log(JSON.stringify({cordis:JSON.parse(fs.readFileSync(p,'utf8')).version}));`;
+    const read=name=>{try{return JSON.parse(fs.readFileSync(path.join(process.env.ALWAYS_ON_PHASE0_RESOURCE_ROOT,'node_modules',name,'package.json'),'utf8')).version;}catch{return null;}};console.log(JSON.stringify({cordis:JSON.parse(fs.readFileSync(p,'utf8')).version,undici:read('undici'),fflate:read('fflate'),mcpClient:read('@modelcontextprotocol/client')}));`;
   const result = await promisify(execFile)(executable, ['--expose-internals', '-e', script], {
     env: { ...process.env, ELECTRON_RUN_AS_NODE: '1', ALWAYS_ON_PHASE0_RESOURCE_ROOT: root }, timeout: 30000,
   });
@@ -118,6 +118,7 @@ async function boot(action) {
         if (e.name !== 'TimeoutError') throw e; return false;
       })) await dialog.getByRole('button', { name: button, exact: true }).click();
     }
+    if(!process.argv.includes('--initialize'))await expect.poll(async()=>page.evaluate(async()=>{try{return (await fetch('/api/always-on')).status;}catch{return 0;}}),{timeout:30000}).toBe(200);
     await action(page);
   } finally {
     await browser?.close().catch(() => {});

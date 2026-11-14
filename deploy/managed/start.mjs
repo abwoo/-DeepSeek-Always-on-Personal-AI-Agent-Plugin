@@ -16,8 +16,9 @@ await invoke(['plugin','--profile','web','add',resolve(`abwoo-deepseek-always-on
 await invoke(['plugin','--profile','web','add',resolve('abwoo-deepseek-always-on-managed-0.2.0-dev.1.tgz')]);
 await writeFile('/data/runtime.patch.yml',`- id: workspace-controller\n  config:\n    documentsDirectory: !!js process.env.ALWAYS_ON_DOCUMENTS_DIR\n- id: agent-default-model\n  config:\n    provider: deepseek-official\n    model: !!js process.env.DEEPSEEK_MODEL\n- id: web-search-deepseek\n  config:\n    maxTokens: 512\n    maxUses: 1\n`);
 if(process.env.ALWAYS_ON_TLS_CERT&&process.env.ALWAYS_ON_TLS_KEY){
- await writeFile('/data/Caddyfile',`${origin.hostname}:8443 {\n tls ${JSON.stringify(process.env.ALWAYS_ON_TLS_CERT)} ${JSON.stringify(process.env.ALWAYS_ON_TLS_KEY)}\n handle /personal-agent/v1/* {\n  request_body { max_size 64KB }\n  reverse_proxy 127.0.0.1:3080 { header_up X-Forwarded-Proto https }\n }\n handle { respond 404 }\n}\n`);
+ await writeFile('/data/Caddyfile',`${origin.hostname}:8443 {\n tls ${JSON.stringify(process.env.ALWAYS_ON_TLS_CERT)} ${JSON.stringify(process.env.ALWAYS_ON_TLS_KEY)}\n handle /personal-agent/v1/* {\n  request_body {\n   max_size 64KB\n  }\n  reverse_proxy 127.0.0.1:3080 {\n   header_up X-Forwarded-Proto https\n  }\n }\n handle {\n  respond 404\n }\n}\n`);
 }else throw Error('Operator must provide trusted TLS certificate/key paths; no internal certificate is used for production');
+await promisify(execFile)('caddy',['validate','--config','/data/Caddyfile','--adapter','caddyfile'],{env:process.env,timeout:30000});
 const children=[];let stopping=false;
 function stop(code=0){if(stopping)return;stopping=true;for(const child of children)child.kill('SIGTERM');const timer=setTimeout(()=>{for(const child of children)child.kill('SIGKILL');process.exit(code);},10000);timer.unref();Promise.all(children.map(c=>new Promise(r=>c.exitCode!==null?r():c.once('exit',r)))).then(()=>process.exit(code));}
 for(const [program,args]of [[process.execPath,[cli,'web','--patch','/data/runtime.patch.yml','--host','127.0.0.1','--port','3080','--no-open']],['caddy',['run','--config','/data/Caddyfile','--adapter','caddyfile']]]){
