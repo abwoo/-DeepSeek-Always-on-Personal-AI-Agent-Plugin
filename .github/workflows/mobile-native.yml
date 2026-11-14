@@ -1,0 +1,82 @@
+name: Native mobile builds
+on:
+  push:
+    branches: [main]
+    paths: [apps/mobile/**, packages/client/**, src/shared/**, scripts/build-managed-client.mjs, .github/workflows/mobile-native.yml]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  android:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: {node-version: '24', cache: npm, cache-dependency-path: apps/mobile/package-lock.json}
+      - uses: actions/setup-java@v4
+        with: {distribution: temurin, java-version: '21'}
+      - uses: android-actions/setup-android@v3
+      - run: npm ci
+      - run: npm run build
+      - run: node scripts/build-managed-client.mjs
+      - run: npm ci
+        working-directory: apps/mobile
+      - run: npm run typecheck
+        working-directory: apps/mobile
+      - run: npm run export:native
+        working-directory: apps/mobile
+      - run: npx expo prebuild --platform android --no-install
+        working-directory: apps/mobile
+      - run: ./gradlew :app:assembleRelease --no-daemon
+        working-directory: apps/mobile/android
+        env: {NODE_ENV: production, GRADLE_OPTS: '-Dorg.gradle.jvmargs=-Xmx4096m'}
+      - name: Record build scope
+        run: |
+          mkdir -p mobile-evidence
+          node -e 'require("fs").writeFileSync("mobile-evidence/android.json",JSON.stringify({nativeAndroidApkBuilt:true,signing:"development debug key; not a store release",realPhone:false,realDeepSeek:false,mvpReady:false},null,2))'
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: android-native-preview
+          path: |
+            apps/mobile/android/app/build/outputs/apk/release/*.apk
+            mobile-evidence/
+          retention-days: 14
+  ios-simulator:
+    runs-on: macos-26
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: {node-version: '24', cache: npm, cache-dependency-path: apps/mobile/package-lock.json}
+      - run: npm ci
+      - run: npm run build
+      - run: node scripts/build-managed-client.mjs
+      - run: npm ci
+        working-directory: apps/mobile
+      - run: npm run typecheck
+        working-directory: apps/mobile
+      - run: npx expo prebuild --platform ios --no-install
+        working-directory: apps/mobile
+      - run: pod install
+        working-directory: apps/mobile/ios
+      - name: Compile actual native simulator application
+        shell: bash
+        run: |
+          workspace=$(find apps/mobile/ios -maxdepth 1 -name '*.xcworkspace' -print -quit)
+          scheme=$(xcodebuild -workspace "$workspace" -list -json | python3 -c 'import sys,json;print(json.load(sys.stdin)["workspace"]["schemes"][0])')
+          xcodebuild -workspace "$workspace" -scheme "$scheme" -configuration Release -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' -derivedDataPath "$PWD/mobile-build" CODE_SIGNING_ALLOWED=NO build > ios-build.log 2>&1
+          mkdir -p mobile-evidence
+          app=$(find mobile-build/Build/Products/Release-iphonesimulator -maxdepth 1 -name '*.app' -print -quit)
+          test -n "$app"
+          tar -czf mobile-evidence/ios-simulator-preview.app.tar.gz -C "$(dirname "$app")" "$(basename "$app")"
+          node -e 'require("fs").writeFileSync("mobile-evidence/ios.json",JSON.stringify({nativeSimulatorAppBuilt:true,installableOnPhysicalIPhone:false,appleSigningCredentialsPresent:false,realPhone:false,mvpReady:false},null,2))'
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ios-simulator-native-preview
+          path: |
+            mobile-evidence/
+            ios-build.log
+          retention-days: 14
