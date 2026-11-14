@@ -250,6 +250,15 @@ try {
       const snapshot = await page.evaluate(async () => (await fetch('/api/always-on-desktop/state')).json());
       if (!snapshot.tasks.some((t) => t.id === sharedTaskId)) throw new Error('Desktop restart did not retain the same remote task ID');
       evidence.phase1SharedState = true;
+      const credential=await page.evaluate(async()=>(await fetch('/api/always-on-desktop/status')).json());
+      await phoneClient.request('/devices/revoke',{deviceId:credential.deviceId});
+      const unauthorized=await page.evaluate(async()=>{const r=await fetch('/api/always-on-desktop/state');return r.status;});if(unauthorized!==503)throw Error('Revoked Desktop credential still accessed state');
+      await expect(page.getByRole('button',{name:'Pair Desktop',exact:true})).toBeVisible({timeout:10000});
+      const rePair=await phoneClient.request('/devices/pair-code',{});
+      await page.getByLabel('HTTPS service address').fill(evidence.remoteAuthority);await page.getByLabel('One-use pairing code').fill(rePair.code);await page.getByLabel('Device name').fill('Repaired actual Desktop');await page.getByRole('button',{name:'Pair Desktop',exact:true}).click();
+      await expect(page.getByText('Connected',{exact:true})).toBeVisible({timeout:10000});
+      const restored=await page.evaluate(async()=>(await fetch('/api/always-on-desktop/state')).json());if(!restored.tasks.some(t=>t.id===sharedTaskId)||restored.connection.deviceId===credential.deviceId)throw Error('Re-pair did not restore the same authority with a new device credential');
+      evidence.nativeRevocationAndRePair=true;
     });
   }
 } catch (error) {

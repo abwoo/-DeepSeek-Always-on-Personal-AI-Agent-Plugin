@@ -2,7 +2,7 @@ name: Native mobile builds
 on:
   push:
     branches: [main]
-    paths: [apps/mobile/**, packages/client/**, src/shared/**, scripts/build-managed-client.mjs, scripts/mobile-android-smoke.py, .github/workflows/mobile-native.yml]
+    paths: [apps/mobile/**, packages/client/**, src/shared/**, scripts/build-managed-client.mjs, scripts/mobile-android-smoke.py, scripts/check-ios-screen.swift, .github/workflows/mobile-native.yml]
   workflow_dispatch:
 permissions:
   contents: read
@@ -76,6 +76,12 @@ jobs:
           mkdir -p mobile-evidence
           app=$(find mobile-build/Build/Products/Release-iphonesimulator -maxdepth 1 -name '*.app' -print -quit)
           test -n "$app"
+          # Simulator-only ad-hoc signature grants a real local Keychain access group.
+          # This is not an Apple distribution identity or a physical-device provisioning profile.
+          /usr/libexec/PlistBuddy -c 'Add :application-identifier string SIMULATOR0.com.abwoo.deepseekalwayson' mobile-evidence/simulator.entitlements.plist
+          /usr/libexec/PlistBuddy -c 'Add :keychain-access-groups array' mobile-evidence/simulator.entitlements.plist
+          /usr/libexec/PlistBuddy -c 'Add :keychain-access-groups:0 string SIMULATOR0.com.abwoo.deepseekalwayson' mobile-evidence/simulator.entitlements.plist
+          codesign --force --sign - --entitlements mobile-evidence/simulator.entitlements.plist --generate-entitlement-der "$app"
           tar -czf mobile-evidence/ios-simulator-preview.app.tar.gz -C "$(dirname "$app")" "$(basename "$app")"
           udid=$(xcrun simctl list devices available -j | python3 -c 'import sys,json;print(next(d["udid"] for group in json.load(sys.stdin)["devices"].values() for d in group if "iPhone" in d["name"]))')
           xcrun simctl boot "$udid" || true
@@ -84,7 +90,8 @@ jobs:
           xcrun simctl launch "$udid" com.abwoo.deepseekalwayson
           sleep 5
           xcrun simctl io "$udid" screenshot mobile-evidence/ios-pairing.png
-          node -e 'require("fs").writeFileSync("mobile-evidence/ios.json",JSON.stringify({sourceCommit:process.env.GITHUB_SHA,nativeSimulatorAppBuilt:true,simulatorLaunch:true,installableOnPhysicalIPhone:false,appleSigningCredentialsPresent:false,realPhone:false,mvpReady:false},null,2))'
+          swift scripts/check-ios-screen.swift mobile-evidence/ios-pairing.png
+          node -e 'require("fs").writeFileSync("mobile-evidence/ios.json",JSON.stringify({sourceCommit:process.env.GITHUB_SHA,nativeSimulatorAppBuilt:true,simulatorLaunch:true,secureStorageStartupPassed:true,simulatorSigning:"local ad-hoc; not physical-device provisioning",installableOnPhysicalIPhone:false,appleSigningCredentialsPresent:false,realPhone:false,mvpReady:false},null,2))'
       - uses: actions/upload-artifact@v4
         if: always()
         with:
