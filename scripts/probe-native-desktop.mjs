@@ -1,6 +1,9 @@
 // Runs only against an actual official installed macOS/Windows application in disposable CI.
 // Native integration and remote Session control only; never certifies model execution or MVP readiness.
 import { chromium, expect } from '@playwright/test';
+// Use the pinned HTTP client: its best-effort QoS handling fixes macOS EINVAL
+// in Node 24's bundled fetch. This changes the probe, never the signed app.
+import { fetch } from 'undici';
 import { spawn, execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';

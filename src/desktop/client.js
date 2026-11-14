@@ -8,7 +8,11 @@ window.__ModuleLoader__.load({
     const { Panel, en, zh, css } = createPanelModule(React);
     const strings = {
       en: {
-        toolPreparing:'Preparing tool call',
+        advancedSession: 'Advanced conversation details',
+        history: 'History',
+        selectedExecution: 'Selected task execution',
+        continueConversation: 'Continue this conversation',
+        toolPreparing: 'Preparing tool call',
         ...en,
         goalsNav: 'Goals',
         goalsTitle: 'Ongoing goals',
@@ -67,7 +71,11 @@ window.__ModuleLoader__.load({
         pushOff: 'Native notifications are not configured in this development preview.',
       },
       zh: {
-        toolPreparing:'正在准备工具调用',
+        advancedSession: '高级会话信息',
+        history: '历史会话',
+        selectedExecution: '当前任务执行',
+        continueConversation: '继续此会话',
+        toolPreparing: '正在准备工具调用',
         ...zh,
         goalsNav: '目标',
         goalsTitle: '持续目标',
@@ -134,24 +142,32 @@ window.__ModuleLoader__.load({
       if (!r.ok) throw new Error(result.error || 'Remote unavailable');
       return result;
     }
-    function Conversation({ t, selected, onConnection }) {
+    function Conversation({ t, selected, runId, onLive, onConnection }) {
       const [id, setId] = React.useState(selected || ''),
         [data, setData] = React.useState(null),
         [items, setItems] = React.useState([]),
         [error, setError] = React.useState(''),
         [busy, setBusy] = React.useState(false),
         [text, setText] = React.useState(''),
-        [liveText, setLiveText] = React.useState(''),[liveTool,setLiveTool]=React.useState('');
+        [liveText, setLiveText] = React.useState(''),
+        [liveTool, setLiveTool] = React.useState('');
       const creationId = React.useRef(null),
         requestId = React.useRef(null),
-        current = React.useRef(id);
+        current = React.useRef(id),
+        historical = React.useRef(runId);
+      historical.current = runId;
       current.current = id;
       async function refresh(target = current.current) {
         try {
           if (target) {
-            const next = await command({ action: 'read', sessionId: target });
+            const expectedRun = historical.current;
+            const next = await command(
+              expectedRun
+                ? { action: 'run.read', runId: expectedRun }
+                : { action: 'read', sessionId: target },
+            );
             onConnection(next.connection);
-            if (current.current === target) setData(next);
+            if (current.current === target && historical.current === expectedRun) setData(next);
           } else {
             const list = await command({ action: 'list' });
             onConnection(list.connection);
@@ -162,6 +178,12 @@ window.__ModuleLoader__.load({
           setError(e.message);
         }
       }
+      React.useEffect(() => {
+        setData(null);
+        setLiveText('');
+        setLiveTool('');
+        refresh();
+      }, [runId]);
       React.useEffect(() => {
         refresh();
         const timer = setInterval(() => refresh(), 5000);
@@ -196,9 +218,13 @@ window.__ModuleLoader__.load({
               cursor = { after: result.revision, epoch: result.epoch, live: result.live };
               if (result.resetLive) setLiveText('');
               for (const frame of result.frames || []) {
-                if (frame.sessionId !== current.current) continue;
-                if (frame.kind === 'start' || frame.kind === 'end'){setLiveText('');setLiveTool('');}
-                if(frame.kind==='tool-progress'&&frame.data.name)setLiveTool(String(frame.data.name));
+                if (frame.sessionId !== current.current || historical.current) continue;
+                if (frame.kind === 'start' || frame.kind === 'end') {
+                  setLiveText('');
+                  setLiveTool('');
+                }
+                if (frame.kind === 'tool-progress' && frame.data.name)
+                  setLiveTool(String(frame.data.name));
                 if (frame.kind === 'text-delta')
                   setLiveText((text) => (text + String(frame.data.text)).slice(-24000));
               }
@@ -252,8 +278,9 @@ window.__ModuleLoader__.load({
           h(
             'button',
             {
-              disabled: busy,
+              disabled: busy || !!runId,
               onClick: () => {
+                if (historical.current) return;
                 creationId.current ||= `session-${crypto.randomUUID()}`;
                 action({
                   action: 'create',
@@ -264,32 +291,51 @@ window.__ModuleLoader__.load({
             },
             t('newSession'),
           ),
+          h(
+            'button',
+            {
+              disabled: busy || !!runId,
+              onClick: () => {
+                current.current = '';
+                setId('');
+                setData(null);
+                refresh('');
+              },
+            },
+            t('history'),
+          ),
           h('button', { disabled: busy, onClick: () => refresh() }, t('refresh')),
         ),
         h(
-          'form',
-          {
-            onSubmit: (e) => {
-              e.preventDefault();
-              setData(null);
-              refresh(id);
-            },
-          },
+          'details',
+          null,
+          h('summary', null, t('advancedSession')),
           h(
-            'label',
-            null,
-            t('sessionId'),
-            h('input', {
-              'aria-label': t('sessionId'),
-              value: id,
-              onChange: (e) => {
-                current.current = e.target.value;
-                setId(e.target.value);
+            'form',
+            {
+              onSubmit: (e) => {
+                e.preventDefault();
                 setData(null);
+                refresh(id);
               },
-            }),
+            },
+            h(
+              'label',
+              null,
+              t('sessionId'),
+              h('input', {
+                'aria-label': t('sessionId'),
+                disabled: !!runId,
+                value: id,
+                onChange: (e) => {
+                  current.current = e.target.value;
+                  setId(e.target.value);
+                  setData(null);
+                },
+              }),
+            ),
+            h('button', { disabled: busy || !!runId || !id }, t('load')),
           ),
-          h('button', { disabled: busy || !id }, t('load')),
         ),
         !id
           ? items.map((item) =>
@@ -325,8 +371,27 @@ window.__ModuleLoader__.load({
                       ? t('failed')
                       : t('idle'),
               ),
+              data.run
+                ? h(
+                    'article',
+                    null,
+                    h('h3', null, t('selectedExecution')),
+                    h('p', null, data.run.status),
+                    h('pre', null, data.run.result?.summary || data.run.error || ''),
+                    (data.run.result?.sources || []).map((url) =>
+                      h(
+                        'p',
+                        { key: url },
+                        h('a', { href: url, target: '_blank', rel: 'noopener noreferrer' }, url),
+                      ),
+                    ),
+                    h('button', { onClick: onLive }, t('continueConversation')),
+                  )
+                : null,
               data.inputAccepted ? h('p', null, t('receipt')) : null,
-              liveTool?h('article',null,h('p',null,t('toolPreparing')),h('p',null,liveTool)):null,
+              liveTool
+                ? h('article', null, h('p', null, t('toolPreparing')), h('p', null, liveTool))
+                : null,
               liveText
                 ? h('article', null, h('p', null, t('livePartial')), h('pre', null, liveText))
                 : null,
@@ -383,12 +448,12 @@ window.__ModuleLoader__.load({
                     },
                   }),
                 ),
-                h('button', { disabled: busy || !!error || !text.trim() }, t('send')),
+                h('button', { disabled: busy || !!error || !!runId || !text.trim() }, t('send')),
                 h(
                   'button',
                   {
                     type: 'button',
-                    disabled: busy || !!error || !data.state.running,
+                    disabled: busy || !!error || !!runId || !data.state.running,
                     onClick: () =>
                       action({
                         action: 'cancel',
@@ -676,6 +741,7 @@ window.__ModuleLoader__.load({
       const [status, setStatus] = React.useState(null),
         [view, setView] = React.useState('overview'),
         [session, setSession] = React.useState(''),
+        [runId, setRunId] = React.useState(null),
         [pending, setPending] = React.useState([]),
         [controlError, setControlError] = React.useState('');
       React.useEffect(() => {
@@ -817,7 +883,12 @@ window.__ModuleLoader__.load({
                   setStatus(data.connection);
                   setPending(data.pendingOperations || []);
                 },
-                openSession: (id) => {
+                openSession: (id, executionId) => {
+                  setRunId(
+                    ['account', 'device-pairing'].includes(status?.credentialMode)
+                      ? executionId
+                      : null,
+                  );
                   setSession(id);
                   setView('conversations');
                 },
@@ -835,7 +906,13 @@ window.__ModuleLoader__.load({
                     { className: 'ao' },
                     'Review pending operations before sending another message.',
                   )
-                : h(Conversation, { t, selected: session, onConnection: setStatus }),
+                : h(Conversation, {
+                    t,
+                    selected: session,
+                    runId,
+                    onLive: () => setRunId(null),
+                    onConnection: setStatus,
+                  }),
         ),
       );
     }

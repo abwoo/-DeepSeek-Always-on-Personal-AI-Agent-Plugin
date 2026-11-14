@@ -3,6 +3,7 @@ import { credentialRef } from '@deepseek-ai/dsh-credentials';
 import { z } from 'zod';
 import {
   ManagedClient,
+  resultBeforeSeq,
   ApiError,
   credentialsSchema,
   managedOrigin,
@@ -16,6 +17,7 @@ const savedSchema = z.object({ origin: z.string(), credentials: credentialsSchem
 const sessionSchema = z.discriminatedUnion('action', [
   z.object({ action: z.literal('list') }),
   z.object({ action: z.literal('read'), sessionId: z.string().min(1) }),
+  z.object({ action: z.literal('run.read'), runId: z.uuid() }),
   z.object({ action: z.literal('create'), creationId: z.string().min(1), operationId: z.uuid() }),
   z.object({
     action: z.literal('prompt'),
@@ -209,11 +211,16 @@ export class PairedDesktop {
     return this.queue(async () => {
       const data = sessionSchema.parse(input),
         c = await this.client();
-      if (!['list', 'read'].includes(data.action) && !this.connected)
+      if (!['list', 'read', 'run.read'].includes(data.action) && !this.connected)
         throw Error('Refresh before writing');
       try {
         if (data.action === 'list')
           return { ...(await c.sessions()), connection: await this.status() };
+        if (data.action === 'run.read') {
+          const run = await c.request('/runs/' + data.runId);
+          const result = await c.readSession(run.sessionId, resultBeforeSeq(run));
+          return { ...result, run, connection: await this.status() };
+        }
         let sessionId: string;
         if (data.action === 'read') sessionId = data.sessionId;
         else if (data.action === 'create') {

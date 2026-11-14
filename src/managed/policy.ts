@@ -107,6 +107,7 @@ export function installAccountPolicy(ctx: Context, store: GatewayStore) {
   ctx.on('session/event', (session, event) => {
     if (!bound()) return;
     if (event.type === 'assistant/message') budget.usage(session.id, event.seq, event.data.usage);
+    if (event.type === 'assistant/attempt') budget.usage(session.id, event.seq);
     if (event.type === 'turn/end') {
       const key = session.id + ':' + event.data.turn;
       clearTimeout(timers.get(key));

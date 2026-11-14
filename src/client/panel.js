@@ -389,7 +389,7 @@ export function createPanelModule(React) {
               h('a', { href: u, target: '_blank', rel: 'noopener noreferrer' }, u),
             ),
           ),
-          button(t('view'), () => openSession(r.sessionId)),
+          button(t('view'), () => openSession(r.sessionId,r.id)),
         );
       }
       let body = data ? null : h('p', null, t('loading'));

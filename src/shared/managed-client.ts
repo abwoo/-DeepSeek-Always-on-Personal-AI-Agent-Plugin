@@ -192,8 +192,19 @@ export { conversationRows } from './messages.js';
 export function resultBeforeSeq(run: {
   sessionId: string;
   resultReference?: string;
+  finishedAt?: string;
 }): number | undefined {
   const prefix = `session:${run.sessionId}#event:`;
+  if (run.finishedAt) {
+    const position = run.resultReference?.startsWith(prefix)
+      ? run.resultReference.slice(prefix.length)
+      : '';
+    const seq = Number(position);
+    if (!/^\d+$/.test(position) || !Number.isSafeInteger(seq) || seq >= Number.MAX_SAFE_INTEGER)
+      throw Error(
+        'This execution has no verified historical conversation boundary. Review its recorded result in Tasks.',
+      );
+  }
   if (!run.resultReference?.startsWith(prefix)) return undefined;
   const raw = run.resultReference.slice(prefix.length);
   if (!/^\d+$/.test(raw)) return undefined;
