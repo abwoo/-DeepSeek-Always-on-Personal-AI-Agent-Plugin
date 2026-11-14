@@ -8,6 +8,8 @@ on:
       - scripts/probe-native-desktop.mjs
       - scripts/build-phase0-probe.mjs
       - src/**
+      - packages/desktop/**
+      - scripts/build-desktop.mjs
       - probes/desktop-remote/**
       - package.json
       - package-lock.json
@@ -29,6 +31,7 @@ jobs:
       - run: npm ci
       - run: npm run build
       - run: node scripts/build-phase0-probe.mjs
+      - run: node scripts/build-desktop.mjs
       - name: Download official app and verify signature and architecture
         shell: bash
         run: |
@@ -63,6 +66,8 @@ jobs:
         run: |
           npm pack --ignore-scripts
           "$ALWAYS_ON_DESKTOP_CLI" plugin --profile desktop add "$PWD/abwoo-deepseek-always-on-$(node -p 'require("./package.json").version').tgz"
+          npm pack ./packages/desktop --ignore-scripts
+          "$ALWAYS_ON_DESKTOP_CLI" plugin --profile desktop add "$PWD/abwoo-deepseek-always-on-desktop-0.2.0-dev.1.tgz"
           npm pack ./probes/desktop-remote --ignore-scripts
           "$ALWAYS_ON_DESKTOP_CLI" plugin --profile desktop add "$PWD/abwoo-always-on-desktop-remote-probe-0.0.0-phase0.tgz"
       - name: Native panel, independent remote Session and process restart
@@ -72,6 +77,7 @@ jobs:
         run: |
           "$ALWAYS_ON_DESKTOP_CLI" plugin --profile desktop remove '@abwoo/deepseek-always-on'
           "$ALWAYS_ON_DESKTOP_CLI" plugin --profile desktop remove '@abwoo/always-on-desktop-remote-probe'
+          "$ALWAYS_ON_DESKTOP_CLI" plugin --profile desktop remove '@abwoo/deepseek-always-on-desktop'
       - uses: actions/upload-artifact@v4
         if: always()
         with:

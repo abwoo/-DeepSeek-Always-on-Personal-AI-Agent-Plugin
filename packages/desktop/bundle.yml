@@ -1,0 +1,3 @@
+- insert:
+    - id: abwoo-always-on-desktop
+      name: '@abwoo/deepseek-always-on-desktop'

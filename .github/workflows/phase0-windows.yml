@@ -8,6 +8,8 @@ on:
       - scripts/probe-native-desktop.mjs
       - scripts/build-phase0-probe.mjs
       - src/**
+      - packages/desktop/**
+      - scripts/build-desktop.mjs
       - probes/desktop-remote/**
       - package.json
       - package-lock.json
@@ -29,6 +31,7 @@ jobs:
       - run: npm ci
       - run: npm run build
       - run: node scripts/build-phase0-probe.mjs
+      - run: node scripts/build-desktop.mjs
       - name: Download and verify official signed installer
         shell: pwsh
         run: |
@@ -65,6 +68,10 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw 'Plugin packaging failed' }
           & $env:ALWAYS_ON_DESKTOP_CLI plugin --profile desktop add (Join-Path $PWD $packed[0].filename)
           if ($LASTEXITCODE -ne 0) { throw 'Native Desktop plugin install failed' }
+          $desktop = npm pack ./packages/desktop --ignore-scripts --json | ConvertFrom-Json
+          if ($LASTEXITCODE -ne 0) { throw 'Desktop preview packaging failed' }
+          & $env:ALWAYS_ON_DESKTOP_CLI plugin --profile desktop add (Join-Path $PWD $desktop[0].filename)
+          if ($LASTEXITCODE -ne 0) { throw 'Desktop preview install failed' }
           $probe = npm pack ./probes/desktop-remote --ignore-scripts --json | ConvertFrom-Json
           if ($LASTEXITCODE -ne 0) { throw 'Private Phase 0 probe packaging failed' }
           & $env:ALWAYS_ON_DESKTOP_CLI plugin --profile desktop add (Join-Path $PWD $probe[0].filename)
@@ -78,6 +85,8 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw 'Native Desktop plugin removal failed' }
           & $env:ALWAYS_ON_DESKTOP_CLI plugin --profile desktop remove '@abwoo/always-on-desktop-remote-probe'
           if ($LASTEXITCODE -ne 0) { throw 'Native remote probe removal failed' }
+          & $env:ALWAYS_ON_DESKTOP_CLI plugin --profile desktop remove '@abwoo/deepseek-always-on-desktop'
+          if ($LASTEXITCODE -ne 0) { throw 'Desktop preview removal failed' }
       - uses: actions/upload-artifact@v4
         if: always()
         with:

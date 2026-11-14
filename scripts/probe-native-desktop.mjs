@@ -66,6 +66,10 @@ async function startRemote() {
   process.env.ALWAYS_ON_PHASE0_REMOTE_ORIGIN = url.origin;
   process.env.ALWAYS_ON_PHASE0_REMOTE_TOKEN = url.searchParams.get('token');
   process.env.ALWAYS_ON_PHASE0_ALLOW_LOOPBACK = '1';
+  process.env.ALWAYS_ON_DESKTOP_OPERATOR_PREVIEW = '1';
+  process.env.ALWAYS_ON_DESKTOP_REMOTE_ORIGIN = url.origin;
+  process.env.ALWAYS_ON_DESKTOP_REMOTE_TOKEN = url.searchParams.get('token');
+  process.env.ALWAYS_ON_DESKTOP_ALLOW_LOOPBACK = '1';
   observer = await connectProbe(url.origin, url.searchParams.get('token'), true);
   evidence.remoteAuthority = url.origin;
 }
@@ -124,7 +128,7 @@ try {
     evidence.profileInitialized = true;
   } else {
     await startRemote();
-    let id, remoteId;
+    let id, remoteId, personalSessionId, sharedTaskId;
     await boot(async (page) => {
       await page.getByText('Always-on', { exact: true }).click();
       await page.getByRole('button', { name: 'Tasks', exact: true }).click();
@@ -156,6 +160,37 @@ try {
       evidence.remoteSessionId = remoteId;
       evidence.promptReceiptOnly = true;
       await capture(page, 'native-remote-session.png');
+      // Phase 1 product package: same remote state, not the local compatibility task.
+      await page.getByText('Personal Agent', { exact: true }).click();
+      await expect(page.getByTestId('desktop-remote-authority')).toContainText(evidence.remoteAuthority);
+      await page.getByRole('button', { name: 'Tasks', exact: true }).click();
+      await page.getByLabel('Task name').fill('Personal Agent shared task');
+      await page.getByLabel('What should your agent check?').fill('Remote-only read-only development check.');
+      await page.getByRole('button', { name: 'Create task', exact: true }).click();
+      await expect(page.getByRole('heading', { name: 'Personal Agent shared task' })).toBeVisible();
+      const shared = await (await observer.alwaysOn('GET')).json();
+      sharedTaskId = shared.tasks.find((t) => t.title === 'Personal Agent shared task')?.id;
+      if (!sharedTaskId) throw new Error('Desktop task mutation did not persist on the remote authority');
+      const local = await page.evaluate(async () => (await fetch('/api/always-on')).json());
+      if (local.tasks.some((t) => t.id === sharedTaskId)) throw new Error('Shared task was copied to the local Host');
+      await page.getByRole('button', { name: 'Memory', exact: true }).click();
+      await page.getByLabel('Information to remember').fill('Native shared memory consent check');
+      await page.getByLabel('I allow this information to be used across sessions.').check();
+      await page.getByRole('button', { name: 'Save with my consent' }).click();
+      await expect(page.locator('.ao pre')).toContainText('Native shared memory consent check');
+      const memoryState = await (await observer.alwaysOn('GET')).json();
+      if (!memoryState.memories.some((m) => m.content === 'Native shared memory consent check')) throw new Error('Native memory was not saved remotely');
+      await page.getByRole('button', { name: 'Conversations', exact: true }).click();
+      await page.getByRole('button', { name: 'New remote conversation', exact: true }).click();
+      await expect(page.getByLabel('Message your agent')).toBeVisible();
+      personalSessionId = await page.getByLabel('Remote Session ID').inputValue();
+      await page.getByLabel('Message your agent').fill('Phase 1 actual native conversation input');
+      await page.getByRole('button', { name: 'Send to agent', exact: true }).click();
+      await expect.poll(async () => JSON.stringify(await observer.session.events({address:{kind:'session',sessionId:personalSessionId}}))).toContain('Phase 1 actual native conversation input');
+      evidence.desktopSharedTaskId = sharedTaskId;
+      evidence.desktopSessionId = personalSessionId;
+      evidence.desktopSharedMemory = true;
+      await capture(page, 'personal-agent.png');
     });
     const afterDesktopExit = await observer.session.events({ address: { kind: 'session', sessionId: remoteId } });
     if (!afterDesktopExit.ok || !JSON.stringify(afterDesktopExit.value).includes('Remote Desktop authority proof')) {
@@ -174,6 +209,12 @@ try {
       await expect(page.getByTestId('remote-events')).toContainText('Remote Desktop authority proof');
       await expect(page.getByTestId('remote-authority')).toHaveText(evidence.remoteAuthority);
       evidence.remoteDesktopSession = true;
+      await page.getByText('Personal Agent', { exact: true }).click();
+      await page.getByRole('button', { name: 'Tasks', exact: true }).click();
+      await expect(page.getByRole('heading', { name: 'Personal Agent shared task' })).toBeVisible();
+      const snapshot = await page.evaluate(async () => (await fetch('/api/always-on-desktop/state')).json());
+      if (!snapshot.tasks.some((t) => t.id === sharedTaskId)) throw new Error('Desktop restart did not retain the same remote task ID');
+      evidence.phase1SharedState = true;
     });
   }
 } catch (error) {

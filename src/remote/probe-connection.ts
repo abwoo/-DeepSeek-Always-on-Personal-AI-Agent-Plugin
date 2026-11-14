@@ -75,6 +75,18 @@ export async function connectProbe(authority: string, launchToken: string, allow
     return {
       authority: base.origin,
       session: ctx.remote.session,
+      get connected() { return alive && [...sockets].some((socket) => socket.readyState === WebSocket.OPEN); },
+      /** Narrow same-authority plugin API carrier; credentials never leave this process. */
+      async alwaysOn(method: 'GET' | 'POST', body?: unknown) {
+        if (!alive || ![...sockets].some((socket) => socket.readyState === WebSocket.OPEN)) {
+          throw new Error('Remote connection is closed');
+        }
+        return fetch(new URL('api/always-on', base), {
+          method, headers: { cookie, 'content-type': 'application/json' },
+          ...(method === 'POST' ? { body: JSON.stringify(body) } : {}),
+          redirect: 'error', signal: AbortSignal.timeout(15000),
+        });
+      },
       async close() {
         alive = false;
         await ctx.fiber.dispose();

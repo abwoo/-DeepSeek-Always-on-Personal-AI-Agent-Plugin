@@ -7,3 +7,5 @@ playwright-report/
 test-results/
 .artifacts/
 probes/desktop-remote/host.mjs
+packages/desktop/host.mjs
+packages/desktop/client.js
