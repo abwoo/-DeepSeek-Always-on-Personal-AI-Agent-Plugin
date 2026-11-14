@@ -1,6 +1,6 @@
 # DeepSeek Always-on v0.2 implementation plan
 
-Status: Phase 0 protocol proof implemented; native Desktop gate blocked. See [evidence and exact blockers](V02_PHASE0.md). v0.1 remains the published Web alpha.
+Status: Phase 0 core native/remote feasibility verified on official macOS ARM64 and Windows x64 applications; production execution and mobile gates remain blocked. See [evidence and exact blockers](V02_PHASE0.md). v0.1 remains the published Web alpha.
 
 ## Architecture and migration contract
 
@@ -14,7 +14,7 @@ Preserve `src/host/{tasks,memory,notifications,storage,proactive}.ts` and native
 
 | Phase | Work / deliverables | Mandatory acceptance |
 | --- | --- | --- |
-| 0 — feasibility | Pin SDK, actual remote protocol test, Desktop native install and isolated remote panel experiment, architecture decision | Real macOS/Windows Desktop uses a real remote Session without core patches or a second loop; native install/reload/uninstall recorded. Current status: HOLD |
+| 0 — feasibility | Pin SDK, actual remote protocol test, Desktop native install and isolated remote panel experiment, architecture decision | Real macOS/Windows Desktop uses a real remote Session without core patches or a second loop; native install/reload/uninstall recorded. Core native/remote feasibility: verified; production and device tests still required |
 | 1 — Desktop | Package native panel and lifecycle; reuse slots/theme; show authority, connectivity, actual tasks/history/memory; disable local execution fallback | Each UI mutation verified by reading durable state from another authenticated client; disconnect fails visibly; re-enable retains data |
 | 2 — managed Runtime | Operator provisioning, private persistent Harness processes, HTTPS identity gateway, per-user isolation, server-only provider keys, watchdog, backups, budget enforcement | Real DeepSeek task runs while Desktop is terminated; abrupt process failure produces interrupted/failed state, never false completion |
 | 3 — native mobile | Separate Expo React Native project, native navigation/chat/task forms/Inbox, secure credential storage and pairing; signed iOS/Android builds | Installable device builds use the managed API; native UI, not WebView/PWA; no model key or operator token in bundle/storage/logs |

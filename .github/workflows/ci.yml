@@ -35,13 +35,14 @@ jobs:
           node scripts/build-phase0-probe.mjs
           npm pack ./probes/desktop-remote --ignore-scripts
           node scripts/probe-remote-bridge.mjs
+          cp .artifacts/phase0-bridge.json test-results/phase0-bridge.json
       - uses: actions/upload-artifact@v4
         if: always()
         with:
           name: always-on-validation
           path: |
             abwoo-deepseek-always-on-*.tgz
-            .artifacts/phase0-bridge.json
+            test-results/phase0-bridge.json
             playwright-report/
             test-results/*-harness.png
           retention-days: 14

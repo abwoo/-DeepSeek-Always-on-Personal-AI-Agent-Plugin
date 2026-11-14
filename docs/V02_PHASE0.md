@@ -1,60 +1,80 @@
 # v0.2 Phase 0 — Native Desktop / remote Session feasibility
 
-Date: 2026-11-14. Decision: **HOLD at Phase 0. Native Desktop feasibility is not yet accepted.**
+Date: 2026-11-14. **GO for the scoped native remote-adapter architecture.** The core Phase 0 feasibility proof passed on actual official macOS ARM64 and Windows x64 applications. **v0.2 is not MVP Ready.** This is a private development probe, not a released native product or hosted service.
 
-The existing v0.1 Web plugin remains available. Nothing in this report changes its release into a native-mobile or hosted product. No v0.2 release is authorized by the evidence below.
+## Verified results
 
-## Reproducible evidence
+Tested source: [3d704a3](https://github.com/abwoo/-DeepSeek-Always-on-Personal-AI-Agent-Plugin/commit/3d704a3a557ab4852f3e2780de3bcaeab7bca68b).
 
-| Check | Actual result | Scope / limit |
+| Check | macOS ARM64 | Windows x64 |
 | --- | --- | --- |
-| Published Harness | `@deepseek-ai/dsh@0.2.2-rc.3` | Exact npm version in package-lock.json, not moving upstream master |
-| Cordis | `@deepseek-ai/cordis@4.1.0` | Exact version |
-| Remote connection, Gateway, Session descriptor, registry | All `0.2.2-rc.3` | Public exported `/client` and `/remote` entrypoints; no source imports or core patch |
-| Independent remote clients | Two Node SDK Contexts connect over HTTP + WebSocket to one real Harness process | Loopback transport test, not a managed cloud deployment or Desktop shell test |
-| Shared durable Session | A creates a Session, B renames that exact ID, A reads the title in durable events; a fresh client reads it after Host restart | No local Session store, import, fork, mirror or model fixture in this test |
-| Authentication | Invalid launch token rejected with HTTP 401 | Not production device pairing / tenant authorization |
-| Authority isolation | HTTPS required; HTTP only with explicit loopback test option; credentials/query/path rejected in configured origin | Credentials stay in probe process memory; cross-origin HTTP and WS rejected |
-| Existing plugin integration | Existing test suite preserved and run with the new probe | Test-model integration remains labelled fixture-based |
-| npm CLI Desktop installation attempt | `dsh plugin --profile desktop add "$PWD"` rejected: `profile "desktop" is managed exclusively by the Electron application` | No artificial Desktop profile created to bypass the restriction |
-| Windows Desktop plugin load | **Native load and UI-to-state write passed in first run** | Actual official app on GitHub Windows runner; first run stopped at screenshot timeout before restart check |
-| macOS Desktop plugin load | **NOT RUN** | No actual macOS Electron application executed |
-| Native remote Session panel / continuation | **NOT VERIFIED** | A Node protocol proof does not demonstrate renderer integration, Desktop credentials or a remote conversation UI |
-| Real DeepSeek generation | **NOT RUN** | No authorized provider credential configured for this acceptance run |
+| Official signed Desktop app installed and executed | Passed; Apple Developer ID `NAN929V4UM` | Passed; valid DeepSeek Authenticode signature |
+| Actual bundled Harness / Cordis | `0.2.2-rc.3` / `4.1.0` | `0.2.2-rc.3` / `4.1.0` |
+| Desktop-owned plugin installation and native panel | Passed | Passed |
+| UI task creation verified by authenticated Host state read | Passed | Passed |
+| Local compatibility task survives actual Desktop process restart | Passed | Passed |
+| Native probe creates / renames a real Session on an independent Harness authority | Passed | Passed |
+| Native probe submits a real prompt to that same remote Session | Input receipt + durable event verified | Input receipt + durable event verified |
+| Independent SDK observer reads the same remote Session ID and input event | Passed | Passed |
+| Remote Session readable with Desktop process stopped | Passed | Passed |
+| Restarted Desktop reads that same remote ID and history again | Passed | Passed |
+| Uninstall both bundles through Desktop-owned command | Passed | Passed |
+| Native screenshot capture | Captured and inspected | Initial window captured; two panel captures timed out and remain explicit warnings |
+| Real DeepSeek model generation | **Not tested** | **Not tested** |
+| Computer power-off / production managed Host | **Not tested** | **Not tested** |
+| Native iPhone / Android delivery | **Not tested** | **Not tested** |
 
-Run `npm ci && npm run check`, install the disposable Web bundle as in README, then `npm run test:e2e`. The test named `Phase 0: independent SDK clients share one durable remote Session` executes the actual published Host with no model provider. It deliberately tests durable Session control rather than claiming successful model inference. CI runs it in the existing workflow and retains the Playwright report.
+The authority and Desktop are **separate actual processes, profiles, data directories and ports on each disposable GitHub cloud runner**. Stopping Desktop does not stop that authority. This proves process/authority separation and remote Session control; it does not prove an Internet deployment or survival of a physical computer shutdown. The local compatibility task is a separate test and must not be presented as a shared v0.2 task.
 
-The protocol implementation commit [a4b921c](https://github.com/abwoo/-DeepSeek-Always-on-Personal-AI-Agent-Plugin/commit/a4b921cf378d64445da8fd0ac2ef3ccef90dcc21) passed [GitHub Actions run 43554486983](https://github.com/abwoo/-DeepSeek-Always-on-Personal-AI-Agent-Plugin/actions/runs/43554486983): 25 unit/integration checks and 3 real Host/browser/protocol tests. Local browser execution was blocked by this worker's Chromium socket permission; Actions executed the browser tests successfully.
+The Session test uses no model fixture. No provider credential is configured. A prompt receipt is not inference or business completion. Existing core integration tests continue using an explicitly labelled deterministic model fixture; they are not production DeepSeek acceptance.
 
-Separate `phase0-windows.yml` and `phase0-macos.yml` workflows now attempts the **actual signed official Windows installer** on a disposable Windows runner. It records the installer SHA-256, signer and actual bundled version; a version mismatch blocks the probe. Its native panel/task/restart/install/remove checks are narrower than the remote-Session gate. A successful native local panel probe must not be reported as a remote Desktop Session proof. First run loaded the native panel and persisted a UI-created task; screenshot capture timed out before the restart check. The probe now records screenshot capture warnings separately from functional failures. A second, private probe package adds an isolated native remote-Session panel and verifies it against an independent real Harness process on the same cloud runner; see [probe scope and limitations](../probes/desktop-remote/README.md). Its acceptance remains pending until the run succeeds. The macOS ARM64 workflow uses the same real native/remote tests, verifies Developer ID signing and exact bundled version, and records the DMG hash for pinning after the first successful inspection.
+## Inspectable evidence
 
-The authenticated bridge has also been exercised against two actual Linux Harness processes: create → rename → prompt receipt, including rejection of an unauthenticated request. This caught and corrected an adapter assumption: official `SessionId` values are opaque branded strings (the current Host creates `session-…` IDs), not UUIDs. The bridge now preserves those IDs unchanged. `scripts/probe-remote-bridge.mjs` runs this real API contract in CI; its evidence explicitly sets model success and MVP Ready to false. The private probe package is excluded from public alpha release assets and its compiled helpers are excluded from the shipping tarball.
+- [macOS native run 43556678512](https://github.com/abwoo/-DeepSeek-Always-on-Personal-AI-Agent-Plugin/actions/runs/43556678512): passed.
+- [Windows native run 43556678308](https://github.com/abwoo/-DeepSeek-Always-on-Personal-AI-Agent-Plugin/actions/runs/43556678308): passed.
+- [Core / Web / protocol run 43556678298](https://github.com/abwoo/-DeepSeek-Always-on-Personal-AI-Agent-Plugin/actions/runs/43556678298): 25 unit/integration checks, 3 real Host/browser/protocol tests, plus an authenticated real two-Host bridge check passed.
+- Committed raw summaries: [macOS](evidence/phase0/macos-native.json), [Windows](evidence/phase0/windows-native.json), actual runtime metadata [macOS](evidence/phase0/macos-runtime.json) / [Windows](evidence/phase0/windows-runtime.json).
+- Full workflow artifacts include installer signature/version metadata and native observations, retained for 14 days. Windows records the screenshot warnings rather than substituting generated images or claiming visual acceptance.
 
-## Official interfaces and architecture findings
+![Actual official macOS Desktop running the private remote Session probe](evidence/phase0/macos-remote-session.png)
 
-The [official Desktop reference](https://github.com/deepseek-ai/deepseek-harness/blob/dsh-v0.2.2-rc.3/apps/desktop/README.md) describes an Electron shell with an owned local Host, a private main-process credential and a separate Desktop plugin profile. Its renderer uses the Web client plugin platform. `platform: web` in the existing package is therefore not proof of incompatibility and should not be replaced by an invented `desktop` value.
+This diagnostic panel intentionally shows the actual remote authority, opaque Session ID and durable events. It is not the final product UI. It does not switch or relabel the default local Desktop chat.
 
-The [Connection reference](https://github.com/deepseek-ai/deepseek-harness/tree/dsh-v0.2.2-rc.3/packages/client/connection) and published types expose `installConnection`, per-Context `fetch`, `createWebSocket`, `streamBaseUrl`, and generated Session methods. This supports testing an isolated remote connection. It does **not** establish a supported way for a plugin to replace Desktop's entire root connection. Rebinding `ctx.uiWorkspace.openSession(remoteId)` while it still targets the local Host is prohibited.
+## Exact compatibility pins
 
-Official Desktop installers are linked from [DeepSeek downloads](https://www.deepseek.com/en/download/): [macOS ARM64](https://download.deepseek.com/desktop/dsh-latest-macos-arm64.dmg), [Windows x64](https://download.deepseek.com/desktop/dsh-latest-windows-x64.exe). Windows HEAD returned HTTP 200 on 2026-11-14, length 299595752, Last-Modified 2026-11-13 15:55:17 GMT. The URLs are moving `latest` aliases. The actual Windows application was subsequently installed and executed in [run 43554825816](https://github.com/abwoo/-DeepSeek-Always-on-Personal-AI-Agent-Plugin/actions/runs/43554825816): valid DeepSeek publisher signature, bundled CLI `0.2.2-rc.3`, installer SHA-256 `786C9B26050C35B62C7BE6A01DEE2541DC1C2C5D9BD5F2DBE77BEEEB8D50704E`. The workflow now enforces this hash as well as version and signature. macOS remains unexecuted.
+SDK packages `@deepseek-ai/dsh`, `dsh-client-connection`, `dsh-api-gateway`, `dsh-api-session-controller` and `dsh-typert-registry` are pinned to `0.2.2-rc.3`; Cordis is pinned to `4.1.0`. Tests read the installed package versions. Native probes independently read the actual signed application's Cordis metadata and bundled CLI version.
 
-Upstream master is moving within the preview version; do not equate its code with the installed npm build. The npm CLI restriction above was observed directly. Desktop plugin management must use the supported command supplied by the actual installed application, after its profile has been initialized and with the app fully quit. Do not tell users to mutate Desktop using the global npm CLI.
+| Official installer | SHA-256 |
+| --- | --- |
+| Windows x64 | `786c9b26050c35b62c7be6a01dee2541dc1c2c5d9bd5f2dbe77beeeb8d50704e` |
+| macOS ARM64 | `65ec0268d77b8e65786d51fd8b89bed13040f0e53e547d15ee2ca2e013ebeb40` |
 
-## Proposed design, pending native validation
+Installers come from links on [DeepSeek downloads](https://www.deepseek.com/en/download/). The URLs are moving `latest` aliases, so both workflows reject changed hashes before executing an app. A new preview build requires explicit version/hash review and compatibility reruns. Upstream master can drift within a preview version; do not substitute it for the verified npm packages or signed binaries.
 
-One managed Harness owns Session events, native Agent execution, Schedule, Goals, Memory, Inbox and Run Ledger. The existing local Desktop Host may act as the plugin/device transport; it must never become a second authoritative Personal Agent or execute fallback inference when the managed Host is unavailable.
+## Architecture decision
 
-A native plugin panel should use an isolated connection to the managed authority (or a narrow local Host bridge to that connection), leaving Desktop's local root connection intact. The remote panel must render the remote Session history and submit prompts to the same remote ID. A visible authority identifier and explicit offline errors prevent accidental local substitution. Reuse public Session control/projection services where supported; do not clone the Harness Agent Loop or claim the default local chat has been switched remotely.
+The [official Desktop reference](https://github.com/deepseek-ai/deepseek-harness/blob/dsh-v0.2.2-rc.3/apps/desktop/README.md) describes a shell around an owned local Host, private main-process credentials and a separate plugin profile. Its renderer uses the Web client plugin platform: `platform: web` remains correct for a native Desktop extension and does not turn a phone website into a native mobile app.
 
-`src/remote/probe-connection.ts` is a **development probe**, not a production device SDK. It uses the official GET `/connect?token=…&interactions=none` exchange and retains its API lifecycle socket. `interactions=none` prevents the passive probe from answering human approvals. A disconnected peer requires a new authenticated connection; this code does not implement production pairing, credential renewal, local-device actions or transparent retry of writes. Do not ship the root launch token to mobile devices. Production requires narrowly scoped, revocable device credentials behind an authenticated gateway; no DeepSeek model key leaves the managed Host.
+No supported plugin API for replacing Desktop's entire root connection was established. **Use a scoped native panel plus an isolated remote connection**, leaving the local root intact. Never pass a remote ID to local `ctx.uiWorkspace.openSession` and claim the local chat has become remote. The private probe proves real create/read/rename/prompt operations against the remote authority using public exported Connection, Gateway and generated Session APIs. There are no private source imports, Harness core patches, copied Sessions, local fallback inference or second Agent Loop.
 
-## Remaining Phase 0 acceptance (must all pass)
+In production, one managed Harness owns Session events, native Agent execution, Schedule, Goals, Memory, Inbox and Run Ledger. Desktop's local Host is only an extension/device bridge for that Personal Agent. Local files and actions need expiring online capabilities and native permission/approval enforcement; they are not implemented by this probe.
 
-1. Obtain a real macOS ARM64 and Windows x64 application build with recorded version/hash; initialize a disposable Desktop profile through the actual app.
-2. Install this bundle through the Desktop-owned plugin manager/command. Demonstrate native slot load, service lifecycle, disable, re-enable and uninstall without editing Harness core.
-3. Register an isolated remote connection/panel using only published APIs. Desktop must list/read a Session created on the remote Host, display its actual durable events, submit a prompt to that ID and receive its actual result. Verify remote and local IDs are not confused. The current Node probe does not satisfy this item.
-4. Persist a real remote prompt receipt and reread the same durable Session from another authenticated client. A receipt is not successful inference. Actual DeepSeek execution is mandatory in Phase 2 and the final release chain; lack of a provider credential must never be filled with a fixture acceptance result.
-5. Disconnect and restart Desktop. The remote Session must remain durable and accessible; revoking credentials must stop access. Disable the plugin and verify remote/device work stops as specified, with data retained.
-6. Publish redacted native recordings/logs plus protocol evidence and platform/version metadata. A screenshot of the existing Web UI or deterministic fixture is insufficient.
+`src/remote/probe-connection.ts` uses the official GET `/connect?token=…&interactions=none` exchange and API lifecycle socket. The test launch token is operator-level and remains in server process memory/environment, never in the renderer or phone. Passive clients cannot answer approvals. HTTPS is required except explicitly enabled loopback tests; HTTP and WS cannot change authority. A failed connection never falls back to a local Session.
 
-Until these pass, Phase 1–6 implementation is held. No mobile screen development, managed billing/service provisioning, push success claim or MVP Ready label is justified by the current evidence.
+**This is not production device authentication.** Before shipping, replace operator test-token pairing with scoped, revocable device credentials at an authenticated gateway, implement renewal/reconnect and durable mutation reconciliation, and keep DeepSeek model keys solely on the managed authority.
+
+## Reproduction and interface lessons
+
+`npm ci`, `npm run check`, and the core workflow exercise the preserved core. Install the disposable Web bundle and run `npm run test:e2e` for native Harness Web/protocol checks. The workflow additionally builds/packs the private probe and runs `scripts/probe-remote-bridge.mjs` against two real Hosts, including unauthenticated rejection. Native workflows install the pinned signed application, build the separate [private package](../probes/desktop-remote/README.md), and run `scripts/probe-native-desktop.mjs` on each OS.
+
+Two real-interface assumptions were corrected: `SessionId` is an opaque branded string (current IDs have a `session-` prefix), not a UUID; and the published CLI consumes `--patch` before forwarded Web runner arguments. These are now exercised by actual Host launches and adapter operations. The global npm CLI explicitly rejects Desktop profile management; use the actual application's command after profile initialization and while the app is quit. No artificial Desktop profile was created to bypass ownership.
+
+The private package is never installed by the shipping bundle, its helpers are excluded from the public tarball, and its tarball is excluded from alpha release assets. Current public release remains the v0.1 Web alpha.
+
+## Remaining gates
+
+Phase 1 can now implement the product Desktop remote panel and typed connection lifecycle using this verified architecture. Full chat rendering/stream recovery, scoped pairing and product UX still need implementation; the diagnostic event viewer is not a completed Phase 1 interface. Native disable/re-enable behavior and Windows visual QA need explicit release coverage beyond the current restart/uninstall and core lifecycle checks.
+
+Phase 2 production acceptance requires an operator-authorized managed compute/storage service, identity/TLS configuration, billing limits and a server-side DeepSeek provider credential. None has been provisioned here. GitHub Actions is a test runner, not a 24-hour Personal Agent host. End users must not be asked to maintain a VPS.
+
+Native Expo app builds, Apple signing/provisioning, Expo/APNs/FCM configuration, real iPhone/Android tests, physical desktop power-off and the complete shared-task/real-model/native-push chain remain unverified. No mock, screenshot, queued input or CI fixture may fill these rows. **MVP Ready stays false.**

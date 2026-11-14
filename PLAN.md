@@ -1,5 +1,7 @@
 # DeepSeek Always-on — MVP plan
 
+The current native Desktop / managed Agent / Expo roadmap is [v0.2 plan](docs/V02_PLAN.md). Its [Phase 0 native feasibility evidence](docs/V02_PHASE0.md) is verified; the original Web MVP plan below remains historical scope. v0.2 is not MVP Ready.
+
 2026-11-14 · Version 0.1 · Native Harness / Cordis plugin
 
 ## Product and architecture

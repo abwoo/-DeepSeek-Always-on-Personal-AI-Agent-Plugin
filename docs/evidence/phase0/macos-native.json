@@ -1,0 +1,15 @@
+{
+  "timestamp": "2026-11-14T04:28:43.187Z",
+  "platform": "darwin",
+  "nativePlugin": true,
+  "restartPersistence": true,
+  "remoteDesktopSession": true,
+  "realDeepSeek": false,
+  "realPhone": false,
+  "mvpReady": false,
+  "remoteAuthority": "http://127.0.0.1:49227",
+  "remoteSessionId": "session-e2310233-0f0a-439e-ac73-71c1d163b457",
+  "promptReceiptOnly": true,
+  "remoteReadableWithDesktopStopped": true,
+  "taskId": "48486195-8f8b-45b3-8bde-32bf8c15e8d0"
+}

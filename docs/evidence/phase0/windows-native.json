@@ -1,0 +1,19 @@
+{
+  "timestamp": "2026-11-14T04:29:22.106Z",
+  "platform": "win32",
+  "nativePlugin": true,
+  "restartPersistence": true,
+  "remoteDesktopSession": true,
+  "realDeepSeek": false,
+  "realPhone": false,
+  "mvpReady": false,
+  "remoteAuthority": "http://127.0.0.1:54037",
+  "visualCaptureWarnings": [
+    "native-plugin.png",
+    "native-remote-session.png"
+  ],
+  "remoteSessionId": "session-d26795a8-3f76-4631-ac09-e97b9cbde750",
+  "promptReceiptOnly": true,
+  "remoteReadableWithDesktopStopped": true,
+  "taskId": "d9ec90f7-589f-40d3-a6b6-ff90941836b4"
+}
