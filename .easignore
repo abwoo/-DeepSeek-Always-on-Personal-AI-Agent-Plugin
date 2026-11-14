@@ -34,3 +34,6 @@ apps/mobile/credentials.json
 /docs/
 /test-results/
 /playwright-report/
+
+__pycache__/
+*.pyc

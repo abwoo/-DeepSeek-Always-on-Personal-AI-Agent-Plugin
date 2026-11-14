@@ -210,6 +210,22 @@ try {
       const sharedSession=await phoneClient.readSession(personalSessionId);if(!JSON.stringify(sharedSession).includes('Phase 1 actual native conversation input'))throw Error('Mobile protocol did not read the same Desktop Session');
       evidence.nativeDesktopAndMobileProtocolSameAuthority=true;
       await capture(page, 'personal-agent.png');
+      await page.getByRole('button',{name:'Goals',exact:true}).click();
+      await page.getByLabel('Goal name').fill('Native shared ongoing goal');
+      await page.getByLabel('What should the agent watch?').fill('Read-only goal mutation check; no model execution claimed.');
+      await page.getByRole('button',{name:'Create ongoing goal',exact:true}).click();
+      await expect(page.getByRole('heading',{name:'Native shared ongoing goal',exact:true})).toBeVisible();
+      const goals=await phoneClient.snapshot();const goal=goals.goals.find(g=>g.title==='Native shared ongoing goal');if(!goal||!goals.tasks.some(t=>t.id===goal.taskId&&t.maxRuns===30))throw Error('Native goal form did not create a shared bounded task');
+      evidence.nativeGoalUiPersistent=true;
+      await page.getByRole('button',{name:'Devices',exact:true}).click();
+      await expect(page.getByRole('heading',{name:'Actual native Desktop',exact:true})).toBeVisible();
+      await page.getByRole('button',{name:'Pair another device',exact:true}).click();
+      await expect(page.getByText('One-use code · expires',{exact:false})).toBeVisible();
+      const code=await page.locator('.ao article pre').innerText();
+      const another=await ManagedClient.pair(evidence.remoteAuthority,code,'Native UI pairing proof','other',true);if(another.credentials.authorityId!==phoneClient.credentials.authorityId)throw Error('Native pairing UI issued another authority');
+      const extra=new ManagedClient(another.origin,another.credentials,undefined,true);await extra.request('/devices/revoke',{deviceId:extra.credentials.deviceId});
+      evidence.nativeDeviceManagementUi=true;
+
     });
     const afterDesktopExit = await observer.session.events({ address: { kind: 'session', sessionId: remoteId } });
     if (!afterDesktopExit.ok || !JSON.stringify(afterDesktopExit.value).includes('Remote Desktop authority proof')) {

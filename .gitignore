@@ -29,3 +29,6 @@ apps/mobile/ios/
 *.jks
 *.keystore
 apps/mobile/credentials.json
+
+__pycache__/
+*.pyc

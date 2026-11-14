@@ -26,8 +26,8 @@ export async function apply(ctx:Context,config:Config={}) {
   const proxies=config.trustedProxyAddresses??(process.env.ALWAYS_ON_TRUSTED_PROXIES??'').split(',').filter(Boolean);
   const allowLoopback=config.allowLoopback??process.env.ALWAYS_ON_GATEWAY_ALLOW_LOOPBACK==='1';
   const prefix='/personal-agent/v1';
-  let enabled=true,serial:Promise<unknown>=Promise.resolve();
-  const serialized=<T>(work:()=>Promise<T>)=>{const next=serial.then(work,work);serial=next.catch(()=>{});return next;};
+  let enabled=true,queued=0,serial:Promise<unknown>=Promise.resolve();
+  const serialized=<T>(work:()=>Promise<T>)=>{if(queued>=32)throw new GatewayError(429,'authority_busy');queued++;const next=serial.then(work,work).finally(()=>{queued--;});serial=next.catch(()=>{});return next;};
   ctx.effect(()=>async()=>{enabled=false;await serial;});
   const json=(data:unknown,status=200)=>Response.json(data,{status,headers:{'cache-control':'no-store','x-content-type-options':'nosniff'}});
   const requireResult=<T>(r:{ok:true,value:T}|{ok:false,error:unknown}):T=>{if(!r.ok)throw new GatewayError(503,'native_session_unavailable');return r.value;};

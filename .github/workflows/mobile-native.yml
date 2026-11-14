@@ -2,7 +2,7 @@ name: Native mobile builds
 on:
   push:
     branches: [main]
-    paths: [apps/mobile/**, packages/client/**, src/shared/**, scripts/build-managed-client.mjs, .github/workflows/mobile-native.yml]
+    paths: [apps/mobile/**, packages/client/**, src/shared/**, scripts/build-managed-client.mjs, scripts/mobile-android-smoke.py, .github/workflows/mobile-native.yml]
   workflow_dispatch:
 permissions:
   contents: read
@@ -35,7 +35,10 @@ jobs:
       - name: Record build scope
         run: |
           mkdir -p mobile-evidence
-          node -e 'require("fs").writeFileSync("mobile-evidence/android.json",JSON.stringify({nativeAndroidApkBuilt:true,signing:"development debug key; not a store release",realPhone:false,realDeepSeek:false,mvpReady:false},null,2))'
+          apk=$(find apps/mobile/android/app/build/outputs/apk/release -name "*.apk" -print -quit)
+          test -n "$apk"
+          sha256sum "$apk" > mobile-evidence/android-apk-sha256.txt
+          node -e 'require("fs").writeFileSync("mobile-evidence/android.json",JSON.stringify({sourceCommit:process.env.GITHUB_SHA,nativeAndroidApkBuilt:true,signing:"development debug key; not a store release",realPhone:false,realDeepSeek:false,mvpReady:false},null,2))'
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -81,7 +84,7 @@ jobs:
           xcrun simctl launch "$udid" com.abwoo.deepseekalwayson
           sleep 5
           xcrun simctl io "$udid" screenshot mobile-evidence/ios-pairing.png
-          node -e 'require("fs").writeFileSync("mobile-evidence/ios.json",JSON.stringify({nativeSimulatorAppBuilt:true,simulatorLaunch:true,installableOnPhysicalIPhone:false,appleSigningCredentialsPresent:false,realPhone:false,mvpReady:false},null,2))'
+          node -e 'require("fs").writeFileSync("mobile-evidence/ios.json",JSON.stringify({sourceCommit:process.env.GITHUB_SHA,nativeSimulatorAppBuilt:true,simulatorLaunch:true,installableOnPhysicalIPhone:false,appleSigningCredentialsPresent:false,realPhone:false,mvpReady:false},null,2))'
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -89,4 +92,34 @@ jobs:
           path: |
             mobile-evidence/
             ios-build.log
+          retention-days: 14
+
+  android-emulator:
+    needs: android
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with: {distribution: temurin, java-version: '21'}
+      - uses: actions/download-artifact@v4
+        with: {name: android-native-preview, path: .artifacts/native-mobile}
+      - name: Enable emulator hardware acceleration
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 35
+          target: google_apis
+          arch: x86_64
+          profile: pixel_7_pro
+          disable-animations: true
+          script: python3 scripts/mobile-android-smoke.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: android-emulator-evidence
+          path: mobile-evidence/
           retention-days: 14

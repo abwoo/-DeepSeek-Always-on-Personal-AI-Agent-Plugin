@@ -31,6 +31,16 @@ try{
  const read=await api(b,'/session/read',{sessionId:session.result.sessionId});assert.ok(JSON.stringify(read.events).includes('Real managed shared input'));
  await stop();url=await boot();origin=url.origin;
  const restarted=await api(b,'/snapshot');assert.equal(restarted.authorityId,a.authorityId);assert.equal(restarted.tasks[0].id,created.result.result.id);
+ const memory=(await api(a,'/mutate',{operationId:crypto.randomUUID(),command:{action:'memory.save',data:{kind:'project',content:'Consented cross-device managed memory',source:'Engineering verification',consent:true}}})).result.result;
+ assert.ok((await api(b,'/snapshot')).memories.some(m=>m.id===memory.id));
+ await api(a,'/mutate',{operationId:crypto.randomUUID(),command:{action:'memory.delete',data:{id:memory.id}}});assert.ok(!(await api(b,'/snapshot')).memories.some(m=>m.id===memory.id));
+ const goalId=crypto.randomUUID();const goalInput={operationId:goalId,goal:{title:'Shared bounded goal',instruction:'Read-only goal; no model result claimed',everySeconds:3600,maxRuns:2,allowedTools:[]}};
+ const goal=await api(a,'/goals',goalInput);const duplicateGoal=await api(a,'/goals',goalInput);assert.equal(goal.result.id,duplicateGoal.result.id);
+ const withGoal=await api(b,'/snapshot');assert.ok(withGoal.goals.some(g=>g.id===goal.result.id));assert.ok(withGoal.tasks.some(t=>t.id===goal.result.taskId&&t.maxRuns===2));
+ await api(a,'/mutate',{operationId:crypto.randomUUID(),command:{action:'task.control',data:{id:goal.result.taskId,state:'paused'}}});assert.equal((await api(b,'/snapshot')).tasks.find(t=>t.id===goal.result.taskId).state,'paused');
+ const push=await api(b,'/push/status');assert.equal(push.configured,false);
+ await api(b,'/push/register',{token:'ExpoPushToken[not-production]',projectId:crypto.randomUUID()},503);
+ await api(b,'/push/ack',{noticeId:crypto.randomUUID(),kind:'opened'},404);
  await api(a,'/devices/revoke',{deviceId:b.deviceId});await api(b,'/snapshot',undefined,401);
- const evidence={realHarness:true,devicePairing:true,twoDeviceSharedTask:true,mutationDeduplication:true,sharedSession:true,hostRestart:true,revocation:true,realDeepSeek:false,realPhone:false,mvpReady:false};await mkdir('test-results',{recursive:true});await writeFile('test-results/managed-authority.json',JSON.stringify(evidence,null,2));console.log(JSON.stringify(evidence));
+ const evidence={realHarness:true,devicePairing:true,twoDeviceSharedTask:true,mutationDeduplication:true,sharedSession:true,consentedMemoryCrud:true,goalsShareNativeTasks:true,goalDeduplication:true,sharedPause:true,pushFailsClosedWithoutProvisioning:true,hostRestart:true,revocation:true,realDeepSeek:false,realPhone:false,mvpReady:false};await mkdir('test-results',{recursive:true});await writeFile('test-results/managed-authority.json',JSON.stringify(evidence,null,2));console.log(JSON.stringify(evidence));
 }finally{await stop();await rm(dir,{recursive:true,force:true});}

@@ -14,7 +14,7 @@ const invoke=args=>promisify(execFile)(process.execPath,[cli,...args],{env:proce
 await mkdir('/data',{recursive:true});
 await invoke(['plugin','--profile','web','add',resolve(`abwoo-deepseek-always-on-${pkg.version}.tgz`)]);
 await invoke(['plugin','--profile','web','add',resolve('abwoo-deepseek-always-on-managed-0.2.0-dev.1.tgz')]);
-await writeFile('/data/runtime.patch.yml',`- id: workspace-controller\n  config:\n    documentsDirectory: !!js process.env.ALWAYS_ON_DOCUMENTS_DIR\n- id: agent-default-model\n  config:\n    provider: deepseek-official\n    model: !!js process.env.DEEPSEEK_MODEL\n`);
+await writeFile('/data/runtime.patch.yml',`- id: workspace-controller\n  config:\n    documentsDirectory: !!js process.env.ALWAYS_ON_DOCUMENTS_DIR\n- id: agent-default-model\n  config:\n    provider: deepseek-official\n    model: !!js process.env.DEEPSEEK_MODEL\n- id: web-search-deepseek\n  config:\n    maxTokens: 512\n    maxUses: 1\n`);
 if(process.env.ALWAYS_ON_TLS_CERT&&process.env.ALWAYS_ON_TLS_KEY){
  await writeFile('/data/Caddyfile',`${origin.hostname}:8443 {\n tls ${JSON.stringify(process.env.ALWAYS_ON_TLS_CERT)} ${JSON.stringify(process.env.ALWAYS_ON_TLS_KEY)}\n handle /personal-agent/v1/* {\n  request_body { max_size 64KB }\n  reverse_proxy 127.0.0.1:3080 { header_up X-Forwarded-Proto https }\n }\n handle { respond 404 }\n}\n`);
 }else throw Error('Operator must provide trusted TLS certificate/key paths; no internal certificate is used for production');
