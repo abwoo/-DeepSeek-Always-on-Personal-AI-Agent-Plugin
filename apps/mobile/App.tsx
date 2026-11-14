@@ -926,13 +926,11 @@ function AppContent() {
                     perform(() => mutate({ action: 'inbox.read', data: { id: n.id } }))
                   }
                 />
-                {snapshot.runs.find((r) => r.id === n.runId) ? (
-                  <Button
-                    title="Open task result"
-                    disabled={busy || !online}
-                    onPress={() => openRun(n.runId)}
-                  />
-                ) : null}
+                <Button
+                  title="Open task result"
+                  disabled={busy || !online}
+                  onPress={() => openRun(n.runId)}
+                />
               </View>
             ))}
           </>
