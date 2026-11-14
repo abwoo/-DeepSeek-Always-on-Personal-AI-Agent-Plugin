@@ -17,5 +17,6 @@
     "src/remote/**/*.ts",
     "src/desktop/**/*.ts",
     "src/managed/**/*.ts"
+    ,"src/control/**/*.ts"
   ]
 }

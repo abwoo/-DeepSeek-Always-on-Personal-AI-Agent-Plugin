@@ -109,6 +109,24 @@ export class GatewayStore {
       .run(hash(code), now + 300000);
     return { code, expiresAt: new Date(now + 300000).toISOString(), authorityId: this.authorityId };
   }
+  /** Private provisioning ingress. The controller supplies an independent random device token.
+   * Repeating identical registration is safe; a revoked ID can never be resurrected. */
+  installAccountDevice(input: { id: string; token: string; name: string; platform: string }, now = Date.now()): DeviceCredentials {
+    return this.transaction(() => {
+      const old = this.db.prepare('SELECT * FROM devices WHERE id=?').get(input.id) as Device|undefined;
+      if (old) {
+        if (old.revoked || old.token_hash !== hash(input.token) || old.expires_at <= now)
+          throw new GatewayError(409,'device_registration_conflict');
+        return {authorityId:this.authorityId,ownerId:this.ownerId,deviceId:old.id,token:input.token,expiresAt:new Date(old.expires_at).toISOString()};
+      }
+      if(Number(this.db.prepare('SELECT count(*) AS n FROM devices WHERE revoked=0 AND expires_at>?').get(now)!.n)>=32)
+        throw new GatewayError(409,'device_limit');
+      const expires=now+90*86400000;
+      this.db.prepare('INSERT INTO devices VALUES(?,?,?,?,?,?,0,?)').run(input.id,this.ownerId,input.name,input.platform,hash(input.token),expires,now);
+      this.change('device',input.id);
+      return {authorityId:this.authorityId,ownerId:this.ownerId,deviceId:input.id,token:input.token,expiresAt:new Date(expires).toISOString()};
+    });
+  }
   claim(code: string, name: string, platform: string, now = Date.now()): DeviceCredentials {
     return this.transaction(() => {
       const found = this.db

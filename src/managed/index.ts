@@ -3,7 +3,7 @@ import type {} from '@deepseek-ai/dsh-host-webserver';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import { resolve } from 'node:path';
 import { homedir } from 'node:os';
-import { randomUUID } from 'node:crypto';
+import { randomUUID, timingSafeEqual } from 'node:crypto';
 import { z } from 'zod';
 import { GatewayStore, GatewayError, hash, type Device } from './store.js';
 import { NativePush } from './push.js';
@@ -174,7 +174,39 @@ export async function apply(ctx: Context, config: Config = {}) {
       path = url.pathname.slice(prefix.length);
     if (req.method === 'GET' && path === '/health')
       return json({ ready: true, runtime: 'deepseek-harness', protocol: 2, mvpReady: false });
+    if (path.startsWith('/operator/')) {
+      // Private operator network only. The public account gateway never proxies these paths.
+      const expected=process.env.ALWAYS_ON_PROVISIONING_KEY??'';
+      const supplied=String(req.headers['x-always-on-provisioning-key']??'');
+      const a=Buffer.from(hash(expected)),b=Buffer.from(hash(supplied));
+      if(expected.length<32||!timingSafeEqual(a,b))throw new GatewayError(401,'operator_unauthorized');
+      throttle(remote);
+      if(req.method==='POST'&&path==='/operator/inspect')return json({authorityId:store.authorityId,ownerId:store.ownerId});
+      if(req.method==='POST'&&path==='/operator/bind'){
+        const {accountId}=z.object({accountId:z.uuid()}).strict().parse(await readBody(req));
+        const previous=store.db.prepare("SELECT value FROM meta WHERE key='account_id'").get()?.value;
+        if(previous&&previous!==accountId)throw new GatewayError(409,'authority_account_conflict');
+        if(!previous){
+          const data=await native.core('GET');
+          if(store.devices().length||data.tasks.length||data.memories.length||data.inbox.length||requireResult(await native.session.list({})).items.length)
+            throw new GatewayError(409,'authority_not_empty');
+          store.db.prepare("INSERT INTO meta(key,value) VALUES('account_id',?)").run(accountId);
+        }
+        return json({authorityId:store.authorityId,ownerId:store.ownerId,accountId});
+      }
+      if(req.method==='POST'&&path==='/operator/device'){
+        const input=z.object({accountId:z.uuid(),id:z.uuid(),token:z.string().regex(/^ao_[a-f0-9-]{36}\.[A-Za-z0-9_-]{43}$/),name:z.string().trim().min(1).max(80),platform:z.enum(['ios','android','macos','windows','other'])}).strict().parse(await readBody(req));
+        if(store.db.prepare("SELECT value FROM meta WHERE key='account_id'").get()?.value!==input.accountId)throw new GatewayError(409,'authority_account_conflict');
+        if(!input.token.startsWith(`ao_${input.id}.`))throw new GatewayError(400,'invalid_device_binding');
+        return json(store.installAccountDevice(input));
+      }
+      if(req.method==='POST'&&path==='/operator/revoke'){
+        const input=z.object({deviceId:z.uuid()}).strict().parse(await readBody(req));store.revoke(input.deviceId);return json({revoked:true});
+      }
+      throw new GatewayError(404,'route_not_found');
+    }
     if (req.method === 'POST' && path === '/pair/claim') {
+      if(store.db.prepare("SELECT value FROM meta WHERE key='account_id'").get())throw new GatewayError(403,'account_login_required');
       throttle(remote);
       const body = pairClaim.parse(await readBody(req));
       return json(store.claim(body.code, body.name, body.platform));

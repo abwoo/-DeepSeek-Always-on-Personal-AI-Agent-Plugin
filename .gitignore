@@ -32,3 +32,5 @@ apps/mobile/credentials.json
 
 __pycache__/
 *.pyc
+
+packages/client/account.js
