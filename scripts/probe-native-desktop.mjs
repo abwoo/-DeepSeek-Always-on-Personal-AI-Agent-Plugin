@@ -1,13 +1,20 @@
 // Runs only against an actual official installed macOS/Windows application in disposable CI.
 // Native integration and remote Session control only; never certifies model execution or MVP readiness.
 import { chromium, expect } from '@playwright/test';
+// Use the pinned HTTP client: its best-effort QoS handling fixes macOS EINVAL
+// in Node 24's bundled fetch. This changes the probe, never the signed app.
+import { fetch, install } from 'undici';
 import { spawn, execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { setTimeout as delay } from 'node:timers/promises';
+import { createServer } from 'node:http';
 import { dirname, join, resolve } from 'node:path';
 import { ManagedClient } from '../dist/shared/managed-client.js';
 import { connectProbe } from '../dist/remote/probe-connection.js';
+// Imported public SDK helpers also use global fetch. Keep every request in this
+// Node-only probe on the same patched implementation; child Electron is untouched.
+install();
 const executable = process.env.ALWAYS_ON_DESKTOP_EXE;
 if (!['win32', 'darwin'].includes(process.platform) || !executable) throw new Error('Real installed native Desktop required');
 const output = process.platform === 'win32' ? '.artifacts/windows-desktop' : '.artifacts/macos-desktop';
@@ -69,6 +76,7 @@ async function startRemote() {
   process.env.ALWAYS_ON_PHASE0_REMOTE_TOKEN = url.searchParams.get('token');
   process.env.ALWAYS_ON_PHASE0_ALLOW_LOOPBACK = '1';
   delete process.env.ALWAYS_ON_DESKTOP_OPERATOR_PREVIEW;
+  process.env.ALWAYS_ON_DESKTOP_ADVANCED_PAIRING='1';
   process.env.ALWAYS_ON_DESKTOP_REMOTE_ORIGIN = url.origin;
   process.env.ALWAYS_ON_DESKTOP_REMOTE_TOKEN = url.searchParams.get('token');
   process.env.ALWAYS_ON_DESKTOP_ALLOW_LOOPBACK = '1';
@@ -118,7 +126,7 @@ async function boot(action) {
         if (e.name !== 'TimeoutError') throw e; return false;
       })) await dialog.getByRole('button', { name: button, exact: true }).click();
     }
-    if(!process.argv.includes('--initialize'))await expect.poll(async()=>page.evaluate(async()=>{try{return (await fetch('/api/always-on')).status;}catch{return 0;}}),{timeout:30000}).toBe(200);
+    if(!process.argv.includes('--initialize')&&!process.argv.includes('--plugins-ui'))await expect.poll(async()=>page.evaluate(async()=>{try{return (await fetch('/api/always-on')).status;}catch{return 0;}}),{timeout:30000}).toBe(200);
     await action(page);
   } finally {
     await browser?.close().catch(() => {});
@@ -126,6 +134,51 @@ async function boot(action) {
     await stopTree(child);
   }
 }
+async function pluginsUi() {
+  const archive = await readFile(resolve('abwoo-deepseek-always-on-desktop-0.3.0-dev.1.tgz'));
+  const server = createServer((req,res) => {
+    if(req.url!=='/desktop.tgz'){res.writeHead(404);res.end();return;}
+    res.writeHead(200,{'content-type':'application/gzip','content-length':archive.length});res.end(archive);
+  });
+  await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
+  const spec=`http://127.0.0.1:${server.address().port}/desktop.tgz`;
+  async function guarded(work){await boot(async page=>{try{await work(page);}catch(e){await writeFile(join(output,'plugins-ui-dom.txt'),await page.locator('body').innerText());await capture(page,'plugins-ui-failure.png');throw e;}});}
+  async function detail(page){await page.getByText('Plugins',{exact:true}).first().click();await page.getByRole('button',{name:'View DeepSeek Always-on Personal Agent',exact:true}).click();}
+  async function install(page){
+    await page.getByText('Plugins',{exact:true}).first().click();
+    await page.getByRole('button',{name:'Add plugin',exact:true}).click();
+    await page.getByRole('textbox',{name:'Package name or address',exact:true}).fill(spec);
+    await page.getByRole('button',{name:'Install',exact:true}).click();
+    const confirm=page.getByRole('button',{name:'Install',exact:true});
+    if(await confirm.waitFor({state:'visible',timeout:10000}).then(()=>true).catch(()=>false))await confirm.click();
+    const enable=page.getByRole('button',{name:'Enable now',exact:true});
+    await enable.waitFor({state:'visible',timeout:150000});await enable.click();
+    // The pinned Desktop can require a Host restart; verify actual activation on the next launch.
+  }
+  try {
+    await guarded(async page=>{await install(page);});
+    await guarded(async page=>{
+      await expect(page.getByText('Personal Agent',{exact:true}).first()).toBeVisible({timeout:30000});evidence.graphicalInstallation=true;
+      await detail(page);const toggle=page.getByRole('switch',{name:'Enable DeepSeek Always-on Personal Agent',exact:true});await toggle.click();await expect(toggle).not.toBeChecked();
+    });
+    await guarded(async page=>{
+      await expect(page.getByText('Personal Agent',{exact:true})).toHaveCount(0,{timeout:30000});evidence.graphicalDisable=true;
+      await detail(page);const toggle=page.getByRole('switch',{name:'Enable DeepSeek Always-on Personal Agent',exact:true});await toggle.click();await expect(toggle).toBeChecked();
+    });
+    await guarded(async page=>{
+      await expect(page.getByText('Personal Agent',{exact:true}).first()).toBeVisible({timeout:30000});evidence.graphicalEnable=true;
+      await detail(page);await capture(page,'plugins-ui.png');
+      await page.getByRole('button',{name:'Uninstall DeepSeek Always-on Personal Agent',exact:true}).click();
+      await page.getByRole('dialog').getByRole('button',{name:'Uninstall',exact:true}).click();
+      await expect(page.getByRole('button',{name:'Add plugin',exact:true})).toBeVisible({timeout:90000});
+    });
+    await guarded(async page=>{await expect(page.getByText('Personal Agent',{exact:true})).toHaveCount(0,{timeout:30000});evidence.graphicalUninstall=true;await install(page);});
+    await guarded(async page=>{await expect(page.getByText('Personal Agent',{exact:true}).first()).toBeVisible({timeout:30000});});
+    evidence.graphicalReinstall=true;evidence.graphicalRestart=true;
+    evidence.distribution='actual official Plugins UI, local HTTP immutable tarball fixture; not published npm/live service';
+  }finally{await new Promise(resolve=>server.close(resolve));}
+}
+
 try {
   await verifyRuntime();
   if (process.argv.includes('--initialize')) {
@@ -133,6 +186,8 @@ try {
       await capture(page, 'initialized.png');
     });
     evidence.profileInitialized = true;
+  } else if (process.argv.includes('--plugins-ui')) {
+    await pluginsUi();
   } else {
     await startRemote();
     let id, remoteId, personalSessionId, sharedTaskId;
@@ -221,7 +276,7 @@ try {
       await page.getByRole('button',{name:'Devices',exact:true}).click();
       await expect(page.getByRole('heading',{name:'Actual native Desktop',exact:true})).toBeVisible();
       await page.getByRole('button',{name:'Pair another device',exact:true}).click();
-      await expect(page.getByText('One-use code · expires',{exact:false})).toBeVisible();
+      await expect(page.getByText('One-use code expires',{exact:false})).toBeVisible();
       const code=await page.locator('.ao article pre').innerText();
       const another=await ManagedClient.pair(evidence.remoteAuthority,code,'Native UI pairing proof','other',true);if(another.credentials.authorityId!==phoneClient.credentials.authorityId)throw Error('Native pairing UI issued another authority');
       const extra=new ManagedClient(another.origin,another.credentials,undefined,true);await extra.request('/devices/revoke',{deviceId:extra.credentials.deviceId});
@@ -268,6 +323,6 @@ try {
 } finally {
   await observer?.close();
   await stopTree(remoteProcess);
-  await writeFile(join(output, process.argv.includes('--initialize') ? 'initialize.json' : 'plugin.json'),
+  await writeFile(join(output, process.argv.includes('--initialize') ? 'initialize.json' : process.argv.includes('--plugins-ui') ? 'plugins-ui.json' : 'plugin.json'),
     JSON.stringify({ timestamp: new Date().toISOString(), ...evidence }, null, 2));
 }

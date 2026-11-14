@@ -3,6 +3,7 @@ import { credentialRef } from '@deepseek-ai/dsh-credentials';
 import { z } from 'zod';
 import {
   ManagedClient,
+  resultBeforeSeq,
   ApiError,
   credentialsSchema,
   managedOrigin,
@@ -16,6 +17,7 @@ const savedSchema = z.object({ origin: z.string(), credentials: credentialsSchem
 const sessionSchema = z.discriminatedUnion('action', [
   z.object({ action: z.literal('list') }),
   z.object({ action: z.literal('read'), sessionId: z.string().min(1) }),
+  z.object({ action: z.literal('run.read'), runId: z.uuid() }),
   z.object({ action: z.literal('create'), creationId: z.string().min(1), operationId: z.uuid() }),
   z.object({
     action: z.literal('prompt'),
@@ -33,12 +35,12 @@ export class PairedDesktop {
     private ctx: Context,
     private loopback = false,
   ) {}
-  private queue<T>(work: () => Promise<T>) {
+  protected queue<T>(work: () => Promise<T>) {
     const p = this.serial.then(work, work);
     this.serial = p.catch(() => {});
     return p;
   }
-  private async record() {
+  protected async record(): Promise<ConnectionRecord | null> {
     if (this.disposed) throw Error('Plugin disabled');
     const saved = await this.ctx.credentials.resolve(reference);
     if (!saved) return null;
@@ -46,7 +48,7 @@ export class PairedDesktop {
     managedOrigin(record.origin, this.loopback);
     return record;
   }
-  private operations(record: ConnectionRecord): OperationStorage {
+  protected operations(record: ConnectionRecord): OperationStorage {
     const ref = credentialRef(
       'ALWAYS_ON_PENDING_' + record.credentials.deviceId.replaceAll('-', '_'),
     );
@@ -69,7 +71,7 @@ export class PairedDesktop {
       remove: async (id) => write((await list()).filter((p) => p.operationId !== id)),
     };
   }
-  private async client() {
+  protected async client(): Promise<ManagedClient> {
     const record = await this.record();
     if (!record) throw Error('Pair this Desktop with your managed Personal Agent');
     return new ManagedClient(
@@ -129,7 +131,7 @@ export class PairedDesktop {
       return this.status();
     });
   }
-  private async failure(error: unknown) {
+  protected async failure(error: unknown) {
     this.connected = false;
     if (error instanceof ApiError && error.status === 401)
       await this.ctx.credentials.unset(reference);
@@ -139,6 +141,23 @@ export class PairedDesktop {
       const client = await this.client();
       return client.reconcile();
     });
+  }
+  async events(input: unknown) {
+    const data = z
+      .object({
+        after: z.number().int().min(0),
+        epoch: z.uuid().optional(),
+        live: z.number().int().min(0).optional(),
+        sessionId: z.string().min(1).max(256).optional(),
+      })
+      .strict()
+      .parse(input);
+    try {
+      return await (await this.client()).events(data, data.sessionId);
+    } catch (e) {
+      await this.failure(e);
+      throw e;
+    }
   }
   async dismiss(input: unknown) {
     return this.queue(async () => {
@@ -192,11 +211,16 @@ export class PairedDesktop {
     return this.queue(async () => {
       const data = sessionSchema.parse(input),
         c = await this.client();
-      if (!['list', 'read'].includes(data.action) && !this.connected)
+      if (!['list', 'read', 'run.read'].includes(data.action) && !this.connected)
         throw Error('Refresh before writing');
       try {
         if (data.action === 'list')
           return { ...(await c.sessions()), connection: await this.status() };
+        if (data.action === 'run.read') {
+          const run = await c.request('/runs/' + data.runId);
+          const result = await c.readSession(run.sessionId, resultBeforeSeq(run));
+          return { ...result, run, connection: await this.status() };
+        }
         let sessionId: string;
         if (data.action === 'read') sessionId = data.sessionId;
         else if (data.action === 'create') {

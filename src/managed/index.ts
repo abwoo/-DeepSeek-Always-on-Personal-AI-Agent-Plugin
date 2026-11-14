@@ -3,15 +3,18 @@ import type {} from '@deepseek-ai/dsh-host-webserver';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import { resolve } from 'node:path';
 import { homedir } from 'node:os';
-import { randomUUID } from 'node:crypto';
+import { randomUUID, timingSafeEqual } from 'node:crypto';
 import { z } from 'zod';
 import { GatewayStore, GatewayError, hash, type Device } from './store.js';
 import { NativePush } from './push.js';
+import { LiveFeed } from './feed.js';
+import { installAccountPolicy } from './policy.js';
+import type {} from '@deepseek-ai/dsh-agent';
 import type {} from '../host/index.js';
 import { nativeClient } from './native.js';
 import { pairClaim, mutationSchema, opaqueId, goalSchema } from '../shared/managed-contract.js';
 
-export const inject = ['alwaysOn', 'connection', 'webServer', 'sessions'];
+export const inject = ['alwaysOn', 'connection', 'webServer', 'sessions', 'tools'];
 export interface Config {
   dataDir?: string;
   publicOrigin?: string;
@@ -28,6 +31,30 @@ export async function apply(ctx: Context, config: Config = {}) {
       ),
   );
   const store = new GatewayStore(resolve(dir, 'gateway.sqlite'));
+  const feed = new LiveFeed();
+  const accountBudget = installAccountPolicy(ctx, store);
+  ctx.on('session/event', (session, event) => {
+    store.change('session', session.id);
+    feed.publish(session.id, 'session-event', { seq: event.seq, type: event.type });
+  });
+  ctx.on('agent/assistant-stream', ({ agent, frame }) => {
+    if (frame.type === 'chunk') {
+      if (frame.chunk.type === 'text-delta')
+        feed.publish(agent.session.id, 'text-delta', {
+          attemptId: frame.attemptId,
+          text: frame.chunk.text.slice(0, 4096),
+        });
+      else if (frame.chunk.type === 'tool-call-delta')
+        feed.publish(agent.session.id, 'tool-progress', {
+          attemptId: frame.attemptId,
+          name: frame.chunk.name ?? '',
+        });
+    } else
+      feed.publish(agent.session.id, frame.type, {
+        attemptId: frame.attemptId,
+        ...(frame.type === 'end' ? { outcome: frame.outcome } : {}),
+      });
+  });
   ctx.effect(() => () => store.close());
   const native = await nativeClient(ctx);
   ctx.effect(() => () => native.close());
@@ -77,6 +104,7 @@ export async function apply(ctx: Context, config: Config = {}) {
   };
   ctx.effect(() => async () => {
     enabled = false;
+    feed.wake();
     await serial;
   });
   const json = (data: unknown, status = 200) =>
@@ -90,12 +118,37 @@ export async function apply(ctx: Context, config: Config = {}) {
   };
   const snapshot = async () => {
     const state = await native.core('GET');
-    const data = { ...state, pushPublicKey: null, goals: store.goals() };
+    const data = {
+      ...state,
+      pushPublicKey: null,
+      goals: store.goals().map((goal) => {
+        const task = state.tasks.find((t: { id: string }) => t.id === goal.taskId);
+        const checkpoints = ctx.alwaysOn.coordinator
+          .runs()
+          .filter((r) => r.taskId === goal.taskId)
+          .slice(0, 20);
+        return {
+          ...goal,
+          state: task?.state ?? 'unavailable',
+          lastRun: checkpoints[0] ?? null,
+          checkpoints,
+          budget: task
+            ? {
+                maxRuns: task.maxRuns,
+                maxSteps: task.maxSteps,
+                maxTotalTokens: task.maxTotalTokens,
+                timeoutSeconds: task.timeoutSeconds,
+              }
+            : null,
+        };
+      }),
+    };
     const revision = store.observeSnapshot(data);
     return {
       authorityId: store.authorityId,
       ownerId: store.ownerId,
       revision,
+      usage: accountBudget.status(),
       serverTime: new Date().toISOString(),
       ...data,
     };
@@ -174,7 +227,74 @@ export async function apply(ctx: Context, config: Config = {}) {
       path = url.pathname.slice(prefix.length);
     if (req.method === 'GET' && path === '/health')
       return json({ ready: true, runtime: 'deepseek-harness', protocol: 2, mvpReady: false });
+    if (path.startsWith('/operator/')) {
+      // Private operator network only. The public account gateway never proxies these paths.
+      const expected = process.env.ALWAYS_ON_PROVISIONING_KEY ?? '';
+      const supplied = String(req.headers['x-always-on-provisioning-key'] ?? '');
+      const a = Buffer.from(hash(expected)),
+        b = Buffer.from(hash(supplied));
+      if (expected.length < 32 || !timingSafeEqual(a, b))
+        throw new GatewayError(401, 'operator_unauthorized');
+      throttle(remote);
+      if (req.method === 'POST' && path === '/operator/inspect')
+        return json({ authorityId: store.authorityId, ownerId: store.ownerId });
+      if (req.method === 'POST' && path === '/operator/bind') {
+        const { accountId } = z
+          .object({ accountId: z.uuid() })
+          .strict()
+          .parse(await readBody(req));
+        const previous = store.db
+          .prepare("SELECT value FROM meta WHERE key='account_id'")
+          .get()?.value;
+        if (previous && previous !== accountId)
+          throw new GatewayError(409, 'authority_account_conflict');
+        if (!previous) {
+          const data = await native.core('GET');
+          if (
+            store.devices().length ||
+            data.tasks.length ||
+            data.memories.length ||
+            data.inbox.length ||
+            requireResult(await native.session.list({})).items.length
+          )
+            throw new GatewayError(409, 'authority_not_empty');
+          store.db.prepare("INSERT INTO meta(key,value) VALUES('account_id',?)").run(accountId);
+        }
+        return json({ authorityId: store.authorityId, ownerId: store.ownerId, accountId });
+      }
+      if (req.method === 'POST' && path === '/operator/device') {
+        const input = z
+          .object({
+            accountId: z.uuid(),
+            id: z.uuid(),
+            token: z.string().regex(/^ao_[a-f0-9-]{36}\.[A-Za-z0-9_-]{43}$/),
+            name: z.string().trim().min(1).max(80),
+            platform: z.enum(['ios', 'android', 'macos', 'windows', 'other']),
+          })
+          .strict()
+          .parse(await readBody(req));
+        if (
+          store.db.prepare("SELECT value FROM meta WHERE key='account_id'").get()?.value !==
+          input.accountId
+        )
+          throw new GatewayError(409, 'authority_account_conflict');
+        if (!input.token.startsWith(`ao_${input.id}.`))
+          throw new GatewayError(400, 'invalid_device_binding');
+        return json(store.installAccountDevice(input));
+      }
+      if (req.method === 'POST' && path === '/operator/revoke') {
+        const input = z
+          .object({ deviceId: z.uuid() })
+          .strict()
+          .parse(await readBody(req));
+        store.revoke(input.deviceId);
+        return json({ revoked: true });
+      }
+      throw new GatewayError(404, 'route_not_found');
+    }
     if (req.method === 'POST' && path === '/pair/claim') {
+      if (store.db.prepare("SELECT value FROM meta WHERE key='account_id'").get())
+        throw new GatewayError(403, 'account_login_required');
       throttle(remote);
       const body = pairClaim.parse(await readBody(req));
       return json(store.claim(body.code, body.name, body.platform));
@@ -182,6 +302,50 @@ export async function apply(ctx: Context, config: Config = {}) {
     const authorization = String(req.headers.authorization ?? '');
     if (!authorization.startsWith('Bearer ')) throw new GatewayError(401, 'device_unauthorized');
     const device = store.authenticate(authorization.slice(7));
+    if (req.method === 'GET' && path === '/export')
+      return json({
+        authorityId: store.authorityId,
+        exportedAt: new Date().toISOString(),
+        scope:
+          'Tasks, goals, consented/proposed memory, Inbox and Run Ledger. Native Session transcripts are read separately via authorized Session history.',
+        tasks: ctx.alwaysOn.coordinator.tasks(),
+        runs: ctx.alwaysOn.coordinator.runs(),
+        memories: ctx.alwaysOn.memory.list(),
+        inbox: ctx.alwaysOn.notifications.list(),
+        goals: store.goals(),
+      });
+    if (req.method === 'GET' && path === '/events') {
+      if (
+        [...url.searchParams.keys()].some(
+          (k) => !['after', 'epoch', 'live', 'sessionId'].includes(k),
+        )
+      )
+        throw new GatewayError(400, 'invalid_cursor');
+      const after = z.coerce
+        .number()
+        .int()
+        .min(0)
+        .parse(url.searchParams.get('after') ?? '0');
+      const live = z.coerce
+        .number()
+        .int()
+        .min(0)
+        .parse(url.searchParams.get('live') ?? '0');
+      const epoch = url.searchParams.get('epoch') ?? undefined;
+      if (epoch) z.uuid().parse(epoch);
+      const sessionId = url.searchParams.get('sessionId') ?? undefined;
+      if (sessionId) opaqueId.parse(sessionId);
+      const end = Date.now() + 9000;
+      while (enabled) {
+        store.authenticate(authorization.slice(7));
+        const changes = store.changes(after),
+          stream = feed.read(epoch, live, sessionId);
+        if (changes.revision > after || stream.resetLive || stream.live > live || Date.now() >= end)
+          return json({ authorityId: store.authorityId, ...changes, ...stream });
+        await feed.wait(Math.min(1000, end - Date.now()));
+      }
+      throw new GatewayError(503, 'gateway_disabled');
+    }
     if (req.method === 'GET' && path === '/snapshot')
       return serialized(async () => {
         store.authenticate(authorization.slice(7));
@@ -229,6 +393,16 @@ export async function apply(ctx: Context, config: Config = {}) {
       const body = mutationSchema.parse(await readBody(req));
       return serialized(async () => {
         store.authenticate(authorization.slice(7));
+        if (
+          !store.operation(device.id, body.operationId) &&
+          body.command.action === 'memory.save' &&
+          body.command.data.expectedVersion !== undefined
+        ) {
+          const memory = body.command.data;
+          const current = ctx.alwaysOn.memory.list().find((m) => m.id === memory.id);
+          if ((current?.version ?? 0) !== memory.expectedVersion)
+            throw new GatewayError(409, 'memory_conflict');
+        }
         const result = await store.execute(device.id, body.operationId, body.command, () =>
           runCommand(device, body.operationId, body.command),
         );

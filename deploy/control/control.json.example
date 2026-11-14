@@ -1,0 +1,25 @@
+{
+  "publicOrigin": "https://REPLACE-WITH-AUTHORIZED-SERVICE-DOMAIN",
+  "issuer": "https://REPLACE-WITH-AUTHORIZED-AUTH0-TENANT/",
+  "clientId": "REPLACE-WITH-AUTH0-REGULAR-WEB-CLIENT-ID",
+  "database": "/data/accounts.sqlite",
+  "encryptionKeyFile": "/run/secrets/control-encryption-base64",
+  "clientSecretFile": "/run/secrets/auth0-client-secret",
+  "trustedProxies": [
+    "172.31.80.2",
+    "127.0.0.1",
+    "::ffff:127.0.0.1"
+  ],
+  "slots": [
+    {
+      "id": "agent-a",
+      "origin": "https://agent-a:8443",
+      "provisioningKeyFile": "/run/secrets/agent-a-provisioning"
+    },
+    {
+      "id": "agent-b",
+      "origin": "https://agent-b:8443",
+      "provisioningKeyFile": "/run/secrets/agent-b-provisioning"
+    }
+  ]
+}

@@ -1,0 +1,16 @@
+{
+  "sourceCommit": "95793a60d3475be5b36a425562cb4065daba19f1",
+  "date": "2026-11-14",
+  "environment": "Codex isolated Linux workspace, Node 24.22.1; deterministic Harness test model, not DeepSeek",
+  "command": "npm run check",
+  "tests": 41,
+  "pass": 41,
+  "fail": 0,
+  "skipped": 0,
+  "durationMs": 71251.365195,
+  "desktopBundleBuild": true,
+  "mobileTypecheck": true,
+  "nativePhysicalDevice": false,
+  "realDeepSeek": false,
+  "mvpReady": false
+}

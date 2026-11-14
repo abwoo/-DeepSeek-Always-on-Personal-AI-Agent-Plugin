@@ -1,0 +1,22 @@
+{
+  "sourceCommit": "95793a60d3475be5b36a425562cb4065daba19f1",
+  "evidenceLevel": 2,
+  "identity": "explicit local adapter fixture; not live Auth0",
+  "actualHarnessProcesses": 2,
+  "automaticIsolatedAllocation": true,
+  "sameAccountTwoIndependentDevices": true,
+  "crossAccountSessionAndTaskDenied": true,
+  "sharedTask": true,
+  "sharedMemoryLifecycle": true,
+  "crossDeviceMemoryConflictRejected": true,
+  "sharedNativeSessionInput": true,
+  "actualNativeEventFeed": true,
+  "sharedGoal": true,
+  "mutationDeduplication": true,
+  "controllerRestartRetainsAuthority": true,
+  "deviceRevocationAndRelogin": true,
+  "realIdentityProvider": false,
+  "realDeepSeek": false,
+  "realPhone": false,
+  "mvpReady": false
+}

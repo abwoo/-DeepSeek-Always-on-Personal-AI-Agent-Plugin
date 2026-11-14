@@ -1,7 +1,10 @@
 import {spawn,execFile} from 'node:child_process';
 import {promisify} from 'node:util';
-import {writeFile,mkdir} from 'node:fs/promises';
+import {writeFile,mkdir,readFile} from 'node:fs/promises';
 import {resolve} from 'node:path';
+for(const key of ['DEEPSEEK_API_KEY','ALWAYS_ON_PROVISIONING_KEY','ALWAYS_ON_EXPO_ACCESS_TOKEN']){
+ const file=process.env[key+'_FILE'];if(file){try{process.env[key]=(await readFile(file,'utf8')).trim();}catch(e){if(key==='ALWAYS_ON_EXPO_ACCESS_TOKEN'&&process.env.ALWAYS_ON_EXPO_PUSH_ENABLED!=='1')continue;throw e;}}
+}
 if(!process.env.ALWAYS_ON_PUBLIC_ORIGIN)throw Error('Operator must configure the public HTTPS origin');
 const origin=new URL(process.env.ALWAYS_ON_PUBLIC_ORIGIN);
 if(origin.protocol!=='https:'||origin.port&&origin.port!=='8443'||origin.pathname!=='/'||origin.search||origin.hash||origin.username||origin.password)throw Error('Expected an HTTPS origin on port 443 or 8443');
@@ -25,7 +28,7 @@ for(const [program,args]of [[process.execPath,[cli,'web','--patch','/data/runtim
  const child=spawn(program,args,{stdio:['ignore','pipe','pipe'],env:process.env});children.push(child);
  for(const stream of [child.stdout,child.stderr]){
   let buffer='',discard=false;
-  const redact=line=>{let safe=line.replace(/token=[^\s]+/g,'token=REDACTED');for(const value of [process.env.DEEPSEEK_API_KEY,process.env.ALWAYS_ON_EXPO_ACCESS_TOKEN].filter(Boolean))safe=safe.replaceAll(value,'REDACTED');return safe;};
+  const redact=line=>{let safe=line.replace(/token=[^\s]+/g,'token=REDACTED');for(const value of [process.env.DEEPSEEK_API_KEY,process.env.ALWAYS_ON_EXPO_ACCESS_TOKEN,process.env.ALWAYS_ON_PROVISIONING_KEY].filter(Boolean))safe=safe.replaceAll(value,'REDACTED');return safe;};
   stream.on('data',chunk=>{buffer+=chunk;let i;while((i=buffer.indexOf('\n'))>=0){const line=buffer.slice(0,i);buffer=buffer.slice(i+1);if(!discard)process.stdout.write(redact(line)+'\n');discard=false;}if(buffer.length>65536){buffer='';discard=true;process.stdout.write('[runtime log line omitted: size limit]\n');}});
   stream.on('end',()=>{if(buffer&&!discard)process.stdout.write(redact(buffer)+'\n');});
  }

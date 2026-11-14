@@ -1,0 +1,22 @@
+# Replace only by the authorized operator; this is not a production address.
+{$ALWAYS_ON_PUBLIC_HOST} {
+  handle /account/v1/* {
+    request_body {
+      max_size 64KB
+    }
+    reverse_proxy control:4080 {
+      header_up X-Forwarded-Proto https
+    }
+  }
+  handle /personal-agent/v1/* {
+    request_body {
+      max_size 64KB
+    }
+    reverse_proxy control:4080 {
+      header_up X-Forwarded-Proto https
+    }
+  }
+  handle {
+    respond 404
+  }
+}

@@ -18,7 +18,7 @@ try{
  await run(['plugin','--profile','web','add',resolve(`abwoo-deepseek-always-on-${version}.tgz`)],{...process.env,DSH_HOME:join(dir,'authority')});
  const a=await boot('authority');
  await run(['plugin','--profile','web','add',resolve('abwoo-always-on-desktop-remote-probe-0.0.0-phase0.tgz')],{...process.env,DSH_HOME:join(dir,'proxy')});
- await run(['plugin','--profile','web','add',resolve('abwoo-deepseek-always-on-desktop-0.2.0-dev.1.tgz')],{...process.env,DSH_HOME:join(dir,'proxy')});
+ await run(['plugin','--profile','web','add',resolve('abwoo-deepseek-always-on-desktop-0.3.0-dev.1.tgz')],{...process.env,DSH_HOME:join(dir,'proxy')});
  const b=await boot('proxy',{ALWAYS_ON_PHASE0_REMOTE_ORIGIN:a.url.origin,ALWAYS_ON_PHASE0_REMOTE_TOKEN:a.url.searchParams.get('token'),ALWAYS_ON_PHASE0_ALLOW_LOOPBACK:'1',ALWAYS_ON_DESKTOP_OPERATOR_PREVIEW:'1',ALWAYS_ON_DESKTOP_REMOTE_ORIGIN:a.url.origin,ALWAYS_ON_DESKTOP_REMOTE_TOKEN:a.url.searchParams.get('token'),ALWAYS_ON_DESKTOP_ALLOW_LOOPBACK:'1'});
  const endpoint=b.url.origin+'/api/always-on-phase0-remote';
  assert.equal((await fetch(endpoint,{method:'POST',body:'{}'})).status,401);

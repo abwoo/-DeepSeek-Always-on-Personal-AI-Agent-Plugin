@@ -32,3 +32,13 @@ apps/mobile/credentials.json
 
 __pycache__/
 *.pyc
+
+packages/client/account.js
+
+deploy/control/operator/
+deploy/control/Caddyfile
+*.aobackup
+
+**/.terraform/
+*.tfstate*
+*.tfvars

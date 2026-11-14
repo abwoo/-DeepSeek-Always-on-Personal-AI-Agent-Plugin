@@ -32,11 +32,12 @@ export const taskSchema = z
 export type TaskInput = z.infer<typeof taskSchema>;
 export const memorySchema = z
   .object({
-    id: z.string().optional(),
+    id: z.string().min(1).max(256).regex(/^[^\x00-\x1f\x7f]+$/).optional(),
     kind: z.enum(['fact', 'preference', 'project', 'goal']),
     content: text.max(4000),
     source: text.max(500),
     consent: z.literal(true),
+    expectedVersion:z.number().int().nonnegative().optional(),
   })
   .strict();
 export const findingSchema = z

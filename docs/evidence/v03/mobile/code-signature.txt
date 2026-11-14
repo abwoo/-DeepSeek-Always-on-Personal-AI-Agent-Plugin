@@ -1,0 +1,2 @@
+Executable=/Users/runner/work/-DeepSeek-Always-on-Personal-AI-Agent-Plugin/-DeepSeek-Always-on-Personal-AI-Agent-Plugin/ios-native-build/DeepSeekAlwayson.app/DeepSeekAlwayson
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "https://www.apple.com/DTDs/PropertyList-1.0.dtd"><plist version="1.0"><dict></dict></plist>

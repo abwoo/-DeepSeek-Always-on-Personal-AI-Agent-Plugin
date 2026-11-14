@@ -8,6 +8,7 @@ export interface Memory {
   source: string;
   updatedAt: string;
   consent: boolean;
+  version?:number;
 }
 export class MemoryService {
   constructor(private store: Store) {}
@@ -16,7 +17,10 @@ export class MemoryService {
       throw new Error('Memory limit (500) reached');
     const data = memorySchema.parse(input);
     const id = data.id ?? randomUUID();
-    const entry = { ...data, id, updatedAt: new Date().toISOString() };
+    const prior=this.store.get<Memory>('memory',id);
+    if(data.expectedVersion!==undefined&&data.expectedVersion!==(prior?.version??0))throw new Error('Memory changed on another device; reload and review before saving.');
+    const {expectedVersion:_,...value}=data;
+    const entry = { ...value, id, version:(prior?.version??0)+1, updatedAt: new Date().toISOString() };
     this.store.put('memory', id, entry);
     return entry;
   }

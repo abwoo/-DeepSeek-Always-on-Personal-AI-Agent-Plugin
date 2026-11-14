@@ -1,5 +1,7 @@
 # DeepSeek Always-on
 
+**v0.3 development candidate:** account-first Desktop/mobile onboarding, isolated account-to-Harness allocation, native event updates and operator deployment/recovery tooling are implemented in this repository. [Implementation and release gates](docs/V03_ACCEPTANCE.md) · [Operator handoff and user flow](docs/V03_HANDOFF.md) · [Baseline audit](docs/V03_AUDIT.md). **No production sign-in service, physical iPhone release or MVP Ready claim.** v0.2 and the published v0.1 Web alpha records remain below.
+
 **v0.2 development is in progress:** a managed Harness device gateway, paired native Desktop panel, independent React Native / Expo app and durable native-push outbox are implemented. Existing task scheduling, memory, Inbox and Run Ledger are reused. **No production hosted URL or real-phone/model/push release acceptance is claimed.**
 
 See [managed runtime](docs/V02_PHASE2.md), [native mobile](docs/V02_PHASE3.md), [shared devices](docs/V02_PHASE4.md), [native notifications](docs/V02_PHASE5.md) and [release gates](docs/V02_PLAN.md). The original Web/PWA alpha remains available below; it is not the v0.2 native phone delivery.
@@ -13,7 +15,9 @@ A native **DeepSeek Harness / Cordis plugin** for persistent personal tasks, con
 
 **Status: 0.1.0-alpha.2 — engineering acceptance passed; production validation pending, not MVP Ready.** No hosted service, DeepSeek API credit or npm publication is included in this repository. GitHub Actions is a test runner, not a continuously running Host.
 
-## Install
+## Legacy v0.1 Web alpha developer installation
+
+The following commands configure the original Web alpha. They are not the v0.3 ordinary-user onboarding flow. The v0.3 account service and signed physical-phone release are still blocked; see the handoff above.
 
 Requires pnpm on PATH, Node **24.9+** and exactly **`@deepseek-ai/dsh@0.2.2-rc.3`**. Preview APIs are version-sensitive; see [compatibility](docs/COMPATIBILITY.md).
 

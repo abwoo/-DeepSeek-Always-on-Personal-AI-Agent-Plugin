@@ -288,7 +288,7 @@ export function createPanelModule(React) {
                 v = new FormData(f);
               if (
                 await action('memory.save', {
-                  ...(editing ? { id: editing.id } : {}),
+                  ...(editing ? { id: editing.id, expectedVersion: editing.version ?? 0 } : {}),
                   kind: v.get('kind'),
                   content: v.get('content'),
                   source: v.get('source'),
@@ -389,7 +389,7 @@ export function createPanelModule(React) {
               h('a', { href: u, target: '_blank', rel: 'noopener noreferrer' }, u),
             ),
           ),
-          button(t('view'), () => openSession(r.sessionId)),
+          button(t('view'), () => openSession(r.sessionId,r.id)),
         );
       }
       let body = data ? null : h('p', null, t('loading'));

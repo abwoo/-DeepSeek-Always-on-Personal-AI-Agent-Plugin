@@ -1,0 +1,72 @@
+name: v0.3 account ownership and isolated native authorities
+on:
+  push:
+    branches: [main, 'v0.3/**']
+    paths:
+      [
+        src/**,
+        tests/**,
+        scripts/verify-v03-accounts.mjs,
+        scripts/build-managed*,
+        package*.json,
+        deploy/control/**,
+        deploy/aws/**,
+        .github/workflows/v03-accounts.yml,
+      ]
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  account-native-contract:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '24', cache: npm }
+      - uses: pnpm/action-setup@v4
+        with: { version: 11.28.5 }
+      - run: npm ci
+      - run: npm run typecheck && npm run build
+      - name: Identity, encrypted state, device revocation, cursor and budget tests
+        run: node --import tsx --test tests/unit/account-control.test.ts tests/unit/oidc-protocol.test.ts tests/unit/managed-auth.test.ts tests/unit/managed-feed-budget.test.ts
+      - run: node scripts/build-managed.mjs && npm pack --ignore-scripts && npm pack ./packages/managed --ignore-scripts
+      - name: Two actual isolated Harness processes with account routing
+        run: node scripts/verify-v03-accounts.mjs
+      - name: Validate operator topology without provisioning external resources
+        run: ALWAYS_ON_PUBLIC_HOST=service.invalid DEEPSEEK_MODEL=operator-must-verify docker compose -f deploy/control/compose.yml config --quiet
+      - name: Build account controller image
+        run: docker build -f deploy/control/Dockerfile -t always-on-control:test .
+      - name: Rehearse encrypted coordinated backup and restore on disposable Docker volumes
+        run: node scripts/verify-control-backup.mjs
+      - name: Record explicit production release gates
+        run: node scripts/verify-v03-release.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: v03-account-native-evidence
+          path: |
+            test-results/v03-accounts.json
+            test-results/v03-release-gate.json
+            test-results/v03-backup.json
+          retention-days: 14
+          if-no-files-found: warn
+
+  infrastructure-schema:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+        with: { terraform_version: '1.13.3' }
+      - run: terraform init -backend=false -input=false
+        working-directory: deploy/aws
+      - run: terraform validate
+        working-directory: deploy/aws
+      - uses: actions/upload-artifact@v4
+        with:
+          name: v03-reviewed-infrastructure-provider-lock
+          path: deploy/aws/.terraform.lock.hcl
+          include-hidden-files: true
+          retention-days: 14

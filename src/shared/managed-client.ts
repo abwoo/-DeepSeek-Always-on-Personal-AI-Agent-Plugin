@@ -52,7 +52,11 @@ export class ApiError extends Error {
     readonly status: number,
     readonly code: string,
   ) {
-    super(code);
+    super(
+      code === 'memory_conflict'
+        ? 'This memory changed on another device. Refresh and review before saving.'
+        : code,
+    );
   }
 }
 export function managedOrigin(input: string, allowLoopback = false) {
@@ -100,7 +104,7 @@ export class ManagedClient {
   }
   async request(path: string, body?: unknown) {
     if (
-      !/^\/(snapshot|runs\/[0-9a-f-]+|inbox\/[0-9a-f-]+|sessions|session\/read|changes(?:\?after=\d+)?|mutate|operations\/[0-9a-f-]+|goals|devices(?:\/revoke|\/pair-code)?|push\/(register|disable|ack|status))$/.test(
+      !/^\/(snapshot|export|events\?[^#]{1,1024}|runs\/[0-9a-f-]+|inbox\/[0-9a-f-]+|sessions|session\/read|changes(?:\?after=\d+)?|mutate|operations\/[0-9a-f-]+|goals|devices(?:\/revoke|\/pair-code)?|push\/(register|disable|ack|status))$/.test(
         path,
       )
     )
@@ -119,6 +123,12 @@ export class ManagedClient {
   }
   async snapshot() {
     return snapshotSchema.parse(await this.request('/snapshot'));
+  }
+  events(cursor: { after: number; epoch?: string; live?: number }, sessionId?: string) {
+    const q = new URLSearchParams({ after: String(cursor.after), live: String(cursor.live ?? 0) });
+    if (cursor.epoch) q.set('epoch', cursor.epoch);
+    if (sessionId) q.set('sessionId', sessionId);
+    return this.request('/events?' + q);
   }
   sessions() {
     return this.request('/sessions');
@@ -182,11 +192,24 @@ export { conversationRows } from './messages.js';
 export function resultBeforeSeq(run: {
   sessionId: string;
   resultReference?: string;
+  finishedAt?: string;
 }): number | undefined {
   const prefix = `session:${run.sessionId}#event:`;
+  if (run.finishedAt) {
+    const position = run.resultReference?.startsWith(prefix)
+      ? run.resultReference.slice(prefix.length)
+      : '';
+    const seq = Number(position);
+    if (!/^\d+$/.test(position) || !Number.isSafeInteger(seq) || seq >= Number.MAX_SAFE_INTEGER)
+      throw Error(
+        'This execution has no verified historical conversation boundary. Review its recorded result in Tasks.',
+      );
+  }
   if (!run.resultReference?.startsWith(prefix)) return undefined;
   const raw = run.resultReference.slice(prefix.length);
   if (!/^\d+$/.test(raw)) return undefined;
   const seq = Number(raw);
   return Number.isSafeInteger(seq) && seq < Number.MAX_SAFE_INTEGER ? seq + 1 : undefined;
 }
+
+export { snapshotSchema } from './managed-contract.js';

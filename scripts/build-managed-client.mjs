@@ -1,5 +1,5 @@
 import { build } from 'esbuild';
-import { mkdir, copyFile } from 'node:fs/promises';
+import { mkdir, copyFile, readFile, writeFile } from 'node:fs/promises';
 await mkdir('packages/client', { recursive: true });
 await build({
   entryPoints: ['src/shared/managed-client.ts'],
@@ -10,8 +10,11 @@ await build({
   format: 'esm',
   target: 'es2022',
 });
-for (const file of ['managed-client', 'managed-contract', 'schemas', 'messages'])
+await build({entryPoints:['src/shared/account-client.ts'],outfile:'packages/client/account.js',bundle:true,packages:'external',platform:'neutral',format:'esm',target:'es2022'});
+for (const file of ['managed-client', 'managed-contract', 'schemas', 'messages', 'account-client'])
   await copyFile(
     `dist/shared/${file}.d.ts`,
-    `packages/client/${file === 'managed-client' ? 'index' : file}.d.ts`,
+    `packages/client/${file === 'managed-client' ? 'index' : file === 'account-client' ? 'account' : file}.d.ts`,
   );
+
+const accountTypes=await readFile('packages/client/account.d.ts','utf8');await writeFile('packages/client/account.d.ts',accountTypes.replaceAll('./managed-client.js','./index.js'));
