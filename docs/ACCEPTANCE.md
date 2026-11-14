@@ -17,10 +17,33 @@ Status: **alpha — not MVP Ready**. This file defines claims; current GitHub Ac
 | Mobile interface | Real Harness at 390px; desktop at 1440px | Safari iPhone and Android Chrome |
 | Packaging | npm pack + uploaded tarball | npm publication requires publisher identity |
 
-Known gaps: no configured permanent cloud server, domain, TLS gateway or real DeepSeek key in this task; no real mobile push subscription; interrupted work is never automatically retried; full token/monetary caps and native goal-service linkage are deferred; mixed reminder batches fail closed. Model reports are declarations backed by links and native logs, not independent truth validation. These gaps prevent MVP Ready.
+Known gaps: no configured permanent cloud server, domain, TLS gateway or real DeepSeek key in this task; no real mobile push subscription; interrupted work is never automatically retried; hard per-run token/monetary caps and native goal-service linkage are deferred; mixed reminder batches fail closed. Model reports are declarations backed by links and native logs, not independent truth validation. These gaps prevent MVP Ready.
 
 CI must retain its logs, browser reports and screenshots as artifacts. Never copy credentials or tokenized launch URLs into public artifacts. The browser test authenticates with disposable local test credentials and no paid model calls.
 
-Local validated evidence (2026-11-14): type checking and build passed; 22 component/native-contract tests passed; real Harness offline scheduling with the deterministic adapter passed in 67 seconds, producing a confirmed run and Inbox without a browser. Production dependency audit after updating Zod: zero reported advisories. The npm tarball was installed into the real Harness for execution tests; confirmed memory reached a native model request, deletion was respected in a new Session, and a native no-change result stayed silent. Browser verification continues in GitHub Actions because local Chromium was blocked by the execution environment.
+## Validated alpha.2 — 2026-11-14
 
-Cloud alpha.1 baseline: [all jobs passed, including both browser tests and release](https://github.com/abwoo/-DeepSeek-Always-on-Personal-AI-Agent-Plugin/actions/runs/43534924110), tested code `e2f5487`. Alpha.2 adds the headless Documents-directory override and a real Host crash/restart scenario; the local 23-test suite passed, including that scenario. Final alpha.2 cloud results are recorded by its release workflow.
+Engineering acceptance **passed** for source commit `303a088e03e131c1bbf2a552283eecd8009600e5`.
+
+- [GitHub Actions: complete successful validation and release](https://github.com/abwoo/-DeepSeek-Always-on-Personal-AI-Agent-Plugin/actions/runs/43535717720)
+- **23 / 23** component and native integration tests passed; **2 / 2** browser tests passed; zero failures.
+- The packed npm tarball was installed into the real Harness. Without a browser, native Schedule woke the real Agent loop, the deterministic test model called the native report tool, Session flush succeeded and Inbox persisted the result.
+- Confirmed memory reached a native model request. After deletion, a new Session did not receive it. A no-change native result remained silent.
+- A real Host was killed with **SIGKILL** during a fixture model stream. Restart preserved the run id, classified it as interrupted, created an Inbox notice, and did not replay the occurrence or claim success.
+- Phone-width (390 px) and desktop-width (1440 px) browsers shared task/memory state; normal Host restart preserved it. The headless Documents override removed the native default-workspace error. Screenshots below were visually reviewed.
+- Request authentication, duplicate admission, read-only tool policy, cancellation, token accounting, output caps, memory consent, deletion and push failure retention have automated coverage.
+- Production dependency audit after the Zod update reported zero advisories. Dependencies are unchanged in alpha.2.
+
+[Download the alpha.2 npm-installable tarball](https://github.com/abwoo/-DeepSeek-Always-on-Personal-AI-Agent-Plugin/releases/tag/v0.1.0-alpha.2). Published asset SHA-256 matched the tested artifact:
+
+```text
+1536f6f295eee45be9cc13084bc1af8ac29744371fc403ca7b05a43332db35ad
+```
+
+![Mobile Harness with the Always-on plugin](screenshots/mobile.png)
+
+![Desktop Harness with the Always-on plugin](screenshots/desktop.png)
+
+## Outstanding production acceptance
+
+The model used above is an explicit deterministic test fixture, not the real DeepSeek service. A permanent cloud Host, authenticated HTTPS gateway, real DeepSeek API execution, real iPhone/Android Web Push, production backup restoration and provider spending controls are **not yet verified**. The package is published as a GitHub Release tarball; npm registry publication requires a publisher identity. The project remains an alpha and must not be labeled **MVP Ready** until the complete real-device, offline-to-push chain passes.
