@@ -1,0 +1,11 @@
+{
+  "nativeEmulatorLaunch": true,
+  "pairingScreenVisible": true,
+  "realPhone": false,
+  "realDeepSeek": false,
+  "realNativePush": false,
+  "mvpReady": false,
+  "systemLauncherAnrDismissed": true,
+  "secureStorageStartupPassed": true,
+  "processRestart": true
+}

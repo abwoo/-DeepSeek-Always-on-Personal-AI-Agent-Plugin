@@ -1,6 +1,6 @@
 # v0.2 Phase 1 — Desktop remote package
 
-Status: native shared-state foundation accepted on official macOS ARM64 and Windows x64 applications. Production pairing and the full conversation interface remain open. Not a production release.
+Historical Phase 1 record: native shared-state foundation accepted on official macOS ARM64 and Windows x64 applications. Later [Phase 4](V02_PHASE4.md) adds device pairing, goal/device management and revocation/re-pair. Read the [current acceptance matrix](V02_ACCEPTANCE.md) for present evidence and remaining production gates. This document preserves the earlier diagnostic implementation and results.
 
 ## Scope
 

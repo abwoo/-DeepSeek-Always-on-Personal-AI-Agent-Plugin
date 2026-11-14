@@ -2,9 +2,20 @@
 
 There is no provisioned production Personal Agent service URL yet. The repository contains buildable clients and an operator runtime, not an automatically hosted service. A preview binary cannot complete pairing without an authorized managed authority. Do not provide model keys to a phone or commit signing material.
 
+## Tested preview downloads
+
+These Actions artifacts expire on 2026-11-28. They are development previews; no production service or physical iPhone build is included. Checksums/source run metadata are in [the evidence manifest](evidence/v02-manifest.json).
+
+| Build | Download |
+|---|---|
+| Desktop plugin, macOS-verified | [Tested tarball](https://github.com/abwoo/-DeepSeek-Always-on-Personal-AI-Agent-Plugin/actions/runs/43582100686/artifacts/14108592919) |
+| Desktop plugin, Windows-verified | [Tested tarball](https://github.com/abwoo/-DeepSeek-Always-on-Personal-AI-Agent-Plugin/actions/runs/43582100668/artifacts/14108369928) |
+| Android development APK | [Native APK](https://github.com/abwoo/-DeepSeek-Always-on-Personal-AI-Agent-Plugin/actions/runs/43581463951/artifacts/14109095839) |
+| iOS Simulator application | [Simulator only](https://github.com/abwoo/-DeepSeek-Always-on-Personal-AI-Agent-Plugin/actions/runs/43581463951/artifacts/14109001682) |
+
 ## End user flow after the service is provisioned
 
-1. Install the tested Desktop tarball from the macOS/Windows Actions artifacts using the initialized official Desktop app's own command: `dsh plugin --profile desktop add /absolute/path/abwoo-deepseek-always-on-desktop-0.2.0-dev.1.tgz`. The global npm `dsh` manages another profile. On macOS the verified bundled command is inside `DeepSeek Harness.app/Contents/Resources/runtime/cli/bin/dsh`; use the actual application location.
+1. Install the tested Desktop tarball from the macOS/Windows Actions artifacts using the initialized official Desktop app's own command (quit Desktop before installing, then reopen it): `dsh plugin --profile desktop add /absolute/path/abwoo-deepseek-always-on-desktop-0.2.0-dev.1.tgz`. The global npm `dsh` manages another profile. On macOS the verified bundled command is inside `DeepSeek Harness.app/Contents/Resources/runtime/cli/bin/dsh`; use the actual application location.
 2. Open **Personal Agent**, enter the operator's trusted HTTPS address and five-minute one-use code, and pair. The original Desktop workspace remains local; use Personal Agent for shared remote tasks/conversations. Remote IDs are not copied into that local workspace.
 3. Install the independent Android preview APK. It uses a development signing key and is not a Play Store release. The current iOS artifact is for Simulator only; a physical iPhone build needs authorized Apple signing/provisioning through the operator's actual Expo project.
 4. In Desktop's **Devices**, issue a code for the phone. Pair in the phone app with the same service address. Confirm task/Session IDs agree across both devices.

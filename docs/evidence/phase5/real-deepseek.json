@@ -1,0 +1,8 @@
+{
+  "status": "blocked",
+  "realDeepSeek": false,
+  "realPhone": false,
+  "realNativePush": false,
+  "mvpReady": false,
+  "reason": "Server-side GitHub Actions secret ALWAYS_ON_DEEPSEEK_API_KEY and repository variable ALWAYS_ON_DEEPSEEK_MODEL are required; no model result was simulated."
+}

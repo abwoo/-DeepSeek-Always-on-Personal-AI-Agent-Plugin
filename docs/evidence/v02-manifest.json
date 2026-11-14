@@ -1,0 +1,161 @@
+{
+  "recordedAt": "2026-11-14T11:01:57.684Z",
+  "status": "engineering-preview",
+  "mvpReady": false,
+  "compatibility": {
+    "harness": "0.2.2-rc.3",
+    "cordis": "4.1.0"
+  },
+  "runs": [
+    {
+      "id": 43582100749,
+      "name": "Managed authority and device protocol",
+      "sourceCommit": "93c085801d0742f83e4fc44eec8b6908707f3081",
+      "conclusion": "success",
+      "url": "https://github.com/abwoo/-DeepSeek-Always-on-Personal-AI-Agent-Plugin/actions/runs/43582100749"
+    },
+    {
+      "id": 43582100686,
+      "name": "Phase 0 official macOS Desktop probe",
+      "sourceCommit": "93c085801d0742f83e4fc44eec8b6908707f3081",
+      "conclusion": "success",
+      "url": "https://github.com/abwoo/-DeepSeek-Always-on-Personal-AI-Agent-Plugin/actions/runs/43582100686"
+    },
+    {
+      "id": 43582100672,
+      "name": "Validate Harness plugin and remote Session protocol",
+      "sourceCommit": "93c085801d0742f83e4fc44eec8b6908707f3081",
+      "conclusion": "success",
+      "url": "https://github.com/abwoo/-DeepSeek-Always-on-Personal-AI-Agent-Plugin/actions/runs/43582100672"
+    },
+    {
+      "id": 43582100668,
+      "name": "Phase 0 official Windows Desktop probe",
+      "sourceCommit": "93c085801d0742f83e4fc44eec8b6908707f3081",
+      "conclusion": "success",
+      "url": "https://github.com/abwoo/-DeepSeek-Always-on-Personal-AI-Agent-Plugin/actions/runs/43582100668"
+    },
+    {
+      "id": 43581463951,
+      "name": "Native mobile builds",
+      "sourceCommit": "c36594fab0421375f6505aaa978254282186e80a",
+      "conclusion": "success",
+      "url": "https://github.com/abwoo/-DeepSeek-Always-on-Personal-AI-Agent-Plugin/actions/runs/43581463951"
+    }
+  ],
+  "artifacts": [
+    {
+      "id": 14109335055,
+      "name": "managed-authority-evidence",
+      "sourceCommit": "93c085801d0742f83e4fc44eec8b6908707f3081",
+      "runId": 43582100749,
+      "archiveSha256": "sha256:12111cb34b3e1e06860641b81a42b1a228f01bf4ce896ffa4a697b096571f65a",
+      "sizeBytes": 1057,
+      "expiresAt": "2026-11-28T09:47:43Z",
+      "url": "https://github.com/abwoo/-DeepSeek-Always-on-Personal-AI-Agent-Plugin/actions/runs/43582100749/artifacts/14109335055"
+    },
+    {
+      "id": 14108592919,
+      "name": "always-on-desktop-preview-macos",
+      "sourceCommit": "93c085801d0742f83e4fc44eec8b6908707f3081",
+      "runId": 43582100686,
+      "archiveSha256": "sha256:762432ce7772f37718abe50e02add9ff3b996eb75582837165b77427a4a45605",
+      "sizeBytes": 20277,
+      "expiresAt": "2026-11-28T09:48:42Z",
+      "url": "https://github.com/abwoo/-DeepSeek-Always-on-Personal-AI-Agent-Plugin/actions/runs/43582100686/artifacts/14108592919"
+    },
+    {
+      "id": 14108463223,
+      "name": "phase0-macos-native-evidence",
+      "sourceCommit": "93c085801d0742f83e4fc44eec8b6908707f3081",
+      "runId": 43582100686,
+      "archiveSha256": "sha256:49c56dcde1313a0ed9f79b1022e724ba23016d8d8194c56b201d4d2e161da0fe",
+      "sizeBytes": 316536,
+      "expiresAt": "2026-11-28T09:48:41Z",
+      "url": "https://github.com/abwoo/-DeepSeek-Always-on-Personal-AI-Agent-Plugin/actions/runs/43582100686/artifacts/14108463223"
+    },
+    {
+      "id": 14109455066,
+      "name": "phase0-windows-native-evidence",
+      "sourceCommit": "93c085801d0742f83e4fc44eec8b6908707f3081",
+      "runId": 43582100668,
+      "archiveSha256": "sha256:aad14800739aad491c8435c67a9b1e27d7be854841d9481bfdd1334fb9d2e2d9",
+      "sizeBytes": 84399,
+      "expiresAt": "2026-11-28T09:49:30Z",
+      "url": "https://github.com/abwoo/-DeepSeek-Always-on-Personal-AI-Agent-Plugin/actions/runs/43582100668/artifacts/14109455066"
+    },
+    {
+      "id": 14108369928,
+      "name": "always-on-desktop-preview-windows",
+      "sourceCommit": "93c085801d0742f83e4fc44eec8b6908707f3081",
+      "runId": 43582100668,
+      "archiveSha256": "sha256:7f6197630bf8cd67743081945a95d6e006a82fafe844006ef92b59a1ebb7e1fc",
+      "sizeBytes": 20297,
+      "expiresAt": "2026-11-28T09:49:31Z",
+      "url": "https://github.com/abwoo/-DeepSeek-Always-on-Personal-AI-Agent-Plugin/actions/runs/43582100668/artifacts/14108369928"
+    },
+    {
+      "id": 14109095839,
+      "name": "android-native-preview",
+      "sourceCommit": "c36594fab0421375f6505aaa978254282186e80a",
+      "runId": 43581463951,
+      "archiveSha256": "sha256:a41ff1dcd9d3bb5de4d524308f3688e969a132e32e7c558365c94208932f79fd",
+      "sizeBytes": 28725354,
+      "expiresAt": "2026-11-28T09:46:42Z",
+      "url": "https://github.com/abwoo/-DeepSeek-Always-on-Personal-AI-Agent-Plugin/actions/runs/43581463951/artifacts/14109095839"
+    },
+    {
+      "id": 14109001682,
+      "name": "ios-simulator-native-preview",
+      "sourceCommit": "c36594fab0421375f6505aaa978254282186e80a",
+      "runId": 43581463951,
+      "archiveSha256": "sha256:e1ed6b72e69ca5ff436cf35ba18cd7541d073b5fb395ad11a5d022bca17d81de",
+      "sizeBytes": 17067110,
+      "expiresAt": "2026-11-28T09:49:40Z",
+      "url": "https://github.com/abwoo/-DeepSeek-Always-on-Personal-AI-Agent-Plugin/actions/runs/43581463951/artifacts/14109001682"
+    },
+    {
+      "id": 14108991185,
+      "name": "ios-native-simulator-binary",
+      "sourceCommit": "c36594fab0421375f6505aaa978254282186e80a",
+      "runId": 43581463951,
+      "archiveSha256": "sha256:587596c8ee7788d8dc4822e58b6da89626597ba57ee00e8974e4d9b057f8f02f",
+      "sizeBytes": 17531981,
+      "expiresAt": "2026-11-28T09:45:19Z",
+      "url": "https://github.com/abwoo/-DeepSeek-Always-on-Personal-AI-Agent-Plugin/actions/runs/43581463951/artifacts/14108991185"
+    },
+    {
+      "id": 14108473083,
+      "name": "android-emulator-evidence",
+      "sourceCommit": "c36594fab0421375f6505aaa978254282186e80a",
+      "runId": 43581463951,
+      "archiveSha256": "sha256:4c0c2275e28c70bc4759cebd4b1243c8545496df6df69009fe16be465a4fffbf",
+      "sizeBytes": 118520,
+      "expiresAt": "2026-11-28T09:48:51Z",
+      "url": "https://github.com/abwoo/-DeepSeek-Always-on-Personal-AI-Agent-Plugin/actions/runs/43581463951/artifacts/14108473083"
+    }
+  ],
+  "artifactHashScope": "SHA256 of the GitHub artifact archive, not of the individual APK, app or tarball inside it.",
+  "observations": {
+    "actualMacWindowsDesktop": true,
+    "nativeDesktopUiMutatesSharedAuthority": true,
+    "actualPublishedNativeSessionProtocol": true,
+    "containerTlsAndPersistentRestart": true,
+    "nativeAndroidEmulatorStartupAndSecureStore": true,
+    "nativeIosSimulatorStartupAndSecureStore": true,
+    "physicalPhoneUiPairedToProductionAuthority": false,
+    "continuousProductionCloudDeployment": false,
+    "actualDeepSeekModelExecution": false,
+    "physicalPhoneNativePush": false,
+    "fullPowerOffProductionChain": false,
+    "officialDesktopDependencyReviewCleared": false
+  },
+  "blockers": [
+    "Authorized continuously running cloud account, trusted domain/TLS and deployment",
+    "Server-side real DeepSeek API configuration and bounded real-provider run",
+    "Actual Expo project and APNs/FCM authorization",
+    "Apple physical-device signing and physical iPhone/Android acceptance",
+    "Official signed Desktop dependency remediation or reviewed exposure assessment"
+  ],
+  "note": "No Mock/fixture output is accepted as actual provider or physical-device success. Model fixtures and native startup checks are independently scoped in V02_ACCEPTANCE.md."
+}

@@ -1,0 +1,55 @@
+{
+  "checkedAt": "2026-11-14T08:39:41.649022+00:00",
+  "hostDependencyPatches": {
+    "undici": "8.12.2",
+    "fflate": "0.8.3",
+    "@modelcontextprotocol/client": "2.3.0"
+  },
+  "mobileDependencyPatches": {
+    "@expo/fingerprint": {
+      "minimatch": "11.0.1"
+    }
+  },
+  "reports": {
+    "operatorNpmGraph": {
+      "command": "npm audit --json",
+      "vulnerabilities": {
+        "info": 0,
+        "low": 0,
+        "moderate": 0,
+        "high": 0,
+        "critical": 0,
+        "total": 0
+      },
+      "dependencyCounts": {
+        "prod": 19,
+        "dev": 705,
+        "optional": 107,
+        "peer": 21,
+        "peerOptional": 0,
+        "total": 723
+      }
+    },
+    "mobileNpmGraph": {
+      "command": "npm audit --json --omit=dev",
+      "vulnerabilities": {
+        "info": 0,
+        "low": 0,
+        "moderate": 0,
+        "high": 0,
+        "critical": 0,
+        "total": 0
+      },
+      "dependencyCounts": {
+        "prod": 471,
+        "dev": 0,
+        "optional": 23,
+        "peer": 0,
+        "peerOptional": 0,
+        "total": 493
+      }
+    }
+  },
+  "scope": "Installed npm dependency graphs only. Does not certify bundled Desktop dependencies, native OS libraries, public deployment, or complete production security.",
+  "mvpReady": false
+}

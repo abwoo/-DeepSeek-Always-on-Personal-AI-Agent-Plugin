@@ -1,0 +1,8 @@
+{
+  "sourceCommit": "c36594fab0421375f6505aaa978254282186e80a",
+  "nativeAndroidApkBuilt": true,
+  "signing": "development debug key; not a store release",
+  "realPhone": false,
+  "realDeepSeek": false,
+  "mvpReady": false
+}
