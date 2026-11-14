@@ -23,6 +23,10 @@ The existing v0.1 Web plugin remains available. Nothing in this report changes i
 
 Run `npm ci && npm run check`, install the disposable Web bundle as in README, then `npm run test:e2e`. The test named `Phase 0: independent SDK clients share one durable remote Session` executes the actual published Host with no model provider. It deliberately tests durable Session control rather than claiming successful model inference. CI runs it in the existing workflow and retains the Playwright report.
 
+The protocol implementation commit [a4b921c](https://github.com/abwoo/-DeepSeek-Always-on-Personal-AI-Agent-Plugin/commit/a4b921cf378d64445da8fd0ac2ef3ccef90dcc21) passed [GitHub Actions run 43554486983](https://github.com/abwoo/-DeepSeek-Always-on-Personal-AI-Agent-Plugin/actions/runs/43554486983): 25 unit/integration checks and 3 real Host/browser/protocol tests. Local browser execution was blocked by this worker's Chromium socket permission; Actions executed the browser tests successfully.
+
+A separate `phase0-windows.yml` workflow now attempts the **actual signed official Windows installer** on a disposable Windows runner. It records the installer SHA-256, signer and actual bundled version; a version mismatch blocks the probe. Its native panel/task/restart/install/remove checks are narrower than the remote-Session gate. A successful native local panel probe must not be reported as a remote Desktop Session proof. Initial status: pending execution.
+
 ## Official interfaces and architecture findings
 
 The [official Desktop reference](https://github.com/deepseek-ai/deepseek-harness/blob/dsh-v0.2.2-rc.3/apps/desktop/README.md) describes an Electron shell with an owned local Host, a private main-process credential and a separate Desktop plugin profile. Its renderer uses the Web client plugin platform. `platform: web` in the existing package is therefore not proof of incompatibility and should not be replaced by an invented `desktop` value.

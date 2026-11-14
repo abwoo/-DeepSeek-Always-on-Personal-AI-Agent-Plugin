@@ -1,0 +1,73 @@
+name: Phase 0 official Windows Desktop probe
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/phase0-windows.yml
+      - scripts/probe-windows-desktop.mjs
+permissions:
+  contents: read
+jobs:
+  actual-desktop:
+    runs-on: windows-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.28.5
+      - run: npm ci
+      - run: npm run build
+      - name: Download and verify official signed installer
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force .artifacts/windows-desktop | Out-Null
+          $installer = Join-Path $env:RUNNER_TEMP 'dsh-official.exe'
+          Invoke-WebRequest 'https://download.deepseek.com/desktop/dsh-latest-windows-x64.exe' -OutFile $installer
+          $signature = Get-AuthenticodeSignature $installer
+          $hash = (Get-FileHash $installer -Algorithm SHA256).Hash
+          @{source='https://download.deepseek.com/desktop/dsh-latest-windows-x64.exe'; sha256=$hash; signature=[string]$signature.Status; signer=$signature.SignerCertificate.Subject; mvpReady=$false} | ConvertTo-Json | Set-Content .artifacts/windows-desktop/installer.json
+          if ($signature.Status -ne 'Valid') { throw 'Official installer signature is not valid' }
+          $root = Join-Path $env:RUNNER_TEMP 'always-on-desktop'
+          $process = Start-Process $installer -ArgumentList '/S', "/D=$root" -Wait -PassThru
+          if ($process.ExitCode -ne 0) { throw "Installer exit $($process.ExitCode)" }
+          $exe = Join-Path $root 'DeepSeek Harness.exe'
+          $cli = Join-Path $root 'resources/runtime/cli/bin/dsh.cmd'
+          if (!(Test-Path $exe) -or !(Test-Path $cli)) { throw 'Official app/command layout differs from verified Desktop reference' }
+          "ALWAYS_ON_DESKTOP_EXE=$exe" >> $env:GITHUB_ENV
+          "ALWAYS_ON_DESKTOP_CLI=$cli" >> $env:GITHUB_ENV
+          "DSH_HOME=$(Join-Path $env:RUNNER_TEMP 'always-on-native-profile')" >> $env:GITHUB_ENV
+          "ALWAYS_ON_DATA_DIR=$(Join-Path $env:RUNNER_TEMP 'always-on-native-data')" >> $env:GITHUB_ENV
+      - name: Enforce actual bundled Harness version
+        shell: pwsh
+        run: |
+          $version = (& $env:ALWAYS_ON_DESKTOP_CLI --version | Out-String).Trim()
+          $version | Set-Content .artifacts/windows-desktop/actual-version.txt
+          if ($LASTEXITCODE -ne 0 -or $version -notmatch '(?<![0-9.])0\.2\.2-rc\.3(?![0-9A-Za-z.-])') { throw 'Downloaded Desktop does not match the pinned Harness version' }
+      - name: Initialize the actual native application
+        run: node scripts/probe-windows-desktop.mjs --initialize
+      - name: Install bundle using Desktop-owned command
+        shell: pwsh
+        run: |
+          $packed = npm pack --ignore-scripts --json | ConvertFrom-Json
+          if ($LASTEXITCODE -ne 0) { throw 'Plugin packaging failed' }
+          & $env:ALWAYS_ON_DESKTOP_CLI plugin --profile desktop add (Join-Path $PWD $packed[0].filename)
+          if ($LASTEXITCODE -ne 0) { throw 'Native Desktop plugin install failed' }
+      - name: Verify native panel, real persistence and process restart
+        run: node scripts/probe-windows-desktop.mjs
+      - name: Uninstall through Desktop-owned command
+        shell: pwsh
+        run: |
+          & $env:ALWAYS_ON_DESKTOP_CLI plugin --profile desktop remove '@abwoo/deepseek-always-on'
+          if ($LASTEXITCODE -ne 0) { throw 'Native Desktop plugin removal failed' }
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: phase0-windows-native-evidence
+          path: .artifacts/windows-desktop/
+          retention-days: 14
