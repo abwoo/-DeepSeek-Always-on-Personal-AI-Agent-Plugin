@@ -66,13 +66,22 @@ jobs:
         shell: bash
         run: |
           workspace=$(find apps/mobile/ios -maxdepth 1 -name '*.xcworkspace' -print -quit)
-          scheme=$(xcodebuild -workspace "$workspace" -list -json | python3 -c 'import sys,json;print(json.load(sys.stdin)["workspace"]["schemes"][0])')
+          scheme=$(basename "$workspace" .xcworkspace)
+          xcodebuild -workspace "$workspace" -list -json > ios-schemes.json
+          python3 -c 'import json,sys;assert sys.argv[1] in json.load(open("ios-schemes.json"))["workspace"]["schemes"]' "$scheme"
           xcodebuild -workspace "$workspace" -scheme "$scheme" -configuration Release -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' -derivedDataPath "$PWD/mobile-build" CODE_SIGNING_ALLOWED=NO build > ios-build.log 2>&1
           mkdir -p mobile-evidence
           app=$(find mobile-build/Build/Products/Release-iphonesimulator -maxdepth 1 -name '*.app' -print -quit)
           test -n "$app"
           tar -czf mobile-evidence/ios-simulator-preview.app.tar.gz -C "$(dirname "$app")" "$(basename "$app")"
-          node -e 'require("fs").writeFileSync("mobile-evidence/ios.json",JSON.stringify({nativeSimulatorAppBuilt:true,installableOnPhysicalIPhone:false,appleSigningCredentialsPresent:false,realPhone:false,mvpReady:false},null,2))'
+          udid=$(xcrun simctl list devices available -j | python3 -c 'import sys,json;print(next(d["udid"] for group in json.load(sys.stdin)["devices"].values() for d in group if "iPhone" in d["name"]))')
+          xcrun simctl boot "$udid" || true
+          xcrun simctl bootstatus "$udid" -b
+          xcrun simctl install "$udid" "$app"
+          xcrun simctl launch "$udid" com.abwoo.deepseekalwayson
+          sleep 5
+          xcrun simctl io "$udid" screenshot mobile-evidence/ios-pairing.png
+          node -e 'require("fs").writeFileSync("mobile-evidence/ios.json",JSON.stringify({nativeSimulatorAppBuilt:true,simulatorLaunch:true,installableOnPhysicalIPhone:false,appleSigningCredentialsPresent:false,realPhone:false,mvpReady:false},null,2))'
       - uses: actions/upload-artifact@v4
         if: always()
         with:
