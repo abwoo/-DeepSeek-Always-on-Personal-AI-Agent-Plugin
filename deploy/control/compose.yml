@@ -12,12 +12,12 @@ services:
       - edge_data:/data
       - edge_config:/config
     networks:
-      edge: {ipv4_address: 172.31.80.2}
+      edge: { ipv4_address: 172.31.80.2 }
     depends_on: [control]
     mem_limit: 256m
     cpus: 0.5
   control:
-    build: {context: ../.., dockerfile: deploy/control/Dockerfile}
+    build: { context: ../.., dockerfile: deploy/control/Dockerfile }
     restart: unless-stopped
     environment:
       NODE_EXTRA_CA_CERTS: /run/secrets/internal-ca.pem
@@ -31,7 +31,7 @@ services:
       - ./operator/secrets/agent-a-provisioning:/run/secrets/agent-a-provisioning:ro
       - ./operator/secrets/agent-b-provisioning:/run/secrets/agent-b-provisioning:ro
     networks:
-      edge: {ipv4_address: 172.31.80.3}
+      edge: { ipv4_address: 172.31.80.3 }
       agents: {}
     depends_on: [agent-a, agent-b]
     read_only: true
@@ -41,7 +41,7 @@ services:
     security_opt: [no-new-privileges:true]
     cap_drop: [ALL]
   agent-a:
-    build: {context: ../.., dockerfile: deploy/managed/Dockerfile}
+    build: { context: ../.., dockerfile: deploy/managed/Dockerfile }
     restart: unless-stopped
     environment:
       ALWAYS_ON_PUBLIC_ORIGIN: https://agent-a:8443
@@ -68,7 +68,7 @@ services:
     security_opt: [no-new-privileges:true]
     cap_drop: [ALL]
   agent-b:
-    build: {context: ../.., dockerfile: deploy/managed/Dockerfile}
+    build: { context: ../.., dockerfile: deploy/managed/Dockerfile }
     restart: unless-stopped
     environment:
       ALWAYS_ON_PUBLIC_ORIGIN: https://agent-b:8443
@@ -98,7 +98,7 @@ services:
 networks:
   edge:
     ipam:
-      config: [{subnet: 172.31.80.0/24}]
+      config: [{ subnet: 172.31.80.0/24 }]
   # No published agent/owner ports. Egress remains available for model/search requests.
   agents: {}
 volumes:

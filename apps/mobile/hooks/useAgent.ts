@@ -30,9 +30,19 @@ import {
   type ManagedAction,
   type ManagedSnapshot,
 } from '@abwoo/always-on-client';
-import { loadProductConnection, saveProductConnection, clearProductConnection, operationStorage } from '../credentials';
-import {loadOfflineSnapshot,saveOfflineSnapshot,clearOfflineSnapshot} from '../cache';
-import { AccountApi, AccountManagedClient, ApiError, type AccountConnection } from '@abwoo/always-on-client/account';
+import {
+  loadProductConnection,
+  saveProductConnection,
+  clearProductConnection,
+  operationStorage,
+} from '../credentials';
+import { loadOfflineSnapshot, saveOfflineSnapshot, clearOfflineSnapshot } from '../cache';
+import {
+  AccountApi,
+  AccountManagedClient,
+  ApiError,
+  type AccountConnection,
+} from '@abwoo/always-on-client/account';
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -44,9 +54,27 @@ Notifications.setNotificationHandler({
 });
 const transport = nativeFetch as unknown as typeof fetch;
 export const uuid = () => Crypto.randomUUID();
-export type Page = 'Tasks' | 'Goals' | 'Chat' | 'Memory' | 'Inbox' | 'Activity' | 'Devices' | 'Settings';
-export const pages: Page[] = ['Tasks', 'Goals', 'Chat', 'Memory', 'Inbox', 'Activity', 'Devices', 'Settings'];
-export const friendly = (error: unknown) => (error instanceof Error ? error.message : 'Request failed');
+export type Page =
+  | 'Tasks'
+  | 'Goals'
+  | 'Chat'
+  | 'Memory'
+  | 'Inbox'
+  | 'Activity'
+  | 'Devices'
+  | 'Settings';
+export const pages: Page[] = [
+  'Tasks',
+  'Goals',
+  'Chat',
+  'Memory',
+  'Inbox',
+  'Activity',
+  'Devices',
+  'Settings',
+];
+export const friendly = (error: unknown) =>
+  error instanceof Error ? error.message : 'Request failed';
 
 export function useAgent() {
   const [connection, setConnection] = useState<AccountConnection | null>(null),
@@ -70,7 +98,7 @@ export function useAgent() {
     [kind, setKind] = useState<'fact' | 'preference' | 'project' | 'goal'>('fact'),
     [consent, setConsent] = useState(false),
     [editing, setEditing] = useState<string | undefined>();
-  const [editingVersion,setEditingVersion]=useState<number|undefined>();
+  const [editingVersion, setEditingVersion] = useState<number | undefined>();
   const [sessions, setSessions] = useState<any[]>([]),
     [sessionId, setSessionId] = useState(''),
     [session, setSession] = useState<any>(null),
@@ -80,8 +108,8 @@ export function useAgent() {
     [devices, setDevices] = useState<any[]>([]),
     [pairInfo, setPairInfo] = useState<any>(null),
     [pushStatus, setPushStatus] = useState<any>(null);
-  const [liveText,setLiveText]=useState('');
-  const eventCursor=useRef<{after:number;epoch?:string;live?:number}>({after:0});
+  const [liveText, setLiveText] = useState('');
+  const eventCursor = useRef<{ after: number; epoch?: string; live?: number }>({ after: 0 });
   const active = useRef(true),
     selected = useRef(''),
     focused = useRef<any>(null),
@@ -102,26 +130,29 @@ export function useAgent() {
         : null,
     [connection, storage],
   );
-  const report = useCallback(async (e: unknown) => {
-    setError(friendly(e));
-    setOnline(false);
-    if (e instanceof ApiError && e.status === 401) {
-      if(connection)await clearOfflineSnapshot(connection).catch(()=>{});
-      await clearProductConnection();
-      setConnection(null);
-      setSnapshot(null);
-      setSessionId('');
-      selected.current = '';
-      focused.current = null;
-      setFocusedRun(null);
-      setSession(null);
-      setSessions([]);
-      setPending([]);
-      setNotice(null);
-      setDevices([]);
-      setPushStatus(null);
-    }
-  }, [connection]);
+  const report = useCallback(
+    async (e: unknown) => {
+      setError(friendly(e));
+      setOnline(false);
+      if (e instanceof ApiError && e.status === 401) {
+        if (connection) await clearOfflineSnapshot(connection).catch(() => {});
+        await clearProductConnection();
+        setConnection(null);
+        setSnapshot(null);
+        setSessionId('');
+        selected.current = '';
+        focused.current = null;
+        setFocusedRun(null);
+        setSession(null);
+        setSessions([]);
+        setPending([]);
+        setNotice(null);
+        setDevices([]);
+        setPushStatus(null);
+      }
+    },
+    [connection],
+  );
   const refresh = useCallback(async () => {
     if (!client || !active.current || refreshing.current) return;
     refreshing.current = true;
@@ -129,7 +160,7 @@ export function useAgent() {
       const state = await client.snapshot();
       if (currentDevice.current !== client.credentials.deviceId) return;
       setSnapshot(state);
-      if(connection)void saveOfflineSnapshot(connection,state).catch(()=>{});
+      if (connection) void saveOfflineSnapshot(connection, state).catch(() => {});
       setOnline(true);
       setError('');
       setPending((await client.reconcile()).filter((r) => r.status !== 'committed'));
@@ -155,9 +186,12 @@ export function useAgent() {
   }, [client, report]);
   useEffect(() => {
     loadProductConnection()
-      .then(async(record) => {
+      .then(async (record) => {
         setConnection(record);
-        if(record){const cached=await loadOfflineSnapshot(record).catch(()=>null);if(cached)setSnapshot(cached.snapshot);}
+        if (record) {
+          const cached = await loadOfflineSnapshot(record).catch(() => null);
+          if (cached) setSnapshot(cached.snapshot);
+        }
         setStorageReady(true);
       })
       .catch((e) => setError(friendly(e)))
@@ -176,32 +210,47 @@ export function useAgent() {
       clearInterval(timer);
     };
   }, [refresh]);
-  useEffect(()=>{
-    if(!client)return;let stopped=false;
-    const run=async()=>{
-      while(!stopped){
-        if(!active.current){await new Promise(r=>setTimeout(r,1000));continue;}
-        const target=selected.current;
-        try{
-          const result=await client.events(eventCursor.current,target||undefined);
-          if(stopped||currentDevice.current!==client.credentials.deviceId)return;
-          eventCursor.current={after:result.revision,epoch:result.epoch,live:result.live};
-          if(result.resetLive)setLiveText('');
-          for(const frame of result.frames??[]){
-            if(frame.sessionId!==selected.current||focused.current)continue;
-            if(frame.kind==='start'||frame.kind==='end')setLiveText('');
-            if(frame.kind==='text-delta')setLiveText(text=>(text+String(frame.data.text)).slice(-24000));
+  useEffect(() => {
+    if (!client) return;
+    let stopped = false;
+    const run = async () => {
+      while (!stopped) {
+        if (!active.current) {
+          await new Promise((r) => setTimeout(r, 1000));
+          continue;
+        }
+        const target = selected.current;
+        try {
+          const result = await client.events(eventCursor.current, target || undefined);
+          if (stopped || currentDevice.current !== client.credentials.deviceId) return;
+          eventCursor.current = { after: result.revision, epoch: result.epoch, live: result.live };
+          if (result.resetLive) setLiveText('');
+          for (const frame of result.frames ?? []) {
+            if (frame.sessionId !== selected.current || focused.current) continue;
+            if (frame.kind === 'start' || frame.kind === 'end') setLiveText('');
+            if (frame.kind === 'text-delta')
+              setLiveText((text) => (text + String(frame.data.text)).slice(-24000));
           }
-          if(result.items?.length||result.resetLive)await refresh();
-          await new Promise(r=>setTimeout(r,100));
-        }catch(e){
-          if(stopped)return;
-          if(e instanceof ApiError&&e.status===410){eventCursor.current={after:0};setLiveText('');await refresh();}
-          else {await report(e);await new Promise(r=>setTimeout(r,2000));}
+          if (result.items?.length || result.resetLive) await refresh();
+          await new Promise((r) => setTimeout(r, 100));
+        } catch (e) {
+          if (stopped) return;
+          if (e instanceof ApiError && e.status === 410) {
+            eventCursor.current = { after: 0 };
+            setLiveText('');
+            await refresh();
+          } else {
+            await report(e);
+            await new Promise((r) => setTimeout(r, 2000));
+          }
         }
       }
-    };void run();return()=>{stopped=true;};
-  },[client,refresh,report]);
+    };
+    void run();
+    return () => {
+      stopped = true;
+    };
+  }, [client, refresh, report]);
   async function perform(work: () => Promise<unknown>) {
     if (inFlight.current) return;
     inFlight.current = true;
@@ -232,29 +281,75 @@ export function useAgent() {
       const service = String(Constants.expoConfig?.extra?.serviceOrigin ?? '');
       if (!service) throw Error('Sign-in service is not available in this development build.');
       const verifier = Crypto.getRandomBytes(32);
-      const alphabet='ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_';
+      const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_';
       // Base64url, using the native byte source. 32 bytes produce a 43-character PKCE verifier.
-      let bits=0,value=0,proof='';for(const byte of verifier){value=(value<<8)|byte;bits+=8;while(bits>=6){bits-=6;proof+=alphabet[(value>>>bits)&63];}}if(bits)proof+=alphabet[(value<<(6-bits))&63];
-      const redirectUri=AuthSession.makeRedirectUri({scheme:'deepseek-always-on',path:'oauth/return'});
+      let bits = 0,
+        value = 0,
+        proof = '';
+      for (const byte of verifier) {
+        value = (value << 8) | byte;
+        bits += 8;
+        while (bits >= 6) {
+          bits -= 6;
+          proof += alphabet[(value >>> bits) & 63];
+        }
+      }
+      if (bits) proof += alphabet[(value << (6 - bits)) & 63];
+      const redirectUri = AuthSession.makeRedirectUri({
+        scheme: 'deepseek-always-on',
+        path: 'oauth/return',
+      });
       // Native browser session; the maintained server OIDC library validates its own S256/code/state/nonce exchange.
       const api = new AccountApi(service, transport);
-      const hash=await Crypto.digestStringAsync(Crypto.CryptoDigestAlgorithm.SHA256, proof,{encoding:Crypto.CryptoEncoding.BASE64});
-      const challenge=hash.replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
-      const started=await api.start({challenge,name:deviceName,platform:Platform.OS==='ios'?'ios':'android',mobile:true});
-      const result=await WebBrowser.openAuthSessionAsync(started.authorizeUrl,redirectUri);
-      if(result.type!=='success')throw Error('Sign in cancelled.');
-      const returned=new URL(result.url);if(returned.protocol!=='deepseek-always-on:'||returned.hostname!=='oauth'||returned.pathname!=='/return'||returned.searchParams.get('loginId')!==started.loginId)throw Error('Invalid sign-in callback');
-      let completed=await api.complete(started.loginId,proof);
-      for(let n=0;completed.state!=='ready'&&n<45;n++){
-        await new Promise(resolve=>setTimeout(resolve,1500));completed=await api.complete(started.loginId,proof);
+      const hash = await Crypto.digestStringAsync(Crypto.CryptoDigestAlgorithm.SHA256, proof, {
+        encoding: Crypto.CryptoEncoding.BASE64,
+      });
+      const challenge = hash.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+      const started = await api.start({
+        challenge,
+        name: deviceName,
+        platform: Platform.OS === 'ios' ? 'ios' : 'android',
+        mobile: true,
+      });
+      const result = await WebBrowser.openAuthSessionAsync(started.authorizeUrl, redirectUri);
+      if (result.type !== 'success') throw Error('Sign in cancelled.');
+      const returned = new URL(result.url);
+      if (
+        returned.protocol !== 'deepseek-always-on:' ||
+        returned.hostname !== 'oauth' ||
+        returned.pathname !== '/return' ||
+        returned.searchParams.get('loginId') !== started.loginId
+      )
+        throw Error('Invalid sign-in callback');
+      let completed = await api.complete(started.loginId, proof);
+      for (let n = 0; completed.state !== 'ready' && n < 45; n++) {
+        await new Promise((resolve) => setTimeout(resolve, 1500));
+        completed = await api.complete(started.loginId, proof);
       }
-      if(completed.state!=='ready')throw Error('Your agent is still being prepared. Please sign in again shortly.');
-      await saveProductConnection(completed.connection);setConnection(completed.connection);
+      if (completed.state !== 'ready')
+        throw Error('Your agent is still being prepared. Please sign in again shortly.');
+      await saveProductConnection(completed.connection);
+      setConnection(completed.connection);
     });
   }
-  async function logout(){
-    if(!client)return;
-    await perform(async()=>{await client.logout();if(connection)await clearOfflineSnapshot(connection);await clearProductConnection();setConnection(null);setSnapshot(null);setSession(null);setSessionId('');selected.current='';focused.current=null;setFocusedRun(null);setNotice(null);setDevices([]);setPushStatus(null);setPending([]);});
+  async function logout() {
+    if (!client) return;
+    await perform(async () => {
+      await client.logout();
+      if (connection) await clearOfflineSnapshot(connection);
+      await clearProductConnection();
+      setConnection(null);
+      setSnapshot(null);
+      setSession(null);
+      setSessionId('');
+      selected.current = '';
+      focused.current = null;
+      setFocusedRun(null);
+      setNotice(null);
+      setDevices([]);
+      setPushStatus(null);
+      setPending([]);
+    });
   }
   async function openSession(id: string) {
     if (!client) return;
@@ -287,11 +382,9 @@ export function useAgent() {
       const projectId =
         Constants.easConfig?.projectId ?? Constants.expoConfig?.extra?.eas?.projectId;
       if (!projectId)
-        throw Error(
-          'Notifications require an operator-configured EAS project and platform push credentials.',
-        );
+        throw Error('Notifications are not available yet. Your Inbox is still available.');
       if (!Device.isDevice)
-        throw Error('A real iPhone or Android device is required for native push acceptance.');
+        throw Error('System notifications require an installed app on a phone.');
       if (Platform.OS === 'android')
         await Notifications.setNotificationChannelAsync('agent-updates', {
           name: 'Agent updates',
@@ -354,5 +447,90 @@ export function useAgent() {
     });
   }
 
-  return { editingVersion,setEditingVersion,liveText, connection, setConnection, loading, setLoading, storageReady, setStorageReady, deviceName, setDeviceName, snapshot, setSnapshot, online, setOnline, error, setError, busy, setBusy, page, setPage, pending, setPending, title, setTitle, instruction, setInstruction, minutes, setMinutes, schedule, setSchedule, date, setDate, picker, setPicker, research, setResearch, memory, setMemory, kind, setKind, consent, setConsent, editing, setEditing, sessions, setSessions, sessionId, setSessionId, session, setSession, focusedRun, setFocusedRun, message, setMessage, notice, setNotice, devices, setDevices, pairInfo, setPairInfo, pushStatus, setPushStatus, active, selected, focused, refreshing, inFlight, currentDevice, storage, client, report, refresh, perform, mutate, signIn, logout, openSession, openRun, enablePush, disabled, records, rows, loadDevices };
+  return {
+    editingVersion,
+    setEditingVersion,
+    liveText,
+    connection,
+    setConnection,
+    loading,
+    setLoading,
+    storageReady,
+    setStorageReady,
+    deviceName,
+    setDeviceName,
+    snapshot,
+    setSnapshot,
+    online,
+    setOnline,
+    error,
+    setError,
+    busy,
+    setBusy,
+    page,
+    setPage,
+    pending,
+    setPending,
+    title,
+    setTitle,
+    instruction,
+    setInstruction,
+    minutes,
+    setMinutes,
+    schedule,
+    setSchedule,
+    date,
+    setDate,
+    picker,
+    setPicker,
+    research,
+    setResearch,
+    memory,
+    setMemory,
+    kind,
+    setKind,
+    consent,
+    setConsent,
+    editing,
+    setEditing,
+    sessions,
+    setSessions,
+    sessionId,
+    setSessionId,
+    session,
+    setSession,
+    focusedRun,
+    setFocusedRun,
+    message,
+    setMessage,
+    notice,
+    setNotice,
+    devices,
+    setDevices,
+    pairInfo,
+    setPairInfo,
+    pushStatus,
+    setPushStatus,
+    active,
+    selected,
+    focused,
+    refreshing,
+    inFlight,
+    currentDevice,
+    storage,
+    client,
+    report,
+    refresh,
+    perform,
+    mutate,
+    signIn,
+    logout,
+    openSession,
+    openRun,
+    enablePush,
+    disabled,
+    records,
+    rows,
+    loadDevices,
+  };
 }

@@ -1,5 +1,7 @@
 # DeepSeek Always-on
 
+**v0.3 development candidate:** account-first Desktop/mobile onboarding, isolated account-to-Harness allocation, native event updates and operator deployment/recovery tooling are implemented on the v0.3 branch. [Current implementation and release gates](docs/V03_ACCEPTANCE.md) · [Baseline audit](docs/V03_AUDIT.md). **No production sign-in service, physical iPhone release or MVP Ready claim.** v0.2 and the published v0.1 Web alpha records remain below.
+
 **v0.2 development is in progress:** a managed Harness device gateway, paired native Desktop panel, independent React Native / Expo app and durable native-push outbox are implemented. Existing task scheduling, memory, Inbox and Run Ledger are reused. **No production hosted URL or real-phone/model/push release acceptance is claimed.**
 
 See [managed runtime](docs/V02_PHASE2.md), [native mobile](docs/V02_PHASE3.md), [shared devices](docs/V02_PHASE4.md), [native notifications](docs/V02_PHASE5.md) and [release gates](docs/V02_PLAN.md). The original Web/PWA alpha remains available below; it is not the v0.2 native phone delivery.

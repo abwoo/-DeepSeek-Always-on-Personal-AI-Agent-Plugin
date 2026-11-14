@@ -70,6 +70,9 @@ export const snapshotSchema = z.object({
   revision: z.number().int().nonnegative(),
   serverTime: z.string(),
   online: z.boolean(),
+  usage: z
+    .object({ day: z.string(), steps: z.number(), tokens: z.number(), usage_unknown: z.number() })
+    .optional(),
   tasks: z.array(
     taskSchema
       .extend({

@@ -7,9 +7,10 @@ const config: ExpoConfig = {
   scheme: 'deepseek-always-on',
   orientation: 'default',
   userInterfaceStyle: 'automatic',
-  ios: { bundleIdentifier: 'com.abwoo.deepseekalwayson', supportsTablet: true },
+  ios: { bundleIdentifier: 'com.abwoo.deepseekalwayson', supportsTablet: true, buildNumber: '3' },
   android: {
     package: 'com.abwoo.deepseekalwayson',
+    versionCode: 3,
     ...(process.env.GOOGLE_SERVICES_FILE
       ? { googleServicesFile: process.env.GOOGLE_SERVICES_FILE }
       : {}),

@@ -11,6 +11,7 @@ on:
       - packages/desktop/**
       - scripts/build-desktop.mjs
       - probes/desktop-remote/**
+      - config/public-service.json
       - package.json
       - package-lock.json
 permissions:

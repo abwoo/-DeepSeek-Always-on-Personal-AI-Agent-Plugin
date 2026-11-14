@@ -100,7 +100,7 @@ export class ManagedClient {
   }
   async request(path: string, body?: unknown) {
     if (
-      !/^\/(snapshot|events\?[^#]{1,1024}|runs\/[0-9a-f-]+|inbox\/[0-9a-f-]+|sessions|session\/read|changes(?:\?after=\d+)?|mutate|operations\/[0-9a-f-]+|goals|devices(?:\/revoke|\/pair-code)?|push\/(register|disable|ack|status))$/.test(
+      !/^\/(snapshot|export|events\?[^#]{1,1024}|runs\/[0-9a-f-]+|inbox\/[0-9a-f-]+|sessions|session\/read|changes(?:\?after=\d+)?|mutate|operations\/[0-9a-f-]+|goals|devices(?:\/revoke|\/pair-code)?|push\/(register|disable|ack|status))$/.test(
         path,
       )
     )

@@ -24,6 +24,26 @@ try:
     (out/'android-pairing.xml').write_bytes(xml);evidence.update(nativeEmulatorLaunch=True,accountScreenVisible=True,secureStorageStartupPassed=True);break
   except (subprocess.CalledProcessError,ET.ParseError):pass
  if not evidence['accountScreenVisible']:raise RuntimeError('Native account sign-in UI did not become visible; no success was synthesized')
+ # Exercise real native controls without inventing account credentials or backend success.
+ def tree():
+  adb('shell','uiautomator','dump','/sdcard/always-on-ui.xml');return ET.fromstring(adb('exec-out','cat','/sdcard/always-on-ui.xml'))
+ def words(root):return ' '.join(n.attrib.get('text','')+' '+n.attrib.get('content-desc','') for n in root.iter('node'))
+ def tap(label):
+  for attempt in range(5):
+   r=tree();node=next((n for n in r.iter('node') if n.attrib.get('content-desc')==label or n.attrib.get('text')==label),None)
+   if node is not None:
+    b=list(map(int,re.findall(r'\d+',node.attrib['bounds'])));adb('shell','input','tap',str((b[0]+b[2])//2),str((b[1]+b[3])//2));time.sleep(1);return
+   adb('shell','input','swipe','700','2300','700','900','350');time.sleep(1)
+  raise RuntimeError('Native control not reachable: '+label)
+ if 'HTTPS service address' in text or 'One-use pairing code' in text:raise RuntimeError('Manual technical configuration leaked into normal onboarding')
+ evidence['technicalConfigurationFieldsAbsent']=True
+ tap('Sign in')
+ if 'Sign-in service is not available in this development build.' not in words(tree()):raise RuntimeError('Unavailable real sign-in service did not provide honest feedback')
+ evidence['unconfiguredSignInFeedback']=True
+ tap('简体中文');tap('深色')
+ if '✓ 深色' not in words(tree()):raise RuntimeError('Dark appearance action did not update native state')
+ (out/'android-dark-zh.png').write_bytes(adb('exec-out','screencap','-p'));evidence['nativeLanguageAndThemeInteraction']=True
+ tap('English');tap('light')
  # Kill and relaunch to catch a startup/storage crash, without issuing a fake pairing credential.
  adb('shell','am','force-stop','com.abwoo.deepseekalwayson');adb('shell','am','start','-n','com.abwoo.deepseekalwayson/.MainActivity');time.sleep(3)
  adb('shell','uiautomator','dump','/sdcard/always-on-ui.xml');xml=adb('exec-out','cat','/sdcard/always-on-ui.xml')

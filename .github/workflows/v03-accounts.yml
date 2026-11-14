@@ -2,7 +2,16 @@ name: v0.3 account ownership and isolated native authorities
 on:
   push:
     branches: [main, 'v0.3/**']
-    paths: [src/**, tests/**, scripts/verify-v03-accounts.mjs, scripts/build-managed*, package*.json, deploy/control/**, .github/workflows/v03-accounts.yml]
+    paths:
+      [
+        src/**,
+        tests/**,
+        scripts/verify-v03-accounts.mjs,
+        scripts/build-managed*,
+        package*.json,
+        deploy/control/**,
+        .github/workflows/v03-accounts.yml,
+      ]
   pull_request:
   workflow_dispatch:
 permissions:
@@ -14,9 +23,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
-        with: {node-version: '24', cache: npm}
+        with: { node-version: '24', cache: npm }
       - uses: pnpm/action-setup@v4
-        with: {version: 11.28.5}
+        with: { version: 11.28.5 }
       - run: npm ci
       - run: npm run typecheck && npm run build
       - name: Identity, encrypted state, device revocation, cursor and budget tests
@@ -28,6 +37,8 @@ jobs:
         run: ALWAYS_ON_PUBLIC_HOST=service.invalid DEEPSEEK_MODEL=operator-must-verify docker compose -f deploy/control/compose.yml config --quiet
       - name: Build account controller image
         run: docker build -f deploy/control/Dockerfile -t always-on-control:test .
+      - name: Rehearse encrypted coordinated backup and restore on disposable Docker volumes
+        run: node scripts/verify-control-backup.mjs
       - name: Record explicit production release gates
         run: node scripts/verify-v03-release.mjs
       - uses: actions/upload-artifact@v4
@@ -37,5 +48,6 @@ jobs:
           path: |
             test-results/v03-accounts.json
             test-results/v03-release-gate.json
+            test-results/v03-backup.json
           retention-days: 14
           if-no-files-found: warn

@@ -1,6 +1,6 @@
 {
   "name": "deepseek-always-on-mobile",
-  "version": "0.2.0",
+  "version": "0.3.0-dev.1",
   "private": true,
   "main": "node_modules/expo/AppEntry.js",
   "scripts": {

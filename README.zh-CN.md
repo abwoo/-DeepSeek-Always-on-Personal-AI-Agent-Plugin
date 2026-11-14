@@ -1,5 +1,7 @@
 # DeepSeek Always-on
 
+**v0.3 开发候选版：** 已加入双端账号登录入口、账号独立 Harness 分配、原生事件更新和运营端部署／恢复工具。[实施与验收记录](docs/V03_ACCEPTANCE.md) · [基线审计](docs/V03_AUDIT.md)。**尚无已上线的登录服务，也未交付真实 iPhone 分发版或标记 MVP Ready。** 下文保留 v0.2 与已发布的 v0.1 Web alpha 记录。
+
 **v0.2 正在开发：** 已实现托管 Harness 设备网关、可配对的原生 Desktop 面板、独立 React Native / Expo 手机工程，以及持久化原生推送队列，复用原有调度、Memory、Inbox 和 Run Ledger。**尚未部署生产服务，也未完成真实手机、真实模型和原生推送的发布验收。**
 
 阶段记录：[托管端](docs/V02_PHASE2.md) · [手机原生应用](docs/V02_PHASE3.md) · [跨设备共享](docs/V02_PHASE4.md) · [原生通知](docs/V02_PHASE5.md) · [发布门槛](docs/V02_PLAN.md)。下文保留的 Web/PWA alpha 安装方法不代表 v0.2 原生手机 App 已交付。

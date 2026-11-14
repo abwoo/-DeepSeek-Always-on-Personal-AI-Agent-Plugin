@@ -38,7 +38,7 @@ export class PairedDesktop {
     this.serial = p.catch(() => {});
     return p;
   }
-  protected async record():Promise<ConnectionRecord|null> {
+  protected async record(): Promise<ConnectionRecord | null> {
     if (this.disposed) throw Error('Plugin disabled');
     const saved = await this.ctx.credentials.resolve(reference);
     if (!saved) return null;
@@ -69,7 +69,7 @@ export class PairedDesktop {
       remove: async (id) => write((await list()).filter((p) => p.operationId !== id)),
     };
   }
-  protected async client():Promise<ManagedClient> {
+  protected async client(): Promise<ManagedClient> {
     const record = await this.record();
     if (!record) throw Error('Pair this Desktop with your managed Personal Agent');
     return new ManagedClient(
@@ -140,9 +140,22 @@ export class PairedDesktop {
       return client.reconcile();
     });
   }
-  async events(input:unknown){
-    const data=z.object({after:z.number().int().min(0),epoch:z.uuid().optional(),live:z.number().int().min(0).optional(),sessionId:z.string().min(1).max(256).optional()}).strict().parse(input);
-    try{return await (await this.client()).events(data,data.sessionId);}catch(e){await this.failure(e);throw e;}
+  async events(input: unknown) {
+    const data = z
+      .object({
+        after: z.number().int().min(0),
+        epoch: z.uuid().optional(),
+        live: z.number().int().min(0).optional(),
+        sessionId: z.string().min(1).max(256).optional(),
+      })
+      .strict()
+      .parse(input);
+    try {
+      return await (await this.client()).events(data, data.sessionId);
+    } catch (e) {
+      await this.failure(e);
+      throw e;
+    }
   }
   async dismiss(input: unknown) {
     return this.queue(async () => {
