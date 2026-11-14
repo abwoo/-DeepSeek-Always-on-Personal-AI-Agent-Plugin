@@ -5,7 +5,7 @@ import { spawn, execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { setTimeout as delay } from 'node:timers/promises';
-import { join, resolve } from 'node:path';
+import { dirname, join, resolve } from 'node:path';
 import { connectProbe } from '../dist/remote/probe-connection.js';
 const executable = process.env.ALWAYS_ON_DESKTOP_EXE;
 if (!['win32', 'darwin'].includes(process.platform) || !executable) throw new Error('Real installed native Desktop required');
@@ -14,6 +14,19 @@ await mkdir(output, { recursive: true });
 const evidence = { platform: process.platform, nativePlugin: false, restartPersistence: false,
   remoteDesktopSession: false, realDeepSeek: false, realPhone: false, mvpReady: false };
 let remoteProcess, observer;
+async function verifyRuntime() {
+  const root = process.platform === 'win32' ? join(dirname(executable), 'resources', 'app.asar', 'dsh')
+    : join(dirname(executable), '..', 'Resources', 'app.asar', 'dsh');
+  const script = `const fs=require('node:fs'); const path=require('node:path');
+    const p=path.join(process.env.ALWAYS_ON_PHASE0_RESOURCE_ROOT,'node_modules','@deepseek-ai','cordis','package.json');
+    console.log(JSON.stringify({cordis:JSON.parse(fs.readFileSync(p,'utf8')).version}));`;
+  const result = await promisify(execFile)(executable, ['--expose-internals', '-e', script], {
+    env: { ...process.env, ELECTRON_RUN_AS_NODE: '1', ALWAYS_ON_PHASE0_RESOURCE_ROOT: root }, timeout: 30000,
+  });
+  const versions = JSON.parse(result.stdout.trim());
+  await writeFile(join(output, 'runtime-versions.json'), JSON.stringify(versions, null, 2));
+  if (versions.cordis !== '4.1.0') throw new Error('Actual signed Desktop Cordis does not match pinned 4.1.0');
+}
 async function stopTree(child) {
   if (!child?.pid) return;
   if (process.platform === 'win32') {
@@ -44,7 +57,11 @@ async function startRemote() {
       if (match) { clearTimeout(timer); ok(new URL(match[1])); }
     };
     remoteProcess.stdout.on('data', observe); remoteProcess.stderr.on('data', observe);
-    remoteProcess.once('exit', () => { clearTimeout(timer); fail(new Error('Independent remote Harness exited')); });
+    remoteProcess.once('exit', (code) => {
+      clearTimeout(timer);
+      const safe = output.replace(/token=[^\s]+/g, 'token=REDACTED');
+      fail(new Error(`Independent remote Harness exited ${code}: ${safe.slice(-5000)}`));
+    });
   });
   // Operator test secret stays in server processes; no secret is sent to the renderer.
   process.env.ALWAYS_ON_PHASE0_REMOTE_ORIGIN = url.origin;
@@ -100,6 +117,7 @@ async function boot(action) {
   }
 }
 try {
+  await verifyRuntime();
   if (process.argv.includes('--initialize')) {
     await boot(async (page) => {
       await capture(page, 'initialized.png');
@@ -111,16 +129,16 @@ try {
     await boot(async (page) => {
       await page.getByText('Always-on', { exact: true }).click();
       await page.getByRole('button', { name: 'Tasks', exact: true }).click();
-      await page.getByLabel('Task name').fill('Native Windows persistence proof');
+      await page.getByLabel('Task name').fill('Native Desktop persistence proof');
       await page.getByLabel('What should your agent check?').fill('Read-only compatibility probe; no model execution claimed.');
       await page.getByRole('button', { name: 'Create task', exact: true }).click();
-      await expect(page.getByRole('heading', { name: 'Native Windows persistence proof' })).toBeVisible();
+      await expect(page.getByRole('heading', { name: 'Native Desktop persistence proof' })).toBeVisible();
       const state = await page.evaluate(async () => {
         const response = await fetch('/api/always-on');
         if (!response.ok) throw new Error('Native plugin state endpoint failed');
         return response.json();
       });
-      const task = state.tasks.find((t) => t.title === 'Native Windows persistence proof');
+      const task = state.tasks.find((t) => t.title === 'Native Desktop persistence proof');
       if (!task?.id) throw new Error('UI mutation did not persist a task on the native Host');
       id = task.id;
       evidence.nativePlugin = true;

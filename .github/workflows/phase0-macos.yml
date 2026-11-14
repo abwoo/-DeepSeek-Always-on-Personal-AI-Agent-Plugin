@@ -33,6 +33,7 @@ jobs:
           mount="$RUNNER_TEMP/dsh-mount"
           curl --fail --location --retry 2 https://download.deepseek.com/desktop/dsh-latest-macos-arm64.dmg --output "$disk"
           shasum -a 256 "$disk" > .artifacts/macos-desktop/installer-sha256.txt
+          test "$(shasum -a 256 "$disk" | cut -d ' ' -f 1)" = 65ec0268d77b8e65786d51fd8b89bed13040f0e53e547d15ee2ca2e013ebeb40
           mkdir -p "$mount"
           hdiutil attach "$disk" -nobrowse -readonly -mountpoint "$mount"
           app="$RUNNER_TEMP/DeepSeek Harness.app"
@@ -40,7 +41,7 @@ jobs:
           hdiutil detach "$mount"
           codesign --verify --deep --strict "$app"
           codesign -dv --verbose=4 "$app" 2> .artifacts/macos-desktop/signature.txt
-          rg '^Authority=Developer ID Application:' .artifacts/macos-desktop/signature.txt
+          grep '^Authority=Developer ID Application: Hangzhou DeepSeek Artificial Intelligence Co., Ltd (NAN929V4UM)' .artifacts/macos-desktop/signature.txt
           exe="$app/Contents/MacOS/DeepSeek Harness"
           cli="$app/Contents/Resources/runtime/cli/bin/dsh"
           version="$("$cli" --version)"
