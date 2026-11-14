@@ -4,7 +4,7 @@
 
 DeepSeek Harness / Cordis 原生个人智能体插件。手机和电脑访问同一个云端 Host，共享任务、记忆与收件箱。复用官方聊天、Agent、Session、Schedule 和工具，不引入独立 Agent Runtime。
 
-**当前版本：0.1.0-alpha.1，正在验证，尚未标记 MVP Ready。** 仓库不等于已部署的常驻服务器。GitHub Actions 负责构建和测试；真实模型调用、HTTPS 服务器和设备推送仍需要用户配置。
+**当前版本：0.1.0-alpha.2，正在验证，尚未标记 MVP Ready。** 仓库不等于已部署的常驻服务器。GitHub Actions 负责构建和测试；真实模型调用、HTTPS 服务器和设备推送仍需要用户配置。
 
 安装要求 Node 24.9+ 与固定的 `@deepseek-ai/dsh@0.2.2-rc.3`。完整命令见英文 README。运行 `npm ci`、`npm run check`、`npm pack` 后，通过 `dsh plugin --profile web add <包路径>` 安装，再启动 `dsh web`。
 

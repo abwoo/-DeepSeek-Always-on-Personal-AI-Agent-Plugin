@@ -8,10 +8,23 @@ async function start() {
   const home = resolve('.artifacts/dsh');
   child = spawn(
     process.execPath,
-    ['node_modules/@deepseek-ai/dsh/lib/bin.js', 'web', '--no-open', '--port', '4317'],
+    [
+      'node_modules/@deepseek-ai/dsh/lib/bin.js',
+      'web',
+      '--patch',
+      resolve('deploy/headless.patch.yml'),
+      '--no-open',
+      '--port',
+      '4317',
+    ],
     {
       cwd: process.cwd(),
-      env: { ...process.env, DSH_HOME: home, ALWAYS_ON_DATA_DIR: dir },
+      env: {
+        ...process.env,
+        DSH_HOME: home,
+        ALWAYS_ON_DATA_DIR: dir,
+        ALWAYS_ON_DOCUMENTS_DIR: join(dir, 'documents'),
+      },
       stdio: ['ignore', 'pipe', 'pipe'],
     },
   );
@@ -62,11 +75,18 @@ async function auth(context: BrowserContext) {
   const page = await context.newPage();
   await page.goto(url);
   // Notice acknowledgment is Host-wide, so a second device may not see it.
-  for (const [title, button] of [['Preview Notice', 'Continue'], ['Get started', 'Close']]) {
+  for (const [title, button] of [
+    ['Preview Notice', 'Continue'],
+    ['Get started', 'Close'],
+  ]) {
     const dialog = page.getByRole('dialog', { name: title, exact: true });
-    const visible = await dialog.waitFor({ state: 'visible', timeout: 5000 })
+    const visible = await dialog
+      .waitFor({ state: 'visible', timeout: 5000 })
       .then(() => true)
-      .catch(error => { if (error.name !== 'TimeoutError') throw error; return false; });
+      .catch((error) => {
+        if (error.name !== 'TimeoutError') throw error;
+        return false;
+      });
     if (visible) await dialog.getByRole('button', { name: button, exact: true }).click();
   }
   return page;
@@ -92,6 +112,11 @@ test('native sidebar loads plugin, mobile task creation and cross-device memory 
   await p.locator('[data-sidebar-opener]').click();
   await p.getByText('Always-on', { exact: true }).click();
   await expect(p.getByRole('heading', { name: 'Always-on', exact: true })).toBeVisible();
+  await expect(
+    p.getByText('Unable to create default workspace. Use Choose workspace to select a folder.', {
+      exact: true,
+    }),
+  ).not.toBeVisible();
   await p.getByRole('button', { name: 'Tasks', exact: true }).click();
   await p.getByLabel('Task name').fill('EEG research watch');
   await p

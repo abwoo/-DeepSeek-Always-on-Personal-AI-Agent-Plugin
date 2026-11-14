@@ -9,7 +9,7 @@ Status: **alpha — not MVP Ready**. This file defines claims; current GitHub Ac
 | Cross-device state | Two independent authenticated browser contexts | Phone and desktop on deployed HTTPS Host |
 | Persistence/restart | SQLite reopen and real Host restart | Durable server disk and backup restore |
 | Delivery vs execution | Report pending until native terminal and flush | Native turn, real tool execution and Session flush passed with test adapter; real DeepSeek remains a gate |
-| Crash recovery | Interrupted ledger cannot become success or replay | Kill actual model turn and inspect restored native Session |
+| Crash recovery | Real Host SIGKILL during a fixture model stream, restart, interrupted ledger and no replay | Real DeepSeek provider interruption remains to be verified |
 | Dedup and bounded work | Occurrence uniqueness, run limits, silent repeats | Model/permission integration and cost observation |
 | Memory consent/deletion | Proposal excluded until confirmed; deletion excludes retrieval | New real model session uses current memory |
 | Inbox/Push failures | Inbox persistence, expired endpoint handling | Authorized iPhone/Android system push |
@@ -22,3 +22,5 @@ Known gaps: no configured permanent cloud server, domain, TLS gateway or real De
 CI must retain its logs, browser reports and screenshots as artifacts. Never copy credentials or tokenized launch URLs into public artifacts. The browser test authenticates with disposable local test credentials and no paid model calls.
 
 Local validated evidence (2026-11-14): type checking and build passed; 22 component/native-contract tests passed; real Harness offline scheduling with the deterministic adapter passed in 67 seconds, producing a confirmed run and Inbox without a browser. Production dependency audit after updating Zod: zero reported advisories. The npm tarball was installed into the real Harness for execution tests; confirmed memory reached a native model request, deletion was respected in a new Session, and a native no-change result stayed silent. Browser verification continues in GitHub Actions because local Chromium was blocked by the execution environment.
+
+Cloud alpha.1 baseline: [all jobs passed, including both browser tests and release](https://github.com/abwoo/-DeepSeek-Always-on-Personal-AI-Agent-Plugin/actions/runs/43534924110), tested code `e2f5487`. Alpha.2 adds the headless Documents-directory override and a real Host crash/restart scenario; the local 23-test suite passed, including that scenario. Final alpha.2 cloud results are recorded by its release workflow.

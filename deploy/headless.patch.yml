@@ -1,0 +1,5 @@
+# Public Harness configuration for a headless Linux account without XDG user directories.
+# Set ALWAYS_ON_DOCUMENTS_DIR to a private, writable absolute directory.
+- id: workspace-controller
+  config:
+    documentsDirectory: !!js process.env.ALWAYS_ON_DOCUMENTS_DIR

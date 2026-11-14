@@ -31,6 +31,40 @@ async function run(args: string[], env: NodeJS.ProcessEnv) {
   const code = await new Promise((r) => child.once('exit', r));
   assert.equal(code, 0, log.replace(/token=[^\s]+/g, 'token=REDACTED'));
 }
+async function boot(env: NodeJS.ProcessEnv, patch: string) {
+  const child = spawn(
+    process.execPath,
+    [
+      'node_modules/@deepseek-ai/dsh/lib/bin.js',
+      'web',
+      '--patch',
+      patch,
+      '--no-open',
+      '--port',
+      '0',
+    ],
+    { env, stdio: ['ignore', 'pipe', 'pipe'] },
+  );
+  let log = '';
+  const url = await new Promise<string>((ok, bad) => {
+    const timer = setTimeout(() => bad(new Error('Host startup timeout')), 40000);
+    const observe = (chunk: Buffer) => {
+      log += chunk;
+      const m = log.match(/dsh web: (http:\/\/127\.0\.0\.1:\d+\/\?token=[^\s]+)/);
+      if (m) {
+        clearTimeout(timer);
+        ok(m[1]!);
+      }
+    };
+    child.stdout.on('data', observe);
+    child.stderr.on('data', observe);
+    child.once('exit', (code) => {
+      clearTimeout(timer);
+      bad(new Error('Host exited ' + code));
+    });
+  });
+  return { child, url, log: () => log };
+}
 test(
   'real Host: offline native Schedule → native Agent/tools → durable result → Inbox',
   { timeout: 180000 },
@@ -53,41 +87,11 @@ test(
     );
     const filename = JSON.parse(packed.stdout)[0].filename;
     await run(['plugin', '--profile', 'web', 'add', join(dir, filename)], env);
-    const child = spawn(
-      process.execPath,
-      [
-        'node_modules/@deepseek-ai/dsh/lib/bin.js',
-        'web',
-        '--patch',
-        patch,
-        '--no-open',
-        '--port',
-        '0',
-      ],
-      { env, stdio: ['ignore', 'pipe', 'pipe'] },
-    );
-    let log = '';
+    let host = await boot(env, patch);
     try {
-      const url = await new Promise<string>((ok, bad) => {
-        const timer = setTimeout(() => bad(new Error('Host startup timeout')), 40000);
-        const onData = (c: Buffer) => {
-          log += c;
-          const m = log.match(/dsh web: (http:\/\/127\.0\.0\.1:\d+\/\?token=[^\s]+)/);
-          if (m) {
-            clearTimeout(timer);
-            ok(m[1]!);
-          }
-        };
-        child.stdout.on('data', onData);
-        child.stderr.on('data', onData);
-        child.once('exit', (code) => {
-          clearTimeout(timer);
-          bad(new Error('Host exited ' + code));
-        });
-      });
-      const origin = new URL(url).origin;
-      const login = await fetch(url, { redirect: 'manual' });
-      const cookie = login.headers
+      let origin = new URL(host.url).origin;
+      const login = await fetch(host.url, { redirect: 'manual' });
+      let cookie = login.headers
         .getSetCookie()
         .map((x) => x.split(';')[0])
         .join('; ');
@@ -132,7 +136,7 @@ test(
       assert.equal(
         snapshot.runs[0]?.status,
         'completed',
-        JSON.stringify(snapshot) + '\n' + log.replace(/token=[^\s]+/g, 'token=REDACTED'),
+        JSON.stringify(snapshot) + '\n' + host.log().replace(/token=[^\s]+/g, 'token=REDACTED'),
       );
       assert.match(snapshot.runs[0].resultReference, /^session:.+#event:/);
       assert.equal(snapshot.inbox.length, 1);
@@ -164,8 +168,47 @@ test(
         'Native no-change result must not add an Inbox message',
       );
       assert.equal(snapshot.memories.length, 0);
+      const hanging = await api('task.create', {
+        title: 'Crash fixture',
+        instruction: 'FIXTURE_HANG until the test kills this Host',
+        timing: { kind: 'after', after_seconds: 60 },
+      });
+      await api('task.run', { id: hanging.result.id });
+      const admissionDeadline = Date.now() + 5000;
+      while (Date.now() < admissionDeadline) {
+        snapshot = await api();
+        if (
+          snapshot.runs.some((r: any) => r.taskId === hanging.result.id && r.status === 'running')
+        )
+          break;
+        await sleep(100);
+      }
+      const beforeCrash = snapshot.runs.find((r: any) => r.taskId === hanging.result.id);
+      assert.equal(beforeCrash?.status, 'running');
+      const exited = new Promise<void>((resolve) => host.child.once('exit', () => resolve()));
+      host.child.kill('SIGKILL');
+      await exited;
+      host = await boot(env, patch);
+      origin = new URL(host.url).origin;
+      const relogin = await fetch(host.url, { redirect: 'manual' });
+      cookie = relogin.headers
+        .getSetCookie()
+        .map((x) => x.split(';')[0])
+        .join('; ');
+      snapshot = await api();
+      const recovered = snapshot.runs.find((r: any) => r.id === beforeCrash.id);
+      assert.equal(recovered?.status, 'interrupted');
+      assert.equal(recovered?.result, undefined);
+      assert.ok(snapshot.inbox.some((n: any) => n.runId === beforeCrash.id));
+      await sleep(500);
+      const later = await api();
+      assert.equal(
+        later.runs.filter((r: any) => r.taskId === hanging.result.id).length,
+        1,
+        'An interrupted occurrence must not be replayed',
+      );
     } finally {
-      await stop(child);
+      await stop(host.child);
       await rm(dir, { recursive: true, force: true });
     }
   },

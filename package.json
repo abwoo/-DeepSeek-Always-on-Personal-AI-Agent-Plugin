@@ -1,6 +1,6 @@
 {
   "name": "@abwoo/deepseek-always-on",
-  "version": "0.1.0-alpha.1",
+  "version": "0.1.0-alpha.2",
   "description": "Persistent personal tasks, consented memory and notifications for DeepSeek Harness",
   "license": "MIT",
   "type": "module",
@@ -24,7 +24,8 @@
     "README.md",
     "README.zh-CN.md",
     "LICENSE",
-    "docs"
+    "docs",
+    "deploy"
   ],
   "dsh": {
     "bundle": {

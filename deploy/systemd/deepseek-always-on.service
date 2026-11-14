@@ -10,8 +10,9 @@ Group=deepseek-agent
 WorkingDirectory=/opt/deepseek-always-on
 Environment=DSH_HOME=/var/lib/deepseek-always-on/harness
 Environment=ALWAYS_ON_DATA_DIR=/var/lib/deepseek-always-on/plugin
+Environment=ALWAYS_ON_DOCUMENTS_DIR=/var/lib/deepseek-always-on/documents
 EnvironmentFile=/etc/deepseek-always-on.env
-ExecStart=/opt/deepseek-always-on/node_modules/.bin/dsh web --no-open --host 127.0.0.1 --port 8080 --public-url https://agent.example.com --trusted-host agent.example.com
+ExecStart=/opt/deepseek-always-on/node_modules/.bin/dsh web --patch /opt/deepseek-always-on/deploy/headless.patch.yml --no-open --host 127.0.0.1 --port 8080 --public-url https://agent.example.com --trusted-host agent.example.com
 Restart=on-failure
 RestartSec=5
 TimeoutStopSec=45

@@ -4,7 +4,7 @@
 
 A native **DeepSeek Harness / Cordis plugin** for persistent personal tasks, consented memory, a shared Inbox and Web Push. One cloud Host serves your phone and computer. Harness owns the model, chat, tools, Sessions and scheduling; this plugin does not implement an Agent loop.
 
-**Status: 0.1.0-alpha.1 — implementation under validation, not MVP Ready.** No hosted service, DeepSeek API credit or npm publication is included in this repository. GitHub Actions is a test runner, not a continuously running Host.
+**Status: 0.1.0-alpha.2 — implementation under validation, not MVP Ready.** No hosted service, DeepSeek API credit or npm publication is included in this repository. GitHub Actions is a test runner, not a continuously running Host.
 
 ## Install
 
@@ -17,7 +17,7 @@ npm install -g pnpm@11.28.5
 npm ci
 npm run check
 npm pack
-npx --package @deepseek-ai/dsh@0.2.2-rc.3 dsh plugin --profile web add "$PWD/abwoo-deepseek-always-on-0.1.0-alpha.1.tgz"
+npx --package @deepseek-ai/dsh@0.2.2-rc.3 dsh plugin --profile web add "$PWD/abwoo-deepseek-always-on-0.1.0-alpha.2.tgz"
 npx --package @deepseek-ai/dsh@0.2.2-rc.3 dsh web --no-open --host 127.0.0.1 --port 8080
 ```
 
