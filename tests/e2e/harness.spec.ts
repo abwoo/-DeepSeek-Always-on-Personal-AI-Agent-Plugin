@@ -1,3 +1,4 @@
+import { connectProbe } from '../../src/remote/probe-connection.js';
 import { test, expect, type BrowserContext } from '@playwright/test';
 import { spawn, type ChildProcess } from 'node:child_process';
 import { mkdtemp, rm } from 'node:fs/promises';
@@ -151,4 +152,49 @@ test('native sidebar loads plugin, mobile task creation and cross-device memory 
   expect(after.tasks[0].id).toBe(before.tasks[0].id);
   expect(after.memories[0].content).toBe(before.memories[0].content);
   await reopened.close();
+});
+
+// Real network + real published Harness; no model fixture and no Desktop claim.
+test('Phase 0: independent SDK clients share one durable remote Session', async ({}, testInfo) => {
+  const endpoint = new URL(url);
+  const connect = () => connectProbe(endpoint.origin, endpoint.searchParams.get('token')!, true);
+  await expect(connectProbe(endpoint.origin, 'invalid-token', true)).rejects.toThrow('HTTP 401');
+  const a = await connect();
+  const b = await connect();
+  let id;
+  try {
+    const created = await a.session.create({});
+    expect(created.ok).toBe(true);
+    if (!created.ok) throw created.error;
+    id = created.value.sessionId;
+    const renamed = await b.session.rename({ sessionId: id, title: 'Phase 0 remote authority proof' });
+    expect(renamed.ok).toBe(true);
+    const events = await a.session.events({ address: { kind: 'session', sessionId: id } });
+    expect(events.ok).toBe(true);
+    expect(JSON.stringify(events)).toContain('Phase 0 remote authority proof');
+  } finally {
+    await a.close();
+    await b.close();
+  }
+  await stop();
+  await start();
+  const restarted = new URL(url);
+  const c = await connectProbe(restarted.origin, restarted.searchParams.get('token')!, true);
+  try {
+    const events = await c.session.events({ address: { kind: 'session', sessionId: id! } });
+    expect(events.ok).toBe(true);
+    expect(JSON.stringify(events)).toContain('Phase 0 remote authority proof');
+    await testInfo.attach('phase0-protocol-evidence', {
+      contentType: 'application/json',
+      body: Buffer.from(JSON.stringify({
+        timestamp: new Date().toISOString(),
+        harness: '0.2.2-rc.3', cordis: '4.1.0',
+        authority: 'disposable-loopback-Harness', sessionId: id,
+        clients: 2, remoteWriteRead: true, survivedHostRestart: true,
+        invalidCredentialRejected: true,
+        actualDesktopTested: false, realModelTested: false,
+        nativePhoneTested: false, mvpReady: false,
+      }, null, 2)),
+    });
+  } finally { await c.close(); }
 });

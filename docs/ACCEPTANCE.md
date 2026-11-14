@@ -1,5 +1,7 @@
 # Acceptance evidence
 
+v0.2 has a separate [Phase 0 evidence record](V02_PHASE0.md). The Web alpha evidence below does not certify native Desktop, Expo apps, managed deployment or the v0.2 production release chain.
+
 Status: **alpha — not MVP Ready**. This file defines claims; current GitHub Actions logs are the source for actual pass/fail status at a specific commit.
 
 | Requirement | Automated coverage | Real-world gate |

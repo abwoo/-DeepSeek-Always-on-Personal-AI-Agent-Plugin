@@ -1,5 +1,7 @@
 # DeepSeek Always-on
 
+**v0.2 work is held at Phase 0.** The real remote-Session protocol probe is implemented; macOS/Windows Desktop integration, managed hosting and native mobile apps are not accepted yet. See the [Phase 0 evidence](docs/V02_PHASE0.md) and [v0.2 implementation plan](docs/V02_PLAN.md).
+
 [简体中文](README.zh-CN.md) · [Development plan](PLAN.md) · [Acceptance evidence](docs/ACCEPTANCE.md)
 
 A native **DeepSeek Harness / Cordis plugin** for persistent personal tasks, consented memory, a shared Inbox and Web Push. One cloud Host serves your phone and computer. Harness owns the model, chat, tools, Sessions and scheduling; this plugin does not implement an Agent loop.

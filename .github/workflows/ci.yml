@@ -1,4 +1,4 @@
-name: Validate native Always-on plugin
+name: Validate Harness plugin and remote Session protocol
 on:
   push:
     branches: [main]
@@ -27,7 +27,8 @@ jobs:
       - name: Install bundle in disposable real Harness Web profile
         run: DSH_HOME="$PWD/.artifacts/dsh" npx dsh plugin --profile web add "$PWD"
       - run: npx playwright install --with-deps chromium
-      - run: npm run test:e2e
+      - name: Real Harness UI, authenticated remote Session and restart persistence
+        run: npm run test:e2e
       - run: npm pack
       - uses: actions/upload-artifact@v4
         if: always()

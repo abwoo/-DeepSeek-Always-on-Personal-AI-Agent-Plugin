@@ -1,5 +1,7 @@
 # DeepSeek Always-on
 
+**v0.2 正在进行 Phase 0，尚未通过原生 Desktop 验收。** 已实现真实远程 Session 协议验证；托管服务与原生手机 App 尚未交付。见 [架构验证与阻塞项](docs/V02_PHASE0.md) · [v0.2 分阶段计划](docs/V02_PLAN.md)。
+
 [English](README.md) · [开发计划](PLAN.md) · [验收记录](docs/ACCEPTANCE.md)
 
 DeepSeek Harness / Cordis 原生个人智能体插件。手机和电脑访问同一个云端 Host，共享任务、记忆与收件箱。复用官方聊天、Agent、Session、Schedule 和工具，不引入独立 Agent Runtime。

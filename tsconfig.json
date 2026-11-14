@@ -11,5 +11,9 @@
     "esModuleInterop": true,
     "noUncheckedIndexedAccess": true
   },
-  "include": ["src/host/**/*.ts", "src/shared/**/*.ts"]
+  "include": [
+    "src/host/**/*.ts",
+    "src/shared/**/*.ts",
+    "src/remote/**/*.ts"
+  ]
 }
