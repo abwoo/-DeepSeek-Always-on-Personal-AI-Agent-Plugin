@@ -108,7 +108,7 @@ export function useAgent() {
     [devices, setDevices] = useState<any[]>([]),
     [pairInfo, setPairInfo] = useState<any>(null),
     [pushStatus, setPushStatus] = useState<any>(null);
-  const [liveText, setLiveText] = useState('');
+  const [liveText, setLiveText] = useState(''),[liveTool,setLiveTool]=useState('');
   const eventCursor = useRef<{ after: number; epoch?: string; live?: number }>({ after: 0 });
   const active = useRef(true),
     selected = useRef(''),
@@ -227,7 +227,8 @@ export function useAgent() {
           if (result.resetLive) setLiveText('');
           for (const frame of result.frames ?? []) {
             if (frame.sessionId !== selected.current || focused.current) continue;
-            if (frame.kind === 'start' || frame.kind === 'end') setLiveText('');
+            if (frame.kind === 'start' || frame.kind === 'end'){setLiveText('');setLiveTool('');}
+            if(frame.kind==='tool-progress'&&frame.data.name)setLiveTool(String(frame.data.name));
             if (frame.kind === 'text-delta')
               setLiveText((text) => (text + String(frame.data.text)).slice(-24000));
           }
@@ -450,7 +451,7 @@ export function useAgent() {
   return {
     editingVersion,
     setEditingVersion,
-    liveText,
+    liveText,liveTool,
     connection,
     setConnection,
     loading,

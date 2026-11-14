@@ -7,7 +7,7 @@ import { useUi } from '../theme';
 import { uuid, friendly } from '../hooks/useAgent';
 export function ChatScreen() {
   const {
-    liveText,
+    liveText,liveTool,
     online,
     error,
     setError,
@@ -103,6 +103,7 @@ export function ChatScreen() {
               />
             </View>
           ) : null}
+          {liveTool&&!focusedRun?<View style={styles.card}><Text>Preparing tool call</Text><Text verbatim>{liveTool}</Text></View>:null}
           {liveText && !focusedRun ? (
             <View style={styles.card}>
               <Text>Live partial reply</Text>

@@ -8,6 +8,7 @@ window.__ModuleLoader__.load({
     const { Panel, en, zh, css } = createPanelModule(React);
     const strings = {
       en: {
+        toolPreparing:'Preparing tool call',
         ...en,
         goalsNav: 'Goals',
         goalsTitle: 'Ongoing goals',
@@ -66,6 +67,7 @@ window.__ModuleLoader__.load({
         pushOff: 'Native notifications are not configured in this development preview.',
       },
       zh: {
+        toolPreparing:'正在准备工具调用',
         ...zh,
         goalsNav: '目标',
         goalsTitle: '持续目标',
@@ -139,7 +141,7 @@ window.__ModuleLoader__.load({
         [error, setError] = React.useState(''),
         [busy, setBusy] = React.useState(false),
         [text, setText] = React.useState(''),
-        [liveText, setLiveText] = React.useState('');
+        [liveText, setLiveText] = React.useState(''),[liveTool,setLiveTool]=React.useState('');
       const creationId = React.useRef(null),
         requestId = React.useRef(null),
         current = React.useRef(id);
@@ -195,7 +197,8 @@ window.__ModuleLoader__.load({
               if (result.resetLive) setLiveText('');
               for (const frame of result.frames || []) {
                 if (frame.sessionId !== current.current) continue;
-                if (frame.kind === 'start' || frame.kind === 'end') setLiveText('');
+                if (frame.kind === 'start' || frame.kind === 'end'){setLiveText('');setLiveTool('');}
+                if(frame.kind==='tool-progress'&&frame.data.name)setLiveTool(String(frame.data.name));
                 if (frame.kind === 'text-delta')
                   setLiveText((text) => (text + String(frame.data.text)).slice(-24000));
               }
@@ -323,6 +326,7 @@ window.__ModuleLoader__.load({
                       : t('idle'),
               ),
               data.inputAccepted ? h('p', null, t('receipt')) : null,
+              liveTool?h('article',null,h('p',null,t('toolPreparing')),h('p',null,liveTool)):null,
               liveText
                 ? h('article', null, h('p', null, t('livePartial')), h('pre', null, liveText))
                 : null,

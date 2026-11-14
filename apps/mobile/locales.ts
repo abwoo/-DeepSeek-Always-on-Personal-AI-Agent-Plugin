@@ -1,12 +1,20 @@
 // Product copy only. User messages, memories and model results remain verbatim.
 export function localize(raw: string, language: 'en' | 'zh') {
+  raw=errors[raw]??raw;
   if (language === 'en') return raw;
   const clean = raw.replace(/\s+/g, ' ').trim(),
     tick = clean.startsWith('✓ ') ? '✓ ' : '';
   const translated = zh[clean.replace(/^✓ /, '')];
   return translated ? tick + translated : raw;
 }
+const errors:Record<string,string>={account_session_expired:'Your session expired. Sign in again.',sign_in_required:'Your session expired. Sign in again.',rate_limit:'Too many requests. Please wait a moment.',runtime_unavailable:'Your agent is temporarily unavailable. Reconnect to continue.',agent_unavailable:'Your agent is temporarily unavailable. Reconnect to continue.',operation_outcome_unknown:'The outcome is unknown. Review the task or conversation before trying again.'};
 export const zh: Record<string, string> = {
+ 'Preparing tool call':'正在准备工具调用',
+ 'Your session expired. Sign in again.':'登录已过期，请重新登录。',
+ 'Too many requests. Please wait a moment.':'请求过于频繁，请稍后再试。',
+ 'Your agent is temporarily unavailable. Reconnect to continue.':'智能体暂时无法连接，请重新连接后继续。',
+ 'The outcome is unknown. Review the task or conversation before trying again.':'操作结果尚未确认，请先核实任务或会话，再决定是否重新提交。',
+
   'This memory changed on another device. Refresh and review before saving.':
     '这条记忆已在其他设备上修改，请刷新并核实后再保存。',
   'Notifications are not available yet. Your Inbox is still available.':
