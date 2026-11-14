@@ -41,4 +41,5 @@ jobs:
             test-results/managed-authority.json
             test-results/real-deepseek.json
             test-results/managed-container.json
+            test-results/managed-container-error.log
           retention-days: 14

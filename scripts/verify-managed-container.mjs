@@ -129,6 +129,10 @@ try {
   await mkdir('test-results', { recursive: true });
   await writeFile('test-results/managed-container.json', JSON.stringify(evidence, null, 2));
   console.log(JSON.stringify(evidence));
+} catch(error) {
+  let diagnostics='';try{diagnostics=run('docker',['logs',name]);}catch(e){diagnostics=String(e.stdout??'')+String(e.stderr??'');}
+  diagnostics=diagnostics.replace(/token=[^\s]+/g,'token=REDACTED').replace(/ao_[a-f0-9-]+\.[A-Za-z0-9_-]+/g,'REDACTED_DEVICE_TOKEN');
+  await mkdir('test-results',{recursive:true});await writeFile('test-results/managed-container-error.log',diagnostics);console.error(diagnostics.slice(-10000));throw error;
 } finally {
   try {
     run('docker', ['rm', '--force', '--volumes', name]);
