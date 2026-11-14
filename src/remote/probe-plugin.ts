@@ -3,11 +3,13 @@ import type { Context } from '@deepseek-ai/cordis';
 import type {} from '@deepseek-ai/dsh-client-connection';
 import { z } from 'zod';
 import { connectProbe } from './probe-connection.js';
+// Harness SessionId is an opaque branded string, not a UUID contract.
+const sessionId = z.string().min(1).max(256).regex(/^[^\x00-\x1f\x7f]+$/);
 const command = z.discriminatedUnion('action', [
   z.object({ action: z.literal('create') }).strict(),
-  z.object({ action: z.literal('read'), sessionId: z.uuid() }).strict(),
-  z.object({ action: z.literal('rename'), sessionId: z.uuid(), title: z.string().trim().min(1).max(120) }).strict(),
-  z.object({ action: z.literal('prompt'), sessionId: z.uuid(), requestId: z.uuid(), text: z.string().trim().min(1).max(2000) }).strict(),
+  z.object({ action: z.literal('read'), sessionId }).strict(),
+  z.object({ action: z.literal('rename'), sessionId, title: z.string().trim().min(1).max(120) }).strict(),
+  z.object({ action: z.literal('prompt'), sessionId, requestId: z.uuid(), text: z.string().trim().min(1).max(2000) }).strict(),
 ]);
 export const inject = ['connection'];
 export async function apply(ctx: Context) {

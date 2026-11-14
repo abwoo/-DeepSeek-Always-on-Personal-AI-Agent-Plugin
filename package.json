@@ -17,7 +17,10 @@
     "./locale/*.json": "./locale/*.json"
   },
   "files": [
-    "dist",
+    "dist/host",
+    "dist/shared",
+    "dist/client.js",
+    "dist/always-on-sw.js",
     "cordis.patch.yml",
     "locale",
     "icon.svg",

@@ -30,12 +30,18 @@ jobs:
       - name: Real Harness UI, authenticated remote Session and restart persistence
         run: npm run test:e2e
       - run: npm pack
+      - name: Authenticated real two-Host remote adapter contract
+        run: |
+          node scripts/build-phase0-probe.mjs
+          npm pack ./probes/desktop-remote --ignore-scripts
+          node scripts/probe-remote-bridge.mjs
       - uses: actions/upload-artifact@v4
         if: always()
         with:
           name: always-on-validation
           path: |
-            *.tgz
+            abwoo-deepseek-always-on-*.tgz
+            .artifacts/phase0-bridge.json
             playwright-report/
             test-results/*-harness.png
           retention-days: 14
