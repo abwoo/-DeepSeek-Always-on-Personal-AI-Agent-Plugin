@@ -1,5 +1,7 @@
 # DeepSeek Always-on
 
+[Phase 1 Desktop 开发预览](docs/V02_PHASE1.md) 已通过官方 macOS / Windows 应用的共享任务、记忆和会话验证；生产设备配对和托管执行仍待完成。
+
 **v0.2 Phase 0 原生可行性已验证。** 已在官方 macOS / Windows Desktop 中通过独立验证插件读写同一独立 Host 的真实 Session；托管服务、真实模型执行与原生手机 App 尚未交付。见 [架构验证与阻塞项](docs/V02_PHASE0.md) · [v0.2 分阶段计划](docs/V02_PLAN.md)。
 
 [English](README.md) · [开发计划](PLAN.md) · [验收记录](docs/ACCEPTANCE.md)

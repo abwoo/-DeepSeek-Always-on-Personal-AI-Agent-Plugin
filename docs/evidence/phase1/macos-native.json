@@ -1,0 +1,19 @@
+{
+  "timestamp": "2026-11-14T06:28:05.484Z",
+  "platform": "darwin",
+  "nativePlugin": true,
+  "restartPersistence": true,
+  "remoteDesktopSession": true,
+  "realDeepSeek": false,
+  "realPhone": false,
+  "mvpReady": false,
+  "remoteAuthority": "http://127.0.0.1:49239",
+  "remoteSessionId": "session-50f2839d-e5ac-4da4-91aa-79326c0d3da3",
+  "promptReceiptOnly": true,
+  "desktopSharedTaskId": "9b526d8f-e0df-4244-b147-cf3879615f9c",
+  "desktopSessionId": "session-a0a1326b-27ac-423a-9f7c-824e983207a7",
+  "desktopSharedMemory": true,
+  "remoteReadableWithDesktopStopped": true,
+  "taskId": "69ea80d7-4b9a-428f-aa53-150f551cdfb2",
+  "phase1SharedState": true
+}

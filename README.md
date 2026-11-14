@@ -1,5 +1,7 @@
 # DeepSeek Always-on
 
+The [Phase 1 Desktop development preview](docs/V02_PHASE1.md) now verifies shared remote tasks, memory and conversations on official macOS/Windows applications. Production device pairing and managed execution are still pending.
+
 **v0.2 Phase 0 native feasibility is verified.** Official macOS/Windows Desktop applications loaded the plugin and accessed the same independent Host’s real Session through a private probe. Managed hosting, actual DeepSeek execution and native mobile apps are still unaccepted. See the [Phase 0 evidence](docs/V02_PHASE0.md) and [v0.2 implementation plan](docs/V02_PLAN.md).
 
 [简体中文](README.zh-CN.md) · [Development plan](PLAN.md) · [Acceptance evidence](docs/ACCEPTANCE.md)

@@ -1,0 +1,23 @@
+{
+  "timestamp": "2026-11-14T06:28:34.097Z",
+  "platform": "win32",
+  "nativePlugin": true,
+  "restartPersistence": true,
+  "remoteDesktopSession": true,
+  "realDeepSeek": false,
+  "realPhone": false,
+  "mvpReady": false,
+  "remoteAuthority": "http://127.0.0.1:56185",
+  "visualCaptureWarnings": [
+    "native-plugin.png",
+    "native-remote-session.png"
+  ],
+  "remoteSessionId": "session-d3825716-a827-4655-8022-0710c1a8cac1",
+  "promptReceiptOnly": true,
+  "desktopSharedTaskId": "2702fc7d-cdc0-414f-9db0-1395e4258256",
+  "desktopSessionId": "session-4e7099fd-c840-43ab-acf0-157722188d48",
+  "desktopSharedMemory": true,
+  "remoteReadableWithDesktopStopped": true,
+  "taskId": "fab05ad3-3a68-4f50-9986-964c638b223a",
+  "phase1SharedState": true
+}

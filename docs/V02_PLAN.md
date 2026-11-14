@@ -1,6 +1,6 @@
 # DeepSeek Always-on v0.2 implementation plan
 
-Status: Phase 0 core native/remote feasibility verified on official macOS ARM64 and Windows x64 applications; production execution and mobile gates remain blocked. See [evidence and exact blockers](V02_PHASE0.md). v0.1 remains the published Web alpha.
+Status: Phase 0 core native/remote feasibility verified on official macOS ARM64 and Windows x64 applications; production execution and mobile gates remain blocked. See [evidence and exact blockers](V02_PHASE0.md). The [Phase 1 Desktop shared-state foundation](V02_PHASE1.md) is also verified; product pairing/full chat and production gates remain open. v0.1 remains the published Web alpha.
 
 ## Architecture and migration contract
 
