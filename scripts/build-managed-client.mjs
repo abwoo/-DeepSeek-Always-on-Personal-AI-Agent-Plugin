@@ -1,5 +1,5 @@
 import { build } from 'esbuild';
-import { mkdir, copyFile } from 'node:fs/promises';
+import { mkdir, copyFile, readFile, writeFile } from 'node:fs/promises';
 await mkdir('packages/client', { recursive: true });
 await build({
   entryPoints: ['src/shared/managed-client.ts'],
@@ -16,3 +16,5 @@ for (const file of ['managed-client', 'managed-contract', 'schemas', 'messages',
     `dist/shared/${file}.d.ts`,
     `packages/client/${file === 'managed-client' ? 'index' : file === 'account-client' ? 'account' : file}.d.ts`,
   );
+
+const accountTypes=await readFile('packages/client/account.d.ts','utf8');await writeFile('packages/client/account.d.ts',accountTypes.replaceAll('./managed-client.js','./index.js'));

@@ -1,6 +1,8 @@
 import type { Context } from '@deepseek-ai/cordis';
 import type {} from '@deepseek-ai/dsh-client-connection';
 import { PairedDesktop } from './device.js';
+import { AccountDesktop } from './account.js';
+import { releaseServiceOrigin } from '../shared/service-config.js';
 import { z } from 'zod';
 import { connectProbe, validateAuthority } from '../remote/probe-connection.js';
 
@@ -94,7 +96,7 @@ export class DesktopRemote {
 export const inject = ['connection','credentials'];
 export async function apply(ctx: Context) {
   const preview = process.env.ALWAYS_ON_DESKTOP_OPERATOR_PREVIEW === '1';
-  const service = preview?new DesktopRemote(process.env.ALWAYS_ON_DESKTOP_REMOTE_TOKEN,process.env.ALWAYS_ON_DESKTOP_REMOTE_ORIGIN,process.env.ALWAYS_ON_DESKTOP_ALLOW_LOOPBACK==='1'):new PairedDesktop(ctx,process.env.ALWAYS_ON_DESKTOP_ALLOW_LOOPBACK==='1');
+  const service = preview?new DesktopRemote(process.env.ALWAYS_ON_DESKTOP_REMOTE_TOKEN,process.env.ALWAYS_ON_DESKTOP_REMOTE_ORIGIN,process.env.ALWAYS_ON_DESKTOP_ALLOW_LOOPBACK==='1'):process.env.ALWAYS_ON_DESKTOP_ADVANCED_PAIRING==='1'?new PairedDesktop(ctx,process.env.ALWAYS_ON_DESKTOP_ALLOW_LOOPBACK==='1'):new AccountDesktop(ctx,releaseServiceOrigin);
   ctx.effect(() => () => service.dispose());
   const register = (path: string, methods: ('GET' | 'POST')[], handler: (request: Request) => Promise<Response>) =>
     ctx.effect(() => ctx.connection.fetch.register({ path, methods, requestBody: 'buffered', fetch: handler }));
@@ -107,6 +109,10 @@ export async function apply(ctx: Context) {
   for(const action of ['pair','forget','pending','dismiss','manage'] as const)register('/api/always-on-desktop/'+action,['POST'],async request=>{
     if(!(service instanceof PairedDesktop))return json({error:'Device pairing is unavailable in operator diagnostic mode'},409);
     try{return json(await (action==='pair'?service.pair(await body(request)):action==='forget'?service.forget():action==='dismiss'?service.dismiss(await body(request)):action==='manage'?service.manage(await body(request)):service.pending()));}catch(e){return json({error:e instanceof z.ZodError?'Invalid pairing command':e instanceof Error?e.message:'Pairing unavailable'},400);}
+  });
+  for(const action of ['login-start','login-complete'] as const)register('/api/always-on-desktop/'+action,['POST'],async()=>{
+    if(!(service instanceof AccountDesktop))return json({error:'Account login unavailable in diagnostic mode'},409);
+    try{return json(await (action==='login-start'?service.startLogin():service.finishLogin()));}catch(e){return json({error:e instanceof Error?e.message:'Sign in unavailable'},503);}
   });
   register('/api/always-on-desktop/status', ['GET'], async () => json(await service.status()));
   register('/api/always-on-desktop/state', ['GET', 'POST'], async (request) => {

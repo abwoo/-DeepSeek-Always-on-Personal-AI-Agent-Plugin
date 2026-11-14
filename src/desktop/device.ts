@@ -33,12 +33,12 @@ export class PairedDesktop {
     private ctx: Context,
     private loopback = false,
   ) {}
-  private queue<T>(work: () => Promise<T>) {
+  protected queue<T>(work: () => Promise<T>) {
     const p = this.serial.then(work, work);
     this.serial = p.catch(() => {});
     return p;
   }
-  private async record() {
+  protected async record():Promise<ConnectionRecord|null> {
     if (this.disposed) throw Error('Plugin disabled');
     const saved = await this.ctx.credentials.resolve(reference);
     if (!saved) return null;
@@ -46,7 +46,7 @@ export class PairedDesktop {
     managedOrigin(record.origin, this.loopback);
     return record;
   }
-  private operations(record: ConnectionRecord): OperationStorage {
+  protected operations(record: ConnectionRecord): OperationStorage {
     const ref = credentialRef(
       'ALWAYS_ON_PENDING_' + record.credentials.deviceId.replaceAll('-', '_'),
     );
@@ -69,7 +69,7 @@ export class PairedDesktop {
       remove: async (id) => write((await list()).filter((p) => p.operationId !== id)),
     };
   }
-  private async client() {
+  protected async client():Promise<ManagedClient> {
     const record = await this.record();
     if (!record) throw Error('Pair this Desktop with your managed Personal Agent');
     return new ManagedClient(
@@ -129,7 +129,7 @@ export class PairedDesktop {
       return this.status();
     });
   }
-  private async failure(error: unknown) {
+  protected async failure(error: unknown) {
     this.connected = false;
     if (error instanceof ApiError && error.status === 401)
       await this.ctx.credentials.unset(reference);

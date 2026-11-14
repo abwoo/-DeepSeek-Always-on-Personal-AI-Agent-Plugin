@@ -11,7 +11,7 @@ import { loginStartSchema, loginCompleteSchema, type AccountConnection } from '.
 export interface ControlConfig {
   publicOrigin:string; mobileRedirect:string; allowLoopback?:boolean; trustedProxies?:string[];
 }
-const allowed=/^\/(snapshot|runs\/[0-9a-f-]+|inbox\/[0-9a-f-]+|sessions|session\/read|changes(?:\?after=\d+)?|mutate|operations\/[0-9a-f-]+|goals|devices(?:\/revoke)?|push\/(register|disable|ack|status))$/;
+const allowed=/^\/(snapshot|events(?:\?[^#]{1,1024})?|runs\/[0-9a-f-]+|inbox\/[0-9a-f-]+|sessions|session\/read|changes(?:\?after=\d+)?|mutate|operations\/[0-9a-f-]+|goals|devices(?:\/revoke)?|push\/(register|disable|ack|status))$/;
 export function controlServer(store:ControlStore,pool:AgentPool,identity:IdentityProvider,config:ControlConfig){
   const origin=managedOrigin(config.publicOrigin,config.allowLoopback),callback=origin+'/account/v1/callback';
   if(config.mobileRedirect!=='deepseek-always-on://oauth/return')throw Error('Unapproved native redirect');
@@ -96,7 +96,7 @@ export function controlServer(store:ControlStore,pool:AgentPool,identity:Identit
     const remote=req.socket.remoteAddress??'',tls='encrypted'in req.socket&&req.socket.encrypted;
     const local=['127.0.0.1','::1','::ffff:127.0.0.1'].includes(remote);
     if(!tls&&!((config.trustedProxies??[]).includes(remote)&&req.headers['x-forwarded-proto']==='https'&&req.headers.host===new URL(origin).host)&&!(config.allowLoopback&&local))throw new GatewayError(403,'https_required');
-    const url=new URL(req.url??'/',origin);limit('ip:'+remote,300);
+    const url=new URL(req.url??'/',origin);limit('ip:'+remote,10000);
     if(req.method==='GET'&&url.pathname==='/health')return json({ready:true,runtime:'deepseek-harness-control',mvpReady:false});
     if(req.method==='POST'&&url.pathname==='/account/v1/login/start'){
       limit('login:'+remote,20);const input=loginStartSchema.parse(await body(req));
@@ -136,7 +136,7 @@ export function controlServer(store:ControlStore,pool:AgentPool,identity:Identit
     const path=url.pathname.slice(prefix.length)+url.search;
     if(!allowed.test(path)||!['GET','POST'].includes(req.method??''))throw new GatewayError(404,'route_not_found');
     const authorization=String(req.headers.authorization??'');if(!authorization.startsWith('Bearer '))throw new GatewayError(401,'sign_in_required');
-    const d=store.authenticate(authorization.slice(7));limit('device:'+d.id,180);
+    const d=store.authenticate(authorization.slice(7));limit('device:'+d.id,900);
     if(req.method==='POST'&&path==='/devices/revoke'){
       const input=z.object({deviceId:z.uuid()}).strict().parse(await body(req));
       const target=store.db.prepare('SELECT * FROM devices WHERE account_id=? AND id=?').get(d.account_id,input.deviceId) as AccountDevice|undefined;

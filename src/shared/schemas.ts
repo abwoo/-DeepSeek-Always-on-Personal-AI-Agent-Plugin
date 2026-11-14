@@ -37,6 +37,7 @@ export const memorySchema = z
     content: text.max(4000),
     source: text.max(500),
     consent: z.literal(true),
+    expectedVersion:z.number().int().nonnegative().optional(),
   })
   .strict();
 export const findingSchema = z

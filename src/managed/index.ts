@@ -7,11 +7,14 @@ import { randomUUID, timingSafeEqual } from 'node:crypto';
 import { z } from 'zod';
 import { GatewayStore, GatewayError, hash, type Device } from './store.js';
 import { NativePush } from './push.js';
+import { LiveFeed } from './feed.js';
+import { installAccountPolicy } from './policy.js';
+import type {} from '@deepseek-ai/dsh-agent';
 import type {} from '../host/index.js';
 import { nativeClient } from './native.js';
 import { pairClaim, mutationSchema, opaqueId, goalSchema } from '../shared/managed-contract.js';
 
-export const inject = ['alwaysOn', 'connection', 'webServer', 'sessions'];
+export const inject = ['alwaysOn', 'connection', 'webServer', 'sessions', 'tools'];
 export interface Config {
   dataDir?: string;
   publicOrigin?: string;
@@ -28,6 +31,15 @@ export async function apply(ctx: Context, config: Config = {}) {
       ),
   );
   const store = new GatewayStore(resolve(dir, 'gateway.sqlite'));
+  const feed=new LiveFeed();
+  const accountBudget=installAccountPolicy(ctx,store);
+  ctx.on('session/event',(session,event)=>{store.change('session',session.id);feed.publish(session.id,'session-event',{seq:event.seq,type:event.type});});
+  ctx.on('agent/assistant-stream',({agent,frame})=>{
+    if(frame.type==='chunk'){
+      if(frame.chunk.type==='text-delta')feed.publish(agent.session.id,'text-delta',{attemptId:frame.attemptId,text:frame.chunk.text.slice(0,4096)});
+      else if(frame.chunk.type==='tool-call-delta')feed.publish(agent.session.id,'tool-progress',{attemptId:frame.attemptId,name:frame.chunk.name??''});
+    }else feed.publish(agent.session.id,frame.type,{attemptId:frame.attemptId,...(frame.type==='end'?{outcome:frame.outcome}:{})});
+  });
   ctx.effect(() => () => store.close());
   const native = await nativeClient(ctx);
   ctx.effect(() => () => native.close());
@@ -77,6 +89,7 @@ export async function apply(ctx: Context, config: Config = {}) {
   };
   ctx.effect(() => async () => {
     enabled = false;
+    feed.wake();
     await serial;
   });
   const json = (data: unknown, status = 200) =>
@@ -90,12 +103,17 @@ export async function apply(ctx: Context, config: Config = {}) {
   };
   const snapshot = async () => {
     const state = await native.core('GET');
-    const data = { ...state, pushPublicKey: null, goals: store.goals() };
+    const data = { ...state, pushPublicKey: null, goals: store.goals().map(goal=>{
+      const task=state.tasks.find((t:{id:string})=>t.id===goal.taskId);
+      const checkpoints=ctx.alwaysOn.coordinator.runs().filter(r=>r.taskId===goal.taskId).slice(0,20);
+      return {...goal,state:task?.state??'unavailable',lastRun:checkpoints[0]??null,checkpoints,budget:task?{maxRuns:task.maxRuns,maxSteps:task.maxSteps,maxTotalTokens:task.maxTotalTokens,timeoutSeconds:task.timeoutSeconds}:null};
+    }) };
     const revision = store.observeSnapshot(data);
     return {
       authorityId: store.authorityId,
       ownerId: store.ownerId,
       revision,
+      usage:accountBudget.status(),
       serverTime: new Date().toISOString(),
       ...data,
     };
@@ -214,6 +232,21 @@ export async function apply(ctx: Context, config: Config = {}) {
     const authorization = String(req.headers.authorization ?? '');
     if (!authorization.startsWith('Bearer ')) throw new GatewayError(401, 'device_unauthorized');
     const device = store.authenticate(authorization.slice(7));
+    if(req.method==='GET'&&path==='/events'){
+      if([...url.searchParams.keys()].some(k=>!['after','epoch','live','sessionId'].includes(k)))throw new GatewayError(400,'invalid_cursor');
+      const after=z.coerce.number().int().min(0).parse(url.searchParams.get('after')??'0');
+      const live=z.coerce.number().int().min(0).parse(url.searchParams.get('live')??'0');
+      const epoch=url.searchParams.get('epoch')??undefined;if(epoch)z.uuid().parse(epoch);
+      const sessionId=url.searchParams.get('sessionId')??undefined;if(sessionId)opaqueId.parse(sessionId);
+      const end=Date.now()+9000;
+      while(enabled){
+        store.authenticate(authorization.slice(7));
+        const changes=store.changes(after),stream=feed.read(epoch,live,sessionId);
+        if(changes.revision>after||stream.resetLive||stream.live>live||Date.now()>=end)return json({authorityId:store.authorityId,...changes,...stream});
+        await feed.wait(Math.min(1000,end-Date.now()));
+      }
+      throw new GatewayError(503,'gateway_disabled');
+    }
     if (req.method === 'GET' && path === '/snapshot')
       return serialized(async () => {
         store.authenticate(authorization.slice(7));

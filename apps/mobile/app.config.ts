@@ -3,10 +3,10 @@ const projectId = process.env.EXPO_PUBLIC_EAS_PROJECT_ID;
 const config: ExpoConfig = {
   name: 'DeepSeek Always-on',
   slug: 'deepseek-always-on',
-  version: '0.2.0',
+  version: '0.3.0',
   scheme: 'deepseek-always-on',
   orientation: 'default',
-  userInterfaceStyle: 'light',
+  userInterfaceStyle: 'automatic',
   ios: { bundleIdentifier: 'com.abwoo.deepseekalwayson', supportsTablet: true },
   android: {
     package: 'com.abwoo.deepseekalwayson',
@@ -17,12 +17,13 @@ const config: ExpoConfig = {
   },
   plugins: [
     'expo-secure-store',
+    'expo-web-browser',
     '@react-native-community/datetimepicker',
     ['expo-notifications', { defaultChannel: 'agent-updates' }],
   ],
   extra: {
     ...(projectId ? { eas: { projectId } } : {}),
-    defaultAgentOrigin: process.env.EXPO_PUBLIC_AGENT_ORIGIN ?? '',
+    serviceOrigin: require('../../config/public-service.json').serviceOrigin ?? '',
   },
 };
 export default config;

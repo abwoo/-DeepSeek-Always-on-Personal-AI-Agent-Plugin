@@ -40,7 +40,7 @@ export class GatewayStore {
     if (path !== ':memory:') mkdirSync(dirname(path), { recursive: true, mode: 0o700 });
     this.db = new DatabaseSync(path);
     if (path !== ':memory:') chmodSync(path, 0o600);
-    if (Number(this.db.prepare('PRAGMA user_version').get()!.user_version) > 2) {
+    if (Number(this.db.prepare('PRAGMA user_version').get()!.user_version) > 3) {
       this.db.close();
       throw new Error('Gateway database is newer; refusing downgrade');
     }
@@ -74,7 +74,11 @@ export class GatewayStore {
         )
           this.db.exec('ALTER TABLE deliveries ADD COLUMN created_at INTEGER NOT NULL DEFAULT 0');
         this.db.exec(
-          `CREATE TABLE IF NOT EXISTS push_acks(device_id TEXT NOT NULL,notice_id TEXT NOT NULL,kind TEXT NOT NULL,created_at INTEGER NOT NULL,PRIMARY KEY(device_id,notice_id,kind)); PRAGMA user_version=2`,
+          `CREATE TABLE IF NOT EXISTS push_acks(device_id TEXT NOT NULL,notice_id TEXT NOT NULL,kind TEXT NOT NULL,created_at INTEGER NOT NULL,PRIMARY KEY(device_id,notice_id,kind));
+           CREATE TABLE IF NOT EXISTS account_budget(day TEXT PRIMARY KEY,steps INTEGER NOT NULL DEFAULT 0,tokens INTEGER NOT NULL DEFAULT 0,usage_unknown INTEGER NOT NULL DEFAULT 0);
+           CREATE TABLE IF NOT EXISTS turn_budget(id TEXT PRIMARY KEY,started_at INTEGER NOT NULL,steps INTEGER NOT NULL DEFAULT 0);
+           CREATE TABLE IF NOT EXISTS budget_usage(id TEXT PRIMARY KEY,created_at INTEGER NOT NULL);
+           PRAGMA user_version=3`,
         );
 
         if (recoverPending)
@@ -214,12 +218,13 @@ export class GatewayStore {
     return this.revision();
   }
   changes(after: number) {
+    if(after>this.revision())throw new GatewayError(410,'cursor_expired');
     const floor = Number(this.db.prepare('SELECT coalesce(min(seq),0) AS n FROM changes').get()!.n);
     if (after > 0 && after < floor - 1) throw new GatewayError(410, 'cursor_expired');
     const rows = this.db
       .prepare('SELECT * FROM changes WHERE seq>? ORDER BY seq LIMIT 200')
       .all(after);
-    return { items: rows, revision: this.revision(), hasMore: rows.length === 200 };
+    return { items: rows, revision: rows.length ? Number(rows.at(-1)!.seq) : after, headRevision:this.revision(), hasMore: rows.length === 200 };
   }
   operation(deviceId: string, id: string) {
     const row = this.db

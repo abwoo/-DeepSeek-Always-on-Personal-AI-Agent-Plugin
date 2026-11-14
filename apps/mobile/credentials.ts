@@ -1,6 +1,7 @@
 import * as SecureStore from 'expo-secure-store';
 import type { ConnectionRecord, OperationStorage, PendingOperation } from '@abwoo/always-on-client';
 import { credentialsSchema, managedOrigin } from '@abwoo/always-on-client';
+import {accountConnectionSchema,type AccountConnection} from '@abwoo/always-on-client/account';
 const options = { keychainAccessible: SecureStore.WHEN_UNLOCKED_THIS_DEVICE_ONLY };
 const key = 'always-on.connection.v2';
 export async function loadConnection(): Promise<ConnectionRecord | null> {
@@ -33,6 +34,16 @@ export async function saveConnection(value: ConnectionRecord) {
 export async function clearConnection() {
   await SecureStore.deleteItemAsync(key);
 }
+const productKey='always-on.account.v3';
+export async function loadProductConnection():Promise<AccountConnection|null>{
+  await loadConnection(); // Reuse the real OS secure-store round-trip; do not attach legacy paired state to an account.
+  const raw=await SecureStore.getItemAsync(productKey);if(!raw)return null;
+  const record=accountConnectionSchema.parse(JSON.parse(raw));managedOrigin(record.origin);return record;
+}
+export async function saveProductConnection(record:AccountConnection){
+  accountConnectionSchema.parse(record);await SecureStore.setItemAsync(productKey,JSON.stringify(record),options);
+}
+export async function clearProductConnection(){await SecureStore.deleteItemAsync(productKey);}
 export function operationStorage(deviceId: string): OperationStorage {
   const index = `always-on.pending.${deviceId}`;
   let serial = Promise.resolve();

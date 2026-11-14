@@ -8,5 +8,5 @@ let request=VNRecognizeTextRequest()
 request.recognitionLevel = .accurate
 try VNImageRequestHandler(cgImage:image,options:[:]).perform([request])
 let text=(request.results ?? []).compactMap{$0.topCandidates(1).first?.string}.joined(separator:" ")
-guard text.contains("Your Personal Agent"),text.contains("Pair this device"),!text.localizedCaseInsensitiveContains("entitlement"),!text.localizedCaseInsensitiveContains("has failed") else {fatalError("Native pairing screen or secure-storage startup check failed: \(text)")}
-print("Actual native pairing screen visible; secure-storage round trip did not report a startup failure")
+guard text.contains("Your Personal Agent"),text.contains("Sign in"),!text.localizedCaseInsensitiveContains("entitlement"),!text.localizedCaseInsensitiveContains("has failed") else {fatalError("Native account sign-in screen or secure-storage startup check failed: \(text)")}
+print("Actual native account sign-in screen visible; secure-storage round trip did not report a startup failure")

@@ -51,3 +51,5 @@ export class AccountManagedClient extends ManagedClient {
   override async request(path:string,body?:unknown){await this.fresh();return super.request(path,body);}
   async logout(){await this.accountApi.logout(this.connection);}
 }
+
+export {ApiError} from './managed-client.js';

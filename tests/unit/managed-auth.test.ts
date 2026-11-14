@@ -85,7 +85,7 @@ test('gateway v1 migration preserves paired identity and committed operations wh
       result: { id: 'retained' },
     });
     assert.equal(store.db.prepare('SELECT status FROM deliveries').get()!.status, 'unknown');
-    assert.equal(store.db.prepare('PRAGMA user_version').get()!.user_version, 2);
+    assert.equal(store.db.prepare('PRAGMA user_version').get()!.user_version, 3);
   } finally {
     store.close();
     await rm(dir, { recursive: true, force: true });

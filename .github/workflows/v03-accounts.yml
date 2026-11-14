@@ -1,0 +1,33 @@
+name: v0.3 account ownership and isolated native authorities
+on:
+  push:
+    branches: [main, 'v0.3/**']
+    paths: [src/**, tests/**, scripts/verify-v03-accounts.mjs, scripts/build-managed*, package*.json, deploy/control/**, .github/workflows/v03-accounts.yml]
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  account-native-contract:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: {node-version: '24', cache: npm}
+      - uses: pnpm/action-setup@v4
+        with: {version: 11.28.5}
+      - run: npm ci
+      - run: npm run typecheck && npm run build
+      - name: Identity, encrypted state, device revocation, cursor and budget tests
+        run: node --import tsx --test tests/unit/account-control.test.ts tests/unit/oidc-protocol.test.ts tests/unit/managed-auth.test.ts tests/unit/managed-feed-budget.test.ts
+      - run: node scripts/build-managed.mjs && npm pack --ignore-scripts && npm pack ./packages/managed --ignore-scripts
+      - name: Two actual isolated Harness processes with account routing
+        run: node scripts/verify-v03-accounts.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: v03-account-native-evidence
+          path: test-results/v03-accounts.json
+          retention-days: 14
+          if-no-files-found: warn

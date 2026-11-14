@@ -70,6 +70,7 @@ async function startRemote() {
   process.env.ALWAYS_ON_PHASE0_REMOTE_TOKEN = url.searchParams.get('token');
   process.env.ALWAYS_ON_PHASE0_ALLOW_LOOPBACK = '1';
   delete process.env.ALWAYS_ON_DESKTOP_OPERATOR_PREVIEW;
+  process.env.ALWAYS_ON_DESKTOP_ADVANCED_PAIRING='1';
   process.env.ALWAYS_ON_DESKTOP_REMOTE_ORIGIN = url.origin;
   process.env.ALWAYS_ON_DESKTOP_REMOTE_TOKEN = url.searchParams.get('token');
   process.env.ALWAYS_ON_DESKTOP_ALLOW_LOOPBACK = '1';
