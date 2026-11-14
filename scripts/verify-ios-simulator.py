@@ -7,15 +7,15 @@ evidence={'sourceCommit':os.environ['GITHUB_SHA'],'nativeSimulatorAppBuilt':True
 udid=None
 def run(args,timeout=120):return subprocess.check_output(args,stderr=subprocess.STDOUT,timeout=timeout,text=True)
 try:
- print('Signing local Simulator Keychain entitlement',flush=True)
- entitlements={'application-identifier':'SIMULATOR0.'+bundle,'keychain-access-groups':['SIMULATOR0.'+bundle],'get-task-allow':True}
- ent=out/'simulator.entitlements.plist';ent.write_bytes(plistlib.dumps(entitlements))
- run(['codesign','--force','--sign','-','--entitlements',str(ent),'--generate-entitlement-der',str(app)])
+ print('Inspecting the Xcode-signed Simulator binary and its linked simulated entitlements',flush=True)
+ executable=app/plistlib.loads((app/'Info.plist').read_bytes())['CFBundleExecutable']
  (out/'code-signature.txt').write_text(run(['codesign','--display','--entitlements','-','--xml',str(app)]))
+ (out/'simulated-entitlements.txt').write_text(run(['otool','-s','__TEXT','__entitlements',str(executable)]))
+ run(['codesign','--verify','--deep','--strict',str(app)])
  devices=json.loads(run(['xcrun','simctl','list','devices','available','-j']))['devices']
  candidates=[(runtime,d) for runtime,items in devices.items() for d in items if 'iPhone' in d['name']]
  candidates.sort(key=lambda item:item[1]['state']!='Booted')
- runtime,device=candidates[0];udid=device['udid'];evidence.update(simulatorRuntime=runtime,simulatorDevice=device['name'],simulatorSigning='local ad-hoc; not a physical-device provisioning profile')
+ runtime,device=candidates[0];udid=device['udid'];evidence.update(simulatorRuntime=runtime,simulatorDevice=device['name'],simulatorSigning='Xcode Simulator ad-hoc signature and linked simulated entitlements; no physical-device provisioning profile')
  print('Booting '+device['name']+' on '+runtime,flush=True)
  if device['state']!='Booted':run(['xcrun','simctl','boot',udid])
  run(['xcrun','simctl','bootstatus',udid,'-b'],timeout=600)

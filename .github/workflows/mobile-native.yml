@@ -72,7 +72,7 @@ jobs:
           scheme=$(basename "$workspace" .xcworkspace)
           xcodebuild -workspace "$workspace" -list -json > ios-schemes.json
           python3 -c 'import json,sys;assert sys.argv[1] in json.load(open("ios-schemes.json"))["workspace"]["schemes"]' "$scheme"
-          xcodebuild -workspace "$workspace" -scheme "$scheme" -configuration Release -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' -derivedDataPath "$PWD/mobile-build" CODE_SIGNING_ALLOWED=NO build > ios-build.log 2>&1
+          xcodebuild -workspace "$workspace" -scheme "$scheme" -configuration Release -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' -derivedDataPath "$PWD/mobile-build" CODE_SIGNING_ALLOWED=YES CODE_SIGN_IDENTITY=- CODE_SIGNING_REQUIRED=NO build > ios-build.log 2>&1
           mkdir -p mobile-evidence
           app=$(find mobile-build/Build/Products/Release-iphonesimulator -maxdepth 1 -name '*.app' -print -quit)
           test -n "$app"
