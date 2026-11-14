@@ -1,0 +1,47 @@
+{
+  "sourceCommit": "95793a60d3475be5b36a425562cb4065daba19f1",
+  "date": "2026-11-14",
+  "rootFullGraph": {
+    "vulnerabilities": {
+      "info": 0,
+      "low": 0,
+      "moderate": 0,
+      "high": 0,
+      "critical": 0,
+      "total": 0
+    },
+    "dependencies": {
+      "prod": 19,
+      "dev": 707,
+      "optional": 107,
+      "peer": 21,
+      "peerOptional": 0,
+      "total": 725
+    }
+  },
+  "mobileProductionGraph": {
+    "vulnerabilities": {
+      "info": 0,
+      "low": 0,
+      "moderate": 0,
+      "high": 0,
+      "critical": 0,
+      "total": 0
+    },
+    "dependencies": {
+      "prod": 474,
+      "dev": 0,
+      "optional": 23,
+      "peer": 0,
+      "peerOptional": 0,
+      "total": 496
+    }
+  },
+  "commands": [
+    "npm audit --json",
+    "npm audit --omit=dev --json --prefix apps/mobile"
+  ],
+  "signedDesktopPatched": false,
+  "vendorRisk": "Official signed Desktop dependencies are a separate review gate. Root overrides do not change the vendor binary.",
+  "mvpReady": false
+}

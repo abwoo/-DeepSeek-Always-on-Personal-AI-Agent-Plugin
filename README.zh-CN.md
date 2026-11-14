@@ -1,6 +1,6 @@
 # DeepSeek Always-on
 
-**v0.3 开发候选版：** 已加入双端账号登录入口、账号独立 Harness 分配、原生事件更新和运营端部署／恢复工具。[实施与验收记录](docs/V03_ACCEPTANCE.md) · [基线审计](docs/V03_AUDIT.md)。**尚无已上线的登录服务，也未交付真实 iPhone 分发版或标记 MVP Ready。** 下文保留 v0.2 与已发布的 v0.1 Web alpha 记录。
+**v0.3 开发候选版：** 已加入双端账号登录入口、账号独立 Harness 分配、原生事件更新和运营端部署／恢复工具。[实施与验收记录](docs/V03_ACCEPTANCE.md) · [运营者交接与用户流程](docs/V03_HANDOFF.md) · [基线审计](docs/V03_AUDIT.md)。**尚无已上线的登录服务，也未交付真实 iPhone 分发版或标记 MVP Ready。** 下文保留 v0.2 与已发布的 v0.1 Web alpha 记录。
 
 **v0.2 正在开发：** 已实现托管 Harness 设备网关、可配对的原生 Desktop 面板、独立 React Native / Expo 手机工程，以及持久化原生推送队列，复用原有调度、Memory、Inbox 和 Run Ledger。**尚未部署生产服务，也未完成真实手机、真实模型和原生推送的发布验收。**
 
@@ -14,6 +14,8 @@
 DeepSeek Harness / Cordis 原生个人智能体插件。手机和电脑访问同一个云端 Host，共享任务、记忆与收件箱。复用官方聊天、Agent、Session、Schedule 和工具，不引入独立 Agent Runtime。
 
 **当前版本：0.1.0-alpha.2，工程验收通过，真实部署待验收，尚未标记 MVP Ready。** 仓库不等于已部署的常驻服务器。GitHub Actions 负责构建和测试；真实模型调用、托管服务和设备推送由服务运营者配置，最终用户不需要购买或维护 VPS。
+
+**下文是旧版 Web alpha 的开发者配置，不是 v0.3 普通用户的登录安装流程。** v0.3 托管服务和 iPhone 真机分发仍待外部授权；具体事项见[交接文档](docs/V03_HANDOFF.md)。
 
 安装要求 Node 24.9+ 与固定的 `@deepseek-ai/dsh@0.2.2-rc.3`。完整命令见英文 README。运行 `npm ci`、`npm run check`、`npm pack` 后，通过 `dsh plugin --profile web add <包路径>` 安装，再启动 `dsh web`。
 

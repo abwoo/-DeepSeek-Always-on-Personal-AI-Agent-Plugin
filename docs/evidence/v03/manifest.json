@@ -1,0 +1,412 @@
+{
+  "date": "2026-11-14",
+  "baselineCommit": "f83c996353a52724e9a522d3f583fb9f9ed0cd8a",
+  "applicationSourceCommit": "95793a60d3475be5b36a425562cb4065daba19f1",
+  "nativeProbeFollowupCommit": "610ba0b51802844c646bc73d8ac9930412cc210a",
+  "mvpReady": false,
+  "productionEvidenceLevel": null,
+  "productionMatrix": "production.json",
+  "runs": [
+    {
+      "runId": 43598183936,
+      "scope": "core: typecheck/build/41 tests, actual Harness/browser/remote adapter",
+      "sourceCommit": "610ba0b51802844c646bc73d8ac9930412cc210a",
+      "status": "Pass",
+      "level": [
+        1,
+        2
+      ],
+      "environment": "ubuntu-24.04; actual Harness 0.2.2-rc.3; explicitly deterministic model",
+      "url": "https://github.com/abwoo/-DeepSeek-Always-on-Personal-AI-Agent-Plugin/actions/runs/43598183936"
+    },
+    {
+      "runId": 43597701564,
+      "scope": "two actual Harness accounts, Docker controller, encrypted volume restore, Terraform schema",
+      "sourceCommit": "95793a60d3475be5b36a425562cb4065daba19f1",
+      "status": "Pass",
+      "level": [
+        1,
+        2
+      ],
+      "environment": "ubuntu-24.04; identity adapter/SQLite markers are fixtures, two actual isolated Harness processes and real Docker volumes",
+      "url": "https://github.com/abwoo/-DeepSeek-Always-on-Personal-AI-Agent-Plugin/actions/runs/43597701564"
+    },
+    {
+      "runId": 43597701451,
+      "scope": "restricted managed authority, actual TLS container and stable restart IDs",
+      "sourceCommit": "95793a60d3475be5b36a425562cb4065daba19f1",
+      "status": "Pass",
+      "level": [
+        1,
+        2
+      ],
+      "environment": "ubuntu-24.04; Docker; trusted test TLS; real provider gate Blocked",
+      "url": "https://github.com/abwoo/-DeepSeek-Always-on-Personal-AI-Agent-Plugin/actions/runs/43597701451"
+    },
+    {
+      "runId": 43598183930,
+      "scope": "official signed macOS Desktop GUI/plugin/remote state/lifecycle",
+      "sourceCommit": "610ba0b51802844c646bc73d8ac9930412cc210a",
+      "status": "Pass",
+      "level": [
+        3
+      ],
+      "environment": "macos-15 arm64; official signed Harness 0.2.2-rc.3, Cordis4.1.0; local tarball and explicit legacy pairing diagnostics",
+      "url": "https://github.com/abwoo/-DeepSeek-Always-on-Personal-AI-Agent-Plugin/actions/runs/43598183930"
+    },
+    {
+      "runId": 43598183951,
+      "scope": "official signed Windows Desktop GUI/plugin/remote state/lifecycle",
+      "sourceCommit": "610ba0b51802844c646bc73d8ac9930412cc210a",
+      "status": "Pass",
+      "level": [
+        3
+      ],
+      "environment": "windows-latest; official signed Harness 0.2.2-rc.3/Cordis4.1.0; local tarball/legacy pairing diagnostics; compositor warnings retained",
+      "url": "https://github.com/abwoo/-DeepSeek-Always-on-Personal-AI-Agent-Plugin/actions/runs/43598183951"
+    },
+    {
+      "runId": 43597701440,
+      "scope": "Android native build/emulator and iOS Simulator build/launch/SecureStore",
+      "sourceCommit": "95793a60d3475be5b36a425562cb4065daba19f1",
+      "status": "Pass",
+      "level": [
+        3
+      ],
+      "environment": "ubuntu-24.04 Android API35 x86_64 emulator; macos-26 iOS Simulator; development signatures, no physical phone",
+      "url": "https://github.com/abwoo/-DeepSeek-Always-on-Personal-AI-Agent-Plugin/actions/runs/43597701440"
+    }
+  ],
+  "artifacts": [
+    {
+      "id": 14115316650,
+      "name": "v03-reviewed-infrastructure-provider-lock",
+      "sourceCommit": "95793a60d3475be5b36a425562cb4065daba19f1",
+      "runId": 43597701564,
+      "url": "https://github.com/abwoo/-DeepSeek-Always-on-Personal-AI-Agent-Plugin/actions/runs/43597701564/artifacts/14115316650",
+      "archiveSha256": "ba7e6e687e1e6e665e6d3b0e141cd611d614055ca90da026f208b78e523723f9",
+      "expiresAt": "2026-11-28T13:02:24Z",
+      "scope": "Engineering observations; no real provider/physical device claim"
+    },
+    {
+      "id": 14115058512,
+      "name": "v03-account-native-evidence",
+      "sourceCommit": "95793a60d3475be5b36a425562cb4065daba19f1",
+      "runId": 43597701564,
+      "url": "https://github.com/abwoo/-DeepSeek-Always-on-Personal-AI-Agent-Plugin/actions/runs/43597701564/artifacts/14115058512",
+      "archiveSha256": "27ed7162c983359d1c75b96353e22596fa6cbda753ac8a08da7b316a60a1081a",
+      "expiresAt": "2026-11-28T13:04:07Z",
+      "scope": "Engineering observations; no real provider/physical device claim"
+    },
+    {
+      "id": 14115183120,
+      "name": "managed-authority-evidence",
+      "sourceCommit": "95793a60d3475be5b36a425562cb4065daba19f1",
+      "runId": 43597701451,
+      "url": "https://github.com/abwoo/-DeepSeek-Always-on-Personal-AI-Agent-Plugin/actions/runs/43597701451/artifacts/14115183120",
+      "archiveSha256": "a44da69d13023948363710d4c85c7a4d85183395329de4051e9f64780d9bc453",
+      "expiresAt": "2026-11-28T13:03:42Z",
+      "scope": "Engineering observations; no real provider/physical device claim"
+    },
+    {
+      "id": 14115570536,
+      "name": "phase0-macos-native-evidence",
+      "sourceCommit": "610ba0b51802844c646bc73d8ac9930412cc210a",
+      "runId": 43598183930,
+      "url": "https://github.com/abwoo/-DeepSeek-Always-on-Personal-AI-Agent-Plugin/actions/runs/43598183930/artifacts/14115570536",
+      "archiveSha256": "7a915ecdc833a642b077ba423059e7c31b020365c94fc86e39459bd5116b3b41",
+      "expiresAt": "2026-11-28T13:12:30Z",
+      "scope": "Engineering observations; no real provider/physical device claim"
+    },
+    {
+      "id": 14115059811,
+      "name": "always-on-desktop-preview-macos",
+      "sourceCommit": "610ba0b51802844c646bc73d8ac9930412cc210a",
+      "runId": 43598183930,
+      "url": "https://github.com/abwoo/-DeepSeek-Always-on-Personal-AI-Agent-Plugin/actions/runs/43598183930/artifacts/14115059811",
+      "archiveSha256": "672b900209ecd43df5191edfcb4b58ca834b19e0c29d3a63fa6d6cf7e7cdf819",
+      "expiresAt": "2026-11-28T13:12:32Z",
+      "scope": "Engineering candidate only; not a configured production release"
+    },
+    {
+      "id": 14115302632,
+      "name": "phase0-windows-native-evidence",
+      "sourceCommit": "610ba0b51802844c646bc73d8ac9930412cc210a",
+      "runId": 43598183951,
+      "url": "https://github.com/abwoo/-DeepSeek-Always-on-Personal-AI-Agent-Plugin/actions/runs/43598183951/artifacts/14115302632",
+      "archiveSha256": "d1f9e1494aad834a4f508fb757da7fdb3da3101af4ac0c18cc478cfee85d11a6",
+      "expiresAt": "2026-11-28T13:13:18Z",
+      "scope": "Engineering observations; no real provider/physical device claim"
+    },
+    {
+      "id": 14115099772,
+      "name": "always-on-desktop-preview-windows",
+      "sourceCommit": "610ba0b51802844c646bc73d8ac9930412cc210a",
+      "runId": 43598183951,
+      "url": "https://github.com/abwoo/-DeepSeek-Always-on-Personal-AI-Agent-Plugin/actions/runs/43598183951/artifacts/14115099772",
+      "archiveSha256": "2f42e9bcd0adf746812d7b0b222208f500b02855213a89ae51f3c40c65dd89ae",
+      "expiresAt": "2026-11-28T13:13:19Z",
+      "scope": "Engineering candidate only; not a configured production release"
+    },
+    {
+      "id": 14115139865,
+      "name": "android-emulator-evidence",
+      "sourceCommit": "95793a60d3475be5b36a425562cb4065daba19f1",
+      "runId": 43597701440,
+      "url": "https://github.com/abwoo/-DeepSeek-Always-on-Personal-AI-Agent-Plugin/actions/runs/43597701440/artifacts/14115139865",
+      "archiveSha256": "9197b862400be1ae9b0924e95a9e984c666fa4572efa220fb016c0c1e4d3c16e",
+      "expiresAt": "2026-11-28T13:12:29Z",
+      "scope": "Engineering observations; no real provider/physical device claim"
+    },
+    {
+      "id": 14115084536,
+      "name": "android-native-preview",
+      "sourceCommit": "95793a60d3475be5b36a425562cb4065daba19f1",
+      "runId": 43597701440,
+      "url": "https://github.com/abwoo/-DeepSeek-Always-on-Personal-AI-Agent-Plugin/actions/runs/43597701440/artifacts/14115084536",
+      "archiveSha256": "af4e6c536540e2a2bc8b28618961249ea7304a1dccbcdd954c7e76409c1a6ced",
+      "expiresAt": "2026-11-28T13:10:18Z",
+      "scope": "Engineering candidate only; not a configured production release"
+    },
+    {
+      "id": 14114994707,
+      "name": "ios-native-simulator-binary",
+      "sourceCommit": "95793a60d3475be5b36a425562cb4065daba19f1",
+      "runId": 43597701440,
+      "url": "https://github.com/abwoo/-DeepSeek-Always-on-Personal-AI-Agent-Plugin/actions/runs/43597701440/artifacts/14114994707",
+      "archiveSha256": "a9aecbd92112fdc0c1ab9f63cf4ff27cfb64977a335604e597fa1274227d1613",
+      "expiresAt": "2026-11-28T13:11:34Z",
+      "scope": "Engineering candidate only; not a configured production release"
+    },
+    {
+      "id": 14116225164,
+      "name": "ios-simulator-native-preview",
+      "sourceCommit": "95793a60d3475be5b36a425562cb4065daba19f1",
+      "runId": 43597701440,
+      "url": "https://github.com/abwoo/-DeepSeek-Always-on-Personal-AI-Agent-Plugin/actions/runs/43597701440/artifacts/14116225164",
+      "archiveSha256": "f4fd426889ffdc39f149ceb7114d9789a56ff88ded4c7cc99a0d342d89bc65b9",
+      "expiresAt": "2026-11-28",
+      "scope": "Simulator only; not physical iPhone provisioning"
+    }
+  ],
+  "verifiedDownloads": [
+    {
+      "artifactId": 14115058512,
+      "archiveSha256": "27ed7162c983359d1c75b96353e22596fa6cbda753ac8a08da7b316a60a1081a",
+      "files": [
+        "docs/evidence/v03/v03-accounts.json",
+        "docs/evidence/v03/v03-release-gate.json",
+        "docs/evidence/v03/v03-backup.json"
+      ]
+    },
+    {
+      "artifactId": 14115183120,
+      "archiveSha256": "a44da69d13023948363710d4c85c7a4d85183395329de4051e9f64780d9bc453",
+      "files": [
+        "docs/evidence/v03/managed-authority.json",
+        "docs/evidence/v03/real-deepseek.json",
+        "docs/evidence/v03/managed-container.json"
+      ]
+    },
+    {
+      "artifactId": 14115316650,
+      "archiveSha256": "ba7e6e687e1e6e665e6d3b0e141cd611d614055ca90da026f208b78e523723f9",
+      "files": [
+        "docs/evidence/v03/terraform.lock.hcl"
+      ]
+    },
+    {
+      "artifactId": 14115570536,
+      "archiveSha256": "7a915ecdc833a642b077ba423059e7c31b020365c94fc86e39459bd5116b3b41",
+      "files": [
+        "docs/evidence/v03/macos/initialize.json",
+        "docs/evidence/v03/macos/personal-agent.png",
+        "docs/evidence/v03/macos/plugin.json",
+        "docs/evidence/v03/macos/plugins-ui.json",
+        "docs/evidence/v03/macos/plugins-ui.png",
+        "docs/evidence/v03/macos/runtime-versions.json"
+      ]
+    },
+    {
+      "artifactId": 14115139865,
+      "archiveSha256": "9197b862400be1ae9b0924e95a9e984c666fa4572efa220fb016c0c1e4d3c16e",
+      "files": [
+        "docs/evidence/v03/mobile/android-emulator.json",
+        "docs/evidence/v03/mobile/android-dark-zh.png",
+        "docs/evidence/v03/mobile/android-welcome.png"
+      ]
+    },
+    {
+      "artifactId": 14115302632,
+      "archiveSha256": "d1f9e1494aad834a4f508fb757da7fdb3da3101af4ac0c18cc478cfee85d11a6",
+      "files": [
+        "docs/evidence/v03/windows/actual-version.txt",
+        "docs/evidence/v03/windows/initialize.json",
+        "docs/evidence/v03/windows/installer.json",
+        "docs/evidence/v03/windows/plugin.json",
+        "docs/evidence/v03/windows/plugins-ui.json",
+        "docs/evidence/v03/windows/runtime-versions.json"
+      ]
+    },
+    {
+      "artifactId": 14115084536,
+      "archiveSha256": "af4e6c536540e2a2bc8b28618961249ea7304a1dccbcdd954c7e76409c1a6ced",
+      "files": [
+        "docs/evidence/v03/mobile/android.json",
+        "docs/evidence/v03/mobile/android-apk-sha256.txt"
+      ]
+    },
+    {
+      "artifactId": 14116225164,
+      "archiveSha256": "f4fd426889ffdc39f149ceb7114d9789a56ff88ded4c7cc99a0d342d89bc65b9",
+      "files": [
+        "docs/evidence/v03/mobile/code-signature.txt",
+        "docs/evidence/v03/mobile/ios-welcome.png",
+        "docs/evidence/v03/mobile/ios.json",
+        "docs/evidence/v03/mobile/simulated-entitlements.txt"
+      ]
+    }
+  ],
+  "filenameOnlyRenames": {
+    "mobile/android-welcome.png": "android-emulator-evidence/android-pairing.png",
+    "mobile/ios-welcome.png": "ios-simulator-native-preview/ios-pairing.png"
+  },
+  "retention": "GitHub artifacts retained for 14 days; selected records/screenshots persist in Git. Archive hashes are ZIP hashes, not native package hashes.",
+  "historicalFailures": [
+    {
+      "runId": 43597701421,
+      "sourceCommit": "95793a60d3475be5b36a425562cb4065daba19f1",
+      "reason": "Probe dependency still used Node bundled global fetch: macOS EINVAL. Follow-up installs pinned undici globally in probe only; successful native run 43598183930 retains all assertions."
+    }
+  ],
+  "files": [
+    {
+      "path": "README.md",
+      "sha256": "f27c3dfe5cf484f50c6fabef27c6fb8c727721d721ab4630200c1b296914905f"
+    },
+    {
+      "path": "local-check.json",
+      "sha256": "f0d7a44e6977c5e4d4eb666f8553464ffa19f724d25b4c81244bf26e1a437265"
+    },
+    {
+      "path": "macos/initialize.json",
+      "sha256": "e3f37a309629e17f64354511f9e80df7ddbf4536babe93b6d2adc5ee441c44d9"
+    },
+    {
+      "path": "macos/personal-agent.png",
+      "sha256": "6213bf55230476bd5914c06ce1f75dacbf5acabefe30ae3a87c3c2143a74939e"
+    },
+    {
+      "path": "macos/plugin.json",
+      "sha256": "3957b7caf5728c3e6da47b868e99a2167fd9009b4625f411b0b95412f0fcce52"
+    },
+    {
+      "path": "macos/plugins-ui.json",
+      "sha256": "4a65516de5e7e6cec825bf3d8d6c258eb71e54002dbd15f3a821b90b8262bfc2"
+    },
+    {
+      "path": "macos/plugins-ui.png",
+      "sha256": "f10081efc6949ded2d16edf7fac65a802173c06a3adb20eb09d500ecdd7a2c27"
+    },
+    {
+      "path": "macos/runtime-versions.json",
+      "sha256": "6578cbc7db38f00ca72eac6ab0303b74147bbeb79f90e6c3020a94dd7530c302"
+    },
+    {
+      "path": "managed-authority.json",
+      "sha256": "406909ea9ff71ff54ed2370c366ffc7c20244ef2ca10b3f7c74b00374aa2a57f"
+    },
+    {
+      "path": "managed-container.json",
+      "sha256": "aa17edad3eadbdc73d45cf09bc64b6546653b4389197b4c75c5bdd7d989f5053"
+    },
+    {
+      "path": "mobile/android-apk-sha256.txt",
+      "sha256": "3d6e0291b8f3277467268ca9728a493410496be200894414c6bc79bd013d8522"
+    },
+    {
+      "path": "mobile/android-dark-zh.png",
+      "sha256": "67bc4c7caec40a8a506a2ec284b99a0ce0850b191164898411752a133f2d16ba"
+    },
+    {
+      "path": "mobile/android-emulator.json",
+      "sha256": "330f5c8eb3c9280c79d5c920edf6d2e75f637e9c3350ae0603661b15c75d51e9"
+    },
+    {
+      "path": "mobile/android-welcome.png",
+      "sha256": "6da65d21318a9c70de159cc9b4ad6e61d60d4dd985e932f97b7de0a89dacb94a"
+    },
+    {
+      "path": "mobile/android.json",
+      "sha256": "866af6f87f62cdd80ba66fa0b0c4ca0ed626c05e7c6505a210ace28c69c1678e"
+    },
+    {
+      "path": "mobile/code-signature.txt",
+      "sha256": "3321d22b51ae4d339b4a43ae9484bb1f8b37db71e73518fd570bd9c3e7b8093c"
+    },
+    {
+      "path": "mobile/ios-welcome.png",
+      "sha256": "3ee9342d19d98b65ad7bf3f701aed268de22a9bae645eae57ccd230e47e0e808"
+    },
+    {
+      "path": "mobile/ios.json",
+      "sha256": "3b5d6cb05d2f9ac593d03207807aad22fc45a959c4cbf52996d4efacb1753834"
+    },
+    {
+      "path": "mobile/simulated-entitlements.txt",
+      "sha256": "93fcdbb64e30cc3fc4d6c6db4b8910a33448d44ef53651e9193e21f640af8b11"
+    },
+    {
+      "path": "npm-audit-summary.json",
+      "sha256": "19f919c4c0997ef920404a788fc0bf32d39a93f09562358528f3d905bc54c0be"
+    },
+    {
+      "path": "production.json",
+      "sha256": "74fc16b0db4c266674bc14aaccb8442d4f4605e0cd1a016622a8e62aaafe434a"
+    },
+    {
+      "path": "real-deepseek.json",
+      "sha256": "352ebf111476d45a7be84894c9fad7eba1cbe053168579f99543c0ab8c8ee8d7"
+    },
+    {
+      "path": "terraform.lock.hcl",
+      "sha256": "185c7769397bae1d79ab34e695aee6b7c825e0eadaa37247c9699ed64bd3ee26"
+    },
+    {
+      "path": "v03-accounts.json",
+      "sha256": "0c49071f7021663b4c9228c8ff2000162ed126c0e88335c7bf76617d686ad7c5"
+    },
+    {
+      "path": "v03-backup.json",
+      "sha256": "907d7b135d24499877463d1e19403b9475796d988a526eb1aa4986715847003e"
+    },
+    {
+      "path": "v03-release-gate.json",
+      "sha256": "4cdad1e0db0323d0a3ba3cd4b52a5787ba72ef1e2d5bca6a9a82fa6cbe62a8f3"
+    },
+    {
+      "path": "windows/actual-version.txt",
+      "sha256": "67300c457497340d99c01dda21567b25c9fbaf7f05daa2fe52e9d4f49f7e70c6"
+    },
+    {
+      "path": "windows/initialize.json",
+      "sha256": "9b2c0daa996325051cc77f749fca5675e785985f70ee5c17e17e002772f54f7f"
+    },
+    {
+      "path": "windows/installer.json",
+      "sha256": "44d4f391810a789c0387d2cf307221b8be9c021e041f50a927d0436bd69c09b2"
+    },
+    {
+      "path": "windows/plugin.json",
+      "sha256": "96cc8e0209f6757297e6df3723458e516679096cfcf07fdaf8718bb3fc157a1a"
+    },
+    {
+      "path": "windows/plugins-ui.json",
+      "sha256": "f442bafefe9ccde0657cc714b3f8ac7a9c2589f728258f841f3cc0a2e3ef4769"
+    },
+    {
+      "path": "windows/runtime-versions.json",
+      "sha256": "6578cbc7db38f00ca72eac6ab0303b74147bbeb79f90e6c3020a94dd7530c302"
+    }
+  ]
+}
