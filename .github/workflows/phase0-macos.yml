@@ -86,3 +86,10 @@ jobs:
           name: phase0-macos-native-evidence
           path: .artifacts/macos-desktop/
           retention-days: 14
+      - name: Save tested installable Desktop preview
+        uses: actions/upload-artifact@v4
+        with:
+          name: always-on-desktop-preview-macos
+          path: abwoo-deepseek-always-on-desktop-0.2.0-dev.1.tgz
+          retention-days: 14
+          if-no-files-found: error
