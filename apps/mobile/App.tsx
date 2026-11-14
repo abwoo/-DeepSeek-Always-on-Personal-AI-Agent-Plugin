@@ -3,6 +3,7 @@ import {
   Alert,
   AppState,
   KeyboardAvoidingView,
+  Linking,
   StatusBar,
   Platform,
   Pressable,
@@ -22,6 +23,7 @@ import Constants from 'expo-constants';
 import { fetch as nativeFetch } from 'expo/fetch';
 import {
   ManagedClient,
+  resultBeforeSeq,
   ApiError,
   conversationRows,
   type ConnectionRecord,
@@ -121,6 +123,7 @@ function AppContent() {
   const [sessions, setSessions] = useState<any[]>([]),
     [sessionId, setSessionId] = useState(''),
     [session, setSession] = useState<any>(null),
+    [focusedRun, setFocusedRun] = useState<any>(null),
     [message, setMessage] = useState(''),
     [notice, setNotice] = useState<any>(null),
     [devices, setDevices] = useState<any[]>([]),
@@ -128,11 +131,13 @@ function AppContent() {
     [pushStatus, setPushStatus] = useState<any>(null);
   const active = useRef(true),
     selected = useRef(''),
+    focused = useRef<any>(null),
     refreshing = useRef(false),
     inFlight = useRef(false),
     currentDevice = useRef<string | undefined>(undefined);
   currentDevice.current = connection?.credentials.deviceId;
   selected.current = sessionId;
+  focused.current = focusedRun;
   const storage = useMemo(
     () => (connection ? operationStorage(connection.credentials.deviceId) : undefined),
     [connection?.credentials.deviceId],
@@ -153,7 +158,11 @@ function AppContent() {
       setSnapshot(null);
       setSessionId('');
       selected.current = '';
+      focused.current = null;
+      setFocusedRun(null);
       setSession(null);
+      setFocusedRun(null);
+      focused.current = null;
       setSessions([]);
       setPending([]);
       setNotice(null);
@@ -172,8 +181,18 @@ function AppContent() {
       setError('');
       setPending((await client.reconcile()).filter((r) => r.status !== 'committed'));
       if (selected.current) {
-        const history = await client.readSession(selected.current);
-        if (history.sessionId === selected.current) setSession(history);
+        const target = focused.current;
+        const updated = target ? (state.runs.find((r) => r.id === target.id) ?? target) : null;
+        if (updated) {
+          focused.current = updated;
+          setFocusedRun(updated);
+        }
+        const history = await client.readSession(
+          selected.current,
+          updated ? resultBeforeSeq(updated) : undefined,
+        );
+        if (history.sessionId === selected.current && focused.current?.id === updated?.id)
+          setSession(history);
       }
     } catch (e) {
       if (currentDevice.current === client.credentials.deviceId) await report(e);
@@ -246,9 +265,24 @@ function AppContent() {
   async function openSession(id: string) {
     if (!client) return;
     await perform(async () => {
+      focused.current = null;
+      setFocusedRun(null);
       const value = await client.readSession(id);
       selected.current = id;
       setSessionId(id);
+      setSession(value);
+      setPage('Chat');
+    });
+  }
+  async function openRun(id: string) {
+    if (!client) return;
+    await perform(async () => {
+      const run = await client.request('/runs/' + id);
+      const value = await client.readSession(run.sessionId, resultBeforeSeq(run));
+      focused.current = run;
+      setFocusedRun(run);
+      selected.current = run.sessionId;
+      setSessionId(run.sessionId);
       setSession(value);
       setPage('Chat');
     });
@@ -588,8 +622,8 @@ function AppContent() {
                       {run.result ? <Text>{run.result.summary}</Text> : null}
                       <Button
                         title="Open execution conversation"
-                        disabled={disabled}
-                        onPress={() => openSession(run.sessionId)}
+                        disabled={busy || !online}
+                        onPress={() => openRun(run.id)}
                       />
                     </View>
                   ))}
@@ -678,6 +712,8 @@ function AppContent() {
                     data: { creationId: 'session-' + uuid() },
                   });
                   const value = await client!.readSession(result.result.sessionId);
+                  focused.current = null;
+                  setFocusedRun(null);
                   selected.current = result.result.sessionId;
                   setSessionId(result.result.sessionId);
                   setSession(value);
@@ -704,6 +740,37 @@ function AppContent() {
                       ? 'Requires attention on the managed Host'
                       : 'Last confirmed conversation'}
                 </Text>
+                {focusedRun ? (
+                  <View style={styles.card}>
+                    <Text style={styles.heading}>
+                      Selected task execution · {focusedRun.status}
+                    </Text>
+                    <Text selectable style={styles.footnote}>
+                      {focusedRun.id}
+                    </Text>
+                    {focusedRun.result ? (
+                      <>
+                        <Text selectable>{focusedRun.result.summary}</Text>
+                        {focusedRun.result.sources.map((url: string) => (
+                          <Button
+                            key={url}
+                            title={url}
+                            onPress={() => {
+                              if (url.startsWith('https://'))
+                                void Linking.openURL(url).catch((e) => setError(friendly(e)));
+                            }}
+                          />
+                        ))}
+                      </>
+                    ) : null}
+                    {focusedRun.error ? <Text style={styles.error}>{focusedRun.error}</Text> : null}
+                    <Button
+                      title="Continue this conversation"
+                      disabled={busy || !online}
+                      onPress={() => openSession(sessionId)}
+                    />
+                  </View>
+                ) : null}
                 {rows.map((row) => (
                   <View key={row.id} style={styles.card}>
                     <Text style={styles.heading}>
@@ -718,24 +785,33 @@ function AppContent() {
                     <Text selectable>{row.text}</Text>
                   </View>
                 ))}
-                <Field label="Message your agent" value={message} onChange={setMessage} multiline />
-                <Button
-                  title="Send"
-                  disabled={disabled || !message.trim()}
-                  onPress={() =>
-                    perform(async () => {
-                      await mutate({
-                        action: 'session.prompt',
-                        data: { sessionId, text: message },
-                      });
-                      setMessage('');
-                      setSession(await client!.readSession(sessionId));
-                    })
-                  }
-                />
-                <Text style={styles.footnote}>
-                  An input receipt is not confirmation of model or business success.
-                </Text>
+                {!focusedRun ? (
+                  <>
+                    <Field
+                      label="Message your agent"
+                      value={message}
+                      onChange={setMessage}
+                      multiline
+                    />
+                    <Button
+                      title="Send"
+                      disabled={disabled || !message.trim()}
+                      onPress={() =>
+                        perform(async () => {
+                          await mutate({
+                            action: 'session.prompt',
+                            data: { sessionId, text: message },
+                          });
+                          setMessage('');
+                          setSession(await client!.readSession(sessionId));
+                        })
+                      }
+                    />
+                    <Text style={styles.footnote}>
+                      An input receipt is not confirmation of model or business success.
+                    </Text>
+                  </>
+                ) : null}
               </>
             ) : null}
           </>
@@ -823,17 +899,8 @@ function AppContent() {
                 <Text selectable>{notice.summary}</Text>
                 <Button
                   title="Open task result"
-                  disabled={disabled}
-                  onPress={() =>
-                    perform(async () => {
-                      const run = await client!.request('/runs/' + notice.runId);
-                      const value = await client!.readSession(run.sessionId);
-                      selected.current = run.sessionId;
-                      setSessionId(run.sessionId);
-                      setSession(value);
-                      setPage('Chat');
-                    })
-                  }
+                  disabled={busy || !online}
+                  onPress={() => openRun(notice.runId)}
                 />
                 <Button
                   title="Mark read"
@@ -862,10 +929,8 @@ function AppContent() {
                 {snapshot.runs.find((r) => r.id === n.runId) ? (
                   <Button
                     title="Open task result"
-                    disabled={disabled}
-                    onPress={() =>
-                      openSession(snapshot.runs.find((r) => r.id === n.runId)!.sessionId)
-                    }
+                    disabled={busy || !online}
+                    onPress={() => openRun(n.runId)}
                   />
                 ) : null}
               </View>
@@ -955,6 +1020,8 @@ function AppContent() {
                             setSnapshot(null);
                             setSessionId('');
                             selected.current = '';
+                            focused.current = null;
+                            setFocusedRun(null);
                             setSession(null);
                             setSessions([]);
                             setPending([]);

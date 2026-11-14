@@ -177,3 +177,16 @@ export class ManagedClient {
 }
 
 export { conversationRows } from './messages.js';
+
+/** Native Session events use an exclusive beforeSeq cursor. Bind historical views to this run's durable terminal. */
+export function resultBeforeSeq(run: {
+  sessionId: string;
+  resultReference?: string;
+}): number | undefined {
+  const prefix = `session:${run.sessionId}#event:`;
+  if (!run.resultReference?.startsWith(prefix)) return undefined;
+  const raw = run.resultReference.slice(prefix.length);
+  if (!/^\d+$/.test(raw)) return undefined;
+  const seq = Number(raw);
+  return Number.isSafeInteger(seq) && seq < Number.MAX_SAFE_INTEGER ? seq + 1 : undefined;
+}

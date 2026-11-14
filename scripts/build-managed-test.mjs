@@ -4,6 +4,7 @@ import { mkdtemp, rm, mkdir, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import assert from 'node:assert/strict';
+import { resultBeforeSeq } from '../dist/shared/managed-client.js';
 const dir = await mkdtemp(join(tmpdir(), 'always-on-managed-'));
 const cli = resolve('node_modules/@deepseek-ai/dsh/lib/bin.js');
 const env = {
@@ -134,6 +135,19 @@ try {
   });
   const read = await api(b, '/session/read', { sessionId: session.result.sessionId });
   assert.ok(JSON.stringify(read.events).includes('Real managed shared input'));
+  const event = read.events.records.find((r) => r.type === 'event').event;
+  const cursor = resultBeforeSeq({
+    sessionId: session.result.sessionId,
+    resultReference: `session:${session.result.sessionId}#event:${event.seq}`,
+  });
+  assert.ok(Number.isSafeInteger(cursor));
+  const historical = await api(b, '/session/read', {
+    sessionId: session.result.sessionId,
+    beforeSeq: cursor,
+  });
+  assert.ok(
+    historical.events.records.filter((r) => r.type === 'event').every((r) => r.event.seq < cursor),
+  );
   await stop();
   url = await boot();
   origin = url.origin;
@@ -204,6 +218,7 @@ try {
     twoDeviceSharedTask: true,
     mutationDeduplication: true,
     sharedSession: true,
+    historicalSessionCursor: true,
     consentedMemoryCrud: true,
     goalsShareNativeTasks: true,
     goalDeduplication: true,
