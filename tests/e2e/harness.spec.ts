@@ -61,14 +61,14 @@ async function stop() {
 async function auth(context: BrowserContext) {
   const page = await context.newPage();
   await page.goto(url);
-  await page
-    .getByRole('dialog', { name: 'Preview Notice' })
-    .getByRole('button', { name: 'Continue', exact: true })
-    .click();
-  await page
-    .getByRole('dialog', { name: 'Get started', exact: true })
-    .getByRole('button', { name: 'Close', exact: true })
-    .click();
+  // Notice acknowledgment is Host-wide, so a second device may not see it.
+  for (const [title, button] of [['Preview Notice', 'Continue'], ['Get started', 'Close']]) {
+    const dialog = page.getByRole('dialog', { name: title, exact: true });
+    const visible = await dialog.waitFor({ state: 'visible', timeout: 5000 })
+      .then(() => true)
+      .catch(error => { if (error.name !== 'TimeoutError') throw error; return false; });
+    if (visible) await dialog.getByRole('button', { name: button, exact: true }).click();
+  }
   return page;
 }
 test.describe.configure({ mode: 'serial' });
