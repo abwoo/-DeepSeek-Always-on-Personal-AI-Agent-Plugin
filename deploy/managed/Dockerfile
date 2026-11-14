@@ -7,7 +7,7 @@ COPY package.json package-lock.json ./
 RUN npm ci
 COPY . .
 RUN npm run build && node scripts/build-managed.mjs && npm pack --ignore-scripts && npm pack ./packages/managed --ignore-scripts
-ENV DSH_HOME=/data/harness ALWAYS_ON_DATA_DIR=/data/agent ALWAYS_ON_GATEWAY_DATA_DIR=/data/gateway ALWAYS_ON_DOCUMENTS_DIR=/data/documents
+ENV XDG_CONFIG_HOME=/config XDG_DATA_HOME=/data/caddy DSH_HOME=/data/harness ALWAYS_ON_DATA_DIR=/data/agent ALWAYS_ON_GATEWAY_DATA_DIR=/data/gateway ALWAYS_ON_DOCUMENTS_DIR=/data/documents
 RUN mkdir -p /data /config && chown -R node:node /data /config /opt/always-on
 USER node
 VOLUME ["/data", "/config"]

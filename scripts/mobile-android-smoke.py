@@ -13,7 +13,9 @@ try:
    adb('shell','uiautomator','dump','/sdcard/always-on-ui.xml');xml=adb('exec-out','cat','/sdcard/always-on-ui.xml');root=ET.fromstring(xml)
    text=' '.join(n.attrib.get('text','')+' '+n.attrib.get('content-desc','') for n in root.iter('node'))
    if 'Your Personal Agent' in text and 'Pair this device' in text:
-    (out/'android-pairing.xml').write_bytes(xml);evidence.update(nativeEmulatorLaunch=True,pairingScreenVisible=True);break
+    if 'has failed' in text.lower() or 'entitlement' in text.lower():raise RuntimeError('Native secure-storage startup failed')
+    if not any(n.attrib.get('resource-id','').endswith('secure-storage-ready') for n in root.iter('node')):raise RuntimeError('Native secure-storage round trip did not confirm readiness')
+    (out/'android-pairing.xml').write_bytes(xml);evidence.update(nativeEmulatorLaunch=True,pairingScreenVisible=True,secureStorageStartupPassed=True);break
   except (subprocess.CalledProcessError,ET.ParseError):pass
  if not evidence['pairingScreenVisible']:raise RuntimeError('Native pairing UI did not become visible; no success was synthesized')
  # Kill and relaunch to catch a startup/storage crash, without issuing a fake pairing credential.

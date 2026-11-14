@@ -2,7 +2,7 @@ name: Managed authority and device protocol
 on:
   push:
     branches: [main]
-    paths: [src/**, packages/managed/**, packages/client/**, scripts/build-managed*, scripts/managed-admin.mjs, deploy/managed/**, tests/unit/managed-auth.test.ts, tests/unit/native-push.test.ts, scripts/verify-real-deepseek.mjs, .github/workflows/managed-runtime.yml]
+    paths: [src/**, packages/managed/**, packages/client/**, scripts/build-managed*, scripts/managed-admin.mjs, deploy/managed/**, tests/unit/managed-auth.test.ts, tests/unit/native-push.test.ts, scripts/verify-real-deepseek.mjs, scripts/verify-managed-container.mjs, .github/workflows/managed-runtime.yml]
   workflow_dispatch:
 permissions:
   contents: read
@@ -31,6 +31,8 @@ jobs:
           DEEPSEEK_MODEL: ${{ vars.ALWAYS_ON_DEEPSEEK_MODEL }}
       - name: Build operator runtime container
         run: docker build -f deploy/managed/Dockerfile -t always-on-managed:test .
+      - name: Start actual container and verify trusted-test TLS, narrow API and device auth
+        run: node scripts/verify-managed-container.mjs
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -38,4 +40,5 @@ jobs:
           path: |
             test-results/managed-authority.json
             test-results/real-deepseek.json
+            test-results/managed-container.json
           retention-days: 14

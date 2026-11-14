@@ -1,79 +1,1079 @@
-import React,{useCallback,useEffect,useMemo,useRef,useState} from 'react';
-import {Alert,AppState,KeyboardAvoidingView,StatusBar,Platform,Pressable,ScrollView,StyleSheet,Switch,Text,TextInput,View} from 'react-native';
-import {SafeAreaProvider,SafeAreaView} from 'react-native-safe-area-context';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import {
+  Alert,
+  AppState,
+  KeyboardAvoidingView,
+  StatusBar,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Switch,
+  Text,
+  TextInput,
+  View,
+} from 'react-native';
+import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import * as Crypto from 'expo-crypto';
 import * as Notifications from 'expo-notifications';
 import * as Device from 'expo-device';
 import Constants from 'expo-constants';
-import {fetch as nativeFetch} from 'expo/fetch';
-import {ManagedClient,ApiError,conversationRows,type ConnectionRecord,type ManagedAction,type ManagedSnapshot} from '@abwoo/always-on-client';
-import {loadConnection,saveConnection,clearConnection,operationStorage} from './credentials';
+import { fetch as nativeFetch } from 'expo/fetch';
+import {
+  ManagedClient,
+  ApiError,
+  conversationRows,
+  type ConnectionRecord,
+  type ManagedAction,
+  type ManagedSnapshot,
+} from '@abwoo/always-on-client';
+import { loadConnection, saveConnection, clearConnection, operationStorage } from './credentials';
 
-Notifications.setNotificationHandler({handleNotification:async()=>({shouldShowBanner:true,shouldShowList:true,shouldPlaySound:false,shouldSetBadge:false})});
-const transport=nativeFetch as unknown as typeof fetch;
-const uuid=()=>Crypto.randomUUID();
-type Page='Tasks'|'Goals'|'Chat'|'Memory'|'Inbox'|'Devices';
-const pages:Page[]=['Tasks','Goals','Chat','Memory','Inbox','Devices'];
-const friendly=(error:unknown)=>error instanceof Error?error.message:'Request failed';
-function Button({title,onPress,disabled=false,danger=false}:{title:string;onPress:()=>void;disabled?:boolean;danger?:boolean}){return <Pressable accessibilityRole="button" disabled={disabled} onPress={onPress} style={[styles.button,danger&&styles.danger,disabled&&styles.disabled]}><Text style={styles.buttonText}>{title}</Text></Pressable>;}
-function Field({label,value,onChange,multiline=false,secret=false}:{label:string;value:string;onChange:(s:string)=>void;multiline?:boolean;secret?:boolean}){return <View style={styles.field}><Text style={styles.label}>{label}</Text><TextInput accessibilityLabel={label} autoCapitalize="none" autoCorrect={false} secureTextEntry={secret} multiline={multiline} value={value} onChangeText={onChange} style={[styles.input,multiline&&styles.multiline]}/></View>;}
-function AppContent(){
- const [connection,setConnection]=useState<ConnectionRecord|null>(null),[loading,setLoading]=useState(true),[storageReady,setStorageReady]=useState(false),[origin,setOrigin]=useState(String(Constants.expoConfig?.extra?.defaultAgentOrigin??'')),[code,setCode]=useState(''),[deviceName,setDeviceName]=useState(Device.modelName??'My device');
- const [snapshot,setSnapshot]=useState<ManagedSnapshot|null>(null),[online,setOnline]=useState(false),[error,setError]=useState(''),[busy,setBusy]=useState(false),[page,setPage]=useState<Page>('Tasks'),[pending,setPending]=useState<any[]>([]);
- const [title,setTitle]=useState(''),[instruction,setInstruction]=useState(''),[minutes,setMinutes]=useState('1440'),[schedule,setSchedule]=useState<'every'|'daily'|'once'>('every'),[date,setDate]=useState(new Date(Date.now()+3600000)),[picker,setPicker]=useState<'date'|'time'|null>(null),[research,setResearch]=useState(true);
- const [memory,setMemory]=useState(''),[kind,setKind]=useState<'fact'|'preference'|'project'|'goal'>('fact'),[consent,setConsent]=useState(false),[editing,setEditing]=useState<string|undefined>();
- const [sessions,setSessions]=useState<any[]>([]),[sessionId,setSessionId]=useState(''),[session,setSession]=useState<any>(null),[message,setMessage]=useState(''),[notice,setNotice]=useState<any>(null),[devices,setDevices]=useState<any[]>([]),[pairInfo,setPairInfo]=useState<any>(null);
- const active=useRef(true),selected=useRef(''),refreshing=useRef(false),inFlight=useRef(false),currentDevice=useRef<string|undefined>(undefined);currentDevice.current=connection?.credentials.deviceId;selected.current=sessionId;
- const storage=useMemo(()=>connection?operationStorage(connection.credentials.deviceId):undefined,[connection?.credentials.deviceId]);
- const client=useMemo(()=>connection?new ManagedClient(connection.origin,connection.credentials,storage,false,transport):null,[connection,storage]);
- const report=useCallback(async(e:unknown)=>{setError(friendly(e));setOnline(false);if(e instanceof ApiError&&e.status===401){await clearConnection();setConnection(null);setSnapshot(null);setSessionId('');selected.current='';setSession(null);setSessions([]);setPending([]);setNotice(null);setDevices([]);}},[]);
- const refresh=useCallback(async()=>{
-  if(!client||!active.current||refreshing.current)return;refreshing.current=true;
-  try{const state=await client.snapshot();if(currentDevice.current!==client.credentials.deviceId)return;setSnapshot(state);setOnline(true);setError('');setPending((await client.reconcile()).filter(r=>r.status!=='committed'));if(selected.current){const history=await client.readSession(selected.current);if(history.sessionId===selected.current)setSession(history);}}
-  catch(e){if(currentDevice.current===client.credentials.deviceId)await report(e);}finally{refreshing.current=false;}
- },[client,report]);
- useEffect(()=>{loadConnection().then(record=>{setConnection(record);setStorageReady(true);}).catch(e=>setError(friendly(e))).finally(()=>setLoading(false));},[]);
- useEffect(()=>{active.current=AppState.currentState==='active';const subscription=AppState.addEventListener('change',state=>{active.current=state==='active';if(active.current)refresh();});refresh();const timer=setInterval(()=>refresh(),10000);return()=>{subscription.remove();clearInterval(timer);};},[refresh]);
- async function perform(work:()=>Promise<unknown>){if(inFlight.current)return;inFlight.current=true;setBusy(true);setError('');try{await work();await refresh();}catch(e){setError(friendly(e));if(!(e instanceof ApiError&&e.status<500)&&!(e instanceof Error&&e.name==='ZodError'))setOnline(false);if(client)setPending((await client.reconcile().catch(()=>[])).filter(r=>r.status!=='committed'));}finally{inFlight.current=false;setBusy(false);}}
- const mutate=(command:ManagedAction)=>client!.mutate(uuid(),command);
- async function pair(){await perform(async()=>{const result=await ManagedClient.pair(origin.trim(),code.trim(),deviceName,Platform.OS==='ios'?'ios':'android',false,transport);await saveConnection(result);setConnection(result);setCode('');});}
- async function openSession(id:string){if(!client)return;await perform(async()=>{const value=await client.readSession(id);selected.current=id;setSessionId(id);setSession(value);setPage('Chat');});}
- async function enablePush(){if(!client||!connection)return;await perform(async()=>{
-  const projectId=Constants.easConfig?.projectId??Constants.expoConfig?.extra?.eas?.projectId;
-  if(!projectId)throw Error('Notifications require an operator-configured EAS project and platform push credentials.');
-  if(!Device.isDevice)throw Error('A real iPhone or Android device is required for native push acceptance.');
-  if(Platform.OS==='android')await Notifications.setNotificationChannelAsync('agent-updates',{name:'Agent updates',importance:Notifications.AndroidImportance.HIGH});
-  const permission=await Notifications.requestPermissionsAsync();if(permission.status!=='granted')throw Error('Notification permission was not granted. Inbox remains available.');
-  const token=(await Notifications.getExpoPushTokenAsync({projectId})).data;await client.request('/push/register',{token,projectId});Alert.alert('Notifications enabled','Inbox remains the authoritative record.');
- });}
- useEffect(()=>{
-  if(!client||!connection)return;
-  const handle=async(notification:Notifications.Notification,opened:boolean)=>{const data=notification.request.content.data??{};if(data.authorityId!==connection.credentials.authorityId||typeof data.noticeId!=='string')return;
-   try{await client.request('/push/ack',{noticeId:data.noticeId,kind:opened?'opened':'foreground_received'}).catch(()=>{});if(opened){setPage('Inbox');setNotice(await client.request('/inbox/'+data.noticeId));}await refresh();}catch(e){setError(friendly(e));}
-  };
-  const received=Notifications.addNotificationReceivedListener(n=>handle(n,false));const response=Notifications.addNotificationResponseReceivedListener(r=>handle(r.notification,true));
-  Notifications.getLastNotificationResponseAsync().then(r=>{if(r)handle(r.notification,true);});return()=>{received.remove();response.remove();};
- },[client,connection,refresh]);
- if(loading)return <View style={styles.container}><Text>Loading secure connection…</Text></View>;
- if(!connection)return <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled"><Text style={styles.title}>Your Personal Agent</Text><Text style={styles.subtitle}>Pair with your managed Harness. No model API key is stored on this phone.</Text><Field label="HTTPS service address" value={origin} onChange={setOrigin}/><Field label="One-use pairing code" value={code} onChange={setCode} secret/><Field label="Device name" value={deviceName} onChange={setDeviceName}/><Button title="Pair this device" disabled={busy||!storageReady||!origin||!code} onPress={pair}/>{error?<Text accessibilityRole="alert" style={styles.error}>{error}</Text>:null}<Text style={styles.footnote}>Development build · production model/push/device acceptance is still open.</Text></ScrollView>;
- const disabled=busy||!online||pending.length>0;
- const records=(session?.events.records??[]).filter((r:any)=>r.type==='event').map((r:any)=>r.event);
- const rows=conversationRows(records);
- async function loadDevices(){await perform(async()=>{setDevices((await client!.request('/devices')).items);setPage('Devices');});}
- return <View style={styles.fill}><View style={styles.header}><Text style={styles.title}>Always-on</Text><Text numberOfLines={1} style={styles.subtitle}>{new URL(connection.origin).host} · {online?'Connected':'Offline — last confirmed data'}</Text><View style={styles.row}><Button title="Refresh" disabled={busy} onPress={()=>refresh()}/><Button title="Notifications" disabled={disabled} onPress={enablePush}/></View></View>
-  <ScrollView horizontal style={styles.tabs} contentContainerStyle={styles.tabContent} showsHorizontalScrollIndicator={false}>{pages.map(p=><Pressable key={p} accessibilityRole="tab" accessibilityState={{selected:page===p}} onPress={()=>{setPage(p);if(p==='Chat'&&client)client.sessions().then(s=>setSessions(s.items)).catch(report);if(p==='Devices')loadDevices();}} style={[styles.tab,page===p&&styles.selected]}><Text style={styles.tabText}>{p}</Text></Pressable>)}</ScrollView>
-  <ScrollView style={styles.fill} contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
-   {error?<Text accessibilityRole="alert" style={styles.error}>{error}</Text>:null}
-   {pending.length?<View style={styles.card}><Text style={styles.heading}>Requests requiring review</Text><Text>Unknown/not-recorded requests are never replayed. Check remote state before submitting a replacement.</Text>{pending.map(p=><View key={p.operationId}><Text selectable>{p.action} · {p.status} · {p.operationId}</Text><Button title="Dismiss after review" onPress={()=>Alert.alert('Dismiss this marker?','This does not undo or repeat any server work.',[{text:'Cancel',style:'cancel'},{text:'Dismiss',onPress:()=>perform(async()=>{await storage!.remove(p.operationId);})}])}/></View>)}</View>:null}
-   {!snapshot?<Text>Connect to load your agent. The server continues working while this app is closed.</Text>:null}
-   {page==='Tasks'?<><View style={styles.card}><Text style={styles.heading}>Create a task</Text><Field label="Task name" value={title} onChange={setTitle}/><Field label="What should your agent do?" value={instruction} onChange={setInstruction} multiline/><View style={styles.row}>{(['every','daily','once'] as const).map(s=><Button key={s} title={s===schedule?'✓ '+s:s} onPress={()=>setSchedule(s)}/>)}</View>{schedule==='every'?<Field label="Interval in minutes" value={minutes} onChange={setMinutes}/>:<><Text>{schedule==='once'?date.toLocaleString():date.toLocaleTimeString()}</Text><View style={styles.row}>{schedule==='once'?<Button title="Choose date" onPress={()=>setPicker('date')}/>:null}<Button title="Choose time" onPress={()=>setPicker('time')}/></View>{picker?<DateTimePicker value={date} mode={picker} onChange={(_,next)=>{setPicker(null);if(next)setDate(next);}}/>:null}</>}<View style={styles.switchRow}><Text style={styles.flexText}>Allow read-only web research</Text><Switch value={research} onValueChange={setResearch}/></View><Button title="Create task" disabled={disabled||!title.trim()||!instruction.trim()} onPress={()=>perform(async()=>{const timing=schedule==='every'?{kind:'every' as const,every_seconds:Number(minutes)*60}:schedule==='once'?{kind:'at' as const,at:date.toISOString()}:{kind:'daily' as const,daily:{time:`${String(date.getHours()).padStart(2,'0')}:${String(date.getMinutes()).padStart(2,'0')}`,time_zone:Intl.DateTimeFormat().resolvedOptions().timeZone}};await mutate({action:'task.create',data:{title,instruction,timing,allowedTools:research?['web_search','web_fetch']:[]}});setTitle('');setInstruction('');})}/><Text style={styles.footnote}>Default budget: 30 runs, 8 model steps and 3 minutes per run. External writes require native Harness approval.</Text></View>{snapshot?.tasks.map(task=><View key={task.id} style={styles.card}><Text style={styles.heading}>{task.title}</Text><Text>{task.state} · next: {task.nextScheduledAt?new Date(task.nextScheduledAt).toLocaleString():'—'}</Text><Text>{task.instruction}</Text><View style={styles.row}><Button title={task.state==='active'?'Pause':'Resume'} disabled={disabled||task.state==='cancelled'} onPress={()=>perform(()=>mutate({action:'task.control',data:{id:task.id,state:task.state==='active'?'paused':'active'}}))}/><Button title="Cancel" danger disabled={disabled} onPress={()=>perform(()=>mutate({action:'task.control',data:{id:task.id,state:'cancelled'}}))}/><Button title="Run now" disabled={disabled||task.state!=='active'} onPress={()=>perform(()=>mutate({action:'task.run',data:{id:task.id}}))}/></View>{snapshot.runs.filter(r=>r.taskId===task.id).slice(0,5).map(run=><View key={run.id}><Text>{run.status}</Text>{run.result?<Text>{run.result.summary}</Text>:null}<Button title="Open execution conversation" disabled={disabled} onPress={()=>openSession(run.sessionId)}/></View>)}</View>)}</>:null}
-   {page==='Goals'?<><View style={styles.card}><Text style={styles.heading}>Ongoing goal</Text><Field label="Goal name" value={title} onChange={setTitle}/><Field label="What should the agent monitor?" value={instruction} onChange={setInstruction} multiline/><Field label="Check every N minutes" value={minutes} onChange={setMinutes}/><Button title="Authorize bounded goal" disabled={disabled||!title.trim()||!instruction.trim()} onPress={()=>perform(async()=>{await client!.createGoal(uuid(),{title,instruction,everySeconds:Number(minutes)*60,allowedTools:['web_search','web_fetch'],maxRuns:30});setTitle('');setInstruction('');})}/><Text>Uses native Schedule and the existing read-only task guard. No-change checks remain silent.</Text></View>{snapshot?.goals.map(goal=><View key={goal.id} style={styles.card}><Text style={styles.heading}>{goal.title}</Text><Text>{goal.instruction}</Text><Text>Task: {goal.taskId}</Text><View style={styles.row}><Button title="Pause goal" disabled={disabled} onPress={()=>perform(()=>mutate({action:'task.control',data:{id:goal.taskId,state:'paused'}}))}/><Button title="Resume goal" disabled={disabled} onPress={()=>perform(()=>mutate({action:'task.control',data:{id:goal.taskId,state:'active'}}))}/></View></View>)}</>:null}
-   {page==='Chat'?<><Button title="New conversation" disabled={disabled} onPress={()=>perform(async()=>{const result=await mutate({action:'session.create',data:{creationId:'session-'+uuid()}});const value=await client!.readSession(result.result.sessionId);selected.current=result.result.sessionId;setSessionId(result.result.sessionId);setSession(value);})}/>{sessions.map(item=><Button key={item.sessionId} title={item.sessionId} disabled={disabled} onPress={()=>openSession(item.sessionId)}/>)}{sessionId?<><Text selectable style={styles.footnote}>{sessionId}</Text><Text>{session?.state?.running?'Agent running':session?.state?.pendingInput?.length?'Requires attention on the managed Host':'Last confirmed conversation'}</Text>{rows.map(row=><View key={row.id} style={styles.card}><Text style={styles.heading}>{row.role==='received'?'Input received':row.role==='assistant'?'Agent':row.role==='you'?'You':'Task / context'}</Text><Text selectable>{row.text}</Text></View>)}<Field label="Message your agent" value={message} onChange={setMessage} multiline/><Button title="Send" disabled={disabled||!message.trim()} onPress={()=>perform(async()=>{await mutate({action:'session.prompt',data:{sessionId,text:message}});setMessage('');setSession(await client!.readSession(sessionId));})}/><Text style={styles.footnote}>An input receipt is not confirmation of model or business success.</Text></>:null}</>:null}
-   {page==='Memory'?<><View style={styles.card}><Text style={styles.heading}>{editing?'Edit saved memory':'Save a memory'}</Text><View style={styles.row}>{(['fact','preference','project','goal'] as const).map(k=><Button key={k} title={k===kind?'✓ '+k:k} onPress={()=>setKind(k)}/>)}</View><Field label="Information to remember" value={memory} onChange={setMemory} multiline/><View style={styles.switchRow}><Text style={styles.flexText}>I allow this information to be used across sessions.</Text><Switch value={consent} onValueChange={setConsent}/></View><Button title="Save with my consent" disabled={disabled||!consent||!memory.trim()} onPress={()=>perform(async()=>{await mutate({action:'memory.save',data:{...(editing?{id:editing}:{}),kind,content:memory,source:'Explicit mobile user consent',consent:true}});setMemory('');setEditing(undefined);setConsent(false);})}/></View>{snapshot?.memories.map(m=><View key={m.id} style={styles.card}><Text style={styles.heading}>{m.kind} · {m.consent?'Saved':'Awaiting consent'}</Text><Text selectable>{m.content}</Text><Text style={styles.footnote}>{m.source} · {new Date(m.updatedAt).toLocaleString()}</Text><View style={styles.row}><Button title={m.consent?'Edit':'Review and confirm'} onPress={()=>{setMemory(m.content);setKind(m.kind as typeof kind);setEditing(m.id);setConsent(false);}}/><Button title="Delete" danger disabled={disabled} onPress={()=>perform(()=>mutate({action:'memory.delete',data:{id:m.id}}))}/></View></View>)}</>:null}
-   {page==='Inbox'?<>{notice?<View style={styles.card}><Text style={styles.heading}>{notice.title}</Text><Text selectable>{notice.summary}</Text><Button title="Mark read" disabled={disabled} onPress={()=>perform(()=>mutate({action:'inbox.read',data:{id:notice.id}}))}/></View>:null}{snapshot?.inbox.map(n=><View key={n.id} style={styles.card}><Text style={styles.heading}>{n.read?'':'● '}{n.title}</Text><Text selectable>{n.summary}</Text><Text style={styles.footnote}>{new Date(n.createdAt).toLocaleString()}</Text><Button title="Mark read" disabled={disabled||n.read} onPress={()=>perform(()=>mutate({action:'inbox.read',data:{id:n.id}}))}/>{snapshot.runs.find(r=>r.id===n.runId)?<Button title="Open task result" disabled={disabled} onPress={()=>openSession(snapshot.runs.find(r=>r.id===n.runId)!.sessionId)}/>:null}</View>)}</>:null}
-   {page==='Devices'?<><View style={styles.card}><Text style={styles.heading}>Access and notifications</Text><Text selectable>Authority: {connection.credentials.authorityId}</Text><Button title="Pair another device" disabled={disabled} onPress={()=>perform(async()=>setPairInfo(await client!.request('/devices/pair-code',{})))}/>{pairInfo?<Text selectable style={styles.footnote}>One-use code: {pairInfo.code}{'\n'}Expires: {new Date(pairInfo.expiresAt).toLocaleString()}</Text>:null}<Button title="Disable this device's push" disabled={disabled} onPress={()=>perform(()=>client!.request('/push/disable',{}))}/><Button title="Remove access on this phone" danger onPress={()=>Alert.alert('Remove this device?','Tasks continue on the managed Host. If offline, remove this device later from another paired device.',[{text:'Cancel',style:'cancel'},{text:'Remove',style:'destructive',onPress:()=>perform(async()=>{await client!.request('/devices/revoke',{deviceId:connection.credentials.deviceId}).catch(()=>{});await clearConnection();setConnection(null);setSnapshot(null);setSessionId('');selected.current='';setSession(null);setSessions([]);setPending([]);setNotice(null);setDevices([]);setSession(null);})}])}/></View>{devices.map(d=><View key={d.id} style={styles.card}><Text style={styles.heading}>{d.name}</Text><Text>{d.platform} · {d.revoked?'Revoked':'Active'}</Text><Button title="Revoke device" disabled={disabled||!!d.revoked||d.id===connection.credentials.deviceId} danger onPress={()=>perform(async()=>{await client!.request('/devices/revoke',{deviceId:d.id});setDevices((await client!.request('/devices')).items);})}/></View>)}</>:null}
-  </ScrollView><View style={styles.footer}><Text style={styles.footnote}>Development preview · Your managed Host keeps the shared state</Text></View></View>;
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({
+    shouldShowBanner: true,
+    shouldShowList: true,
+    shouldPlaySound: false,
+    shouldSetBadge: false,
+  }),
+});
+const transport = nativeFetch as unknown as typeof fetch;
+const uuid = () => Crypto.randomUUID();
+type Page = 'Tasks' | 'Goals' | 'Chat' | 'Memory' | 'Inbox' | 'Devices';
+const pages: Page[] = ['Tasks', 'Goals', 'Chat', 'Memory', 'Inbox', 'Devices'];
+const friendly = (error: unknown) => (error instanceof Error ? error.message : 'Request failed');
+function Button({
+  title,
+  onPress,
+  disabled = false,
+  danger = false,
+}: {
+  title: string;
+  onPress: () => void;
+  disabled?: boolean;
+  danger?: boolean;
+}) {
+  return (
+    <Pressable
+      accessibilityRole="button"
+      disabled={disabled}
+      onPress={onPress}
+      style={[styles.button, danger && styles.danger, disabled && styles.disabled]}
+    >
+      <Text style={styles.buttonText}>{title}</Text>
+    </Pressable>
+  );
 }
-export default function App(){return <SafeAreaProvider><StatusBar barStyle="dark-content"/><SafeAreaView style={styles.fill} edges={['top','bottom']}><KeyboardAvoidingView style={styles.fill} behavior={Platform.OS==='ios'?'padding':undefined}><AppContent/></KeyboardAvoidingView></SafeAreaView></SafeAreaProvider>;}
-const styles=StyleSheet.create({fill:{flex:1,backgroundColor:'#f5f7fa'},container:{padding:18,paddingBottom:32,gap:14},header:{padding:18,paddingBottom:10,backgroundColor:'#ffffff',gap:5},title:{fontSize:27,fontWeight:'700',color:'#17283a'},subtitle:{fontSize:13,color:'#516375',lineHeight:20},tabs:{flexGrow:0,backgroundColor:'#fff',maxHeight:56},tabContent:{paddingHorizontal:12,paddingVertical:5,gap:8},tab:{paddingHorizontal:16,paddingVertical:12,borderRadius:12},selected:{backgroundColor:'#d9eee9'},tabText:{color:'#173f38',fontWeight:'600'},card:{backgroundColor:'#fff',padding:18,borderRadius:16,gap:12,borderColor:'#dbe2ea',borderWidth:1},heading:{fontSize:18,fontWeight:'600',color:'#17283a'},field:{gap:6},label:{fontSize:14,color:'#31475a',fontWeight:'500'},input:{borderWidth:1,borderColor:'#9eadbb',borderRadius:10,minHeight:48,padding:12,fontSize:16,color:'#152739',backgroundColor:'#fff'},multiline:{minHeight:100,textAlignVertical:'top'},button:{backgroundColor:'#176c60',borderRadius:10,minHeight:46,paddingHorizontal:14,paddingVertical:12,alignItems:'center',justifyContent:'center'},buttonText:{color:'#fff',fontWeight:'600',fontSize:14},danger:{backgroundColor:'#9d3e38'},disabled:{opacity:0.4},row:{flexDirection:'row',flexWrap:'wrap',gap:8},switchRow:{flexDirection:'row',alignItems:'center',gap:12},flexText:{flex:1,color:'#31475a'},error:{padding:14,borderRadius:10,backgroundColor:'#fae4e0',color:'#8a2820',lineHeight:21},footnote:{fontSize:12,color:'#5a6977',lineHeight:19},footer:{paddingHorizontal:18,paddingVertical:7,borderTopWidth:1,borderTopColor:'#dbe2ea'}});
+function Field({
+  label,
+  value,
+  onChange,
+  multiline = false,
+  secret = false,
+}: {
+  label: string;
+  value: string;
+  onChange: (s: string) => void;
+  multiline?: boolean;
+  secret?: boolean;
+}) {
+  return (
+    <View style={styles.field}>
+      <Text style={styles.label}>{label}</Text>
+      <TextInput
+        accessibilityLabel={label}
+        autoCapitalize="none"
+        autoCorrect={false}
+        secureTextEntry={secret}
+        multiline={multiline}
+        value={value}
+        onChangeText={onChange}
+        style={[styles.input, multiline && styles.multiline]}
+      />
+    </View>
+  );
+}
+function AppContent() {
+  const [connection, setConnection] = useState<ConnectionRecord | null>(null),
+    [loading, setLoading] = useState(true),
+    [storageReady, setStorageReady] = useState(false),
+    [origin, setOrigin] = useState(String(Constants.expoConfig?.extra?.defaultAgentOrigin ?? '')),
+    [code, setCode] = useState(''),
+    [deviceName, setDeviceName] = useState(Device.modelName ?? 'My device');
+  const [snapshot, setSnapshot] = useState<ManagedSnapshot | null>(null),
+    [online, setOnline] = useState(false),
+    [error, setError] = useState(''),
+    [busy, setBusy] = useState(false),
+    [page, setPage] = useState<Page>('Tasks'),
+    [pending, setPending] = useState<any[]>([]);
+  const [title, setTitle] = useState(''),
+    [instruction, setInstruction] = useState(''),
+    [minutes, setMinutes] = useState('1440'),
+    [schedule, setSchedule] = useState<'every' | 'daily' | 'once'>('every'),
+    [date, setDate] = useState(new Date(Date.now() + 3600000)),
+    [picker, setPicker] = useState<'date' | 'time' | null>(null),
+    [research, setResearch] = useState(true);
+  const [memory, setMemory] = useState(''),
+    [kind, setKind] = useState<'fact' | 'preference' | 'project' | 'goal'>('fact'),
+    [consent, setConsent] = useState(false),
+    [editing, setEditing] = useState<string | undefined>();
+  const [sessions, setSessions] = useState<any[]>([]),
+    [sessionId, setSessionId] = useState(''),
+    [session, setSession] = useState<any>(null),
+    [message, setMessage] = useState(''),
+    [notice, setNotice] = useState<any>(null),
+    [devices, setDevices] = useState<any[]>([]),
+    [pairInfo, setPairInfo] = useState<any>(null),
+    [pushStatus, setPushStatus] = useState<any>(null);
+  const active = useRef(true),
+    selected = useRef(''),
+    refreshing = useRef(false),
+    inFlight = useRef(false),
+    currentDevice = useRef<string | undefined>(undefined);
+  currentDevice.current = connection?.credentials.deviceId;
+  selected.current = sessionId;
+  const storage = useMemo(
+    () => (connection ? operationStorage(connection.credentials.deviceId) : undefined),
+    [connection?.credentials.deviceId],
+  );
+  const client = useMemo(
+    () =>
+      connection
+        ? new ManagedClient(connection.origin, connection.credentials, storage, false, transport)
+        : null,
+    [connection, storage],
+  );
+  const report = useCallback(async (e: unknown) => {
+    setError(friendly(e));
+    setOnline(false);
+    if (e instanceof ApiError && e.status === 401) {
+      await clearConnection();
+      setConnection(null);
+      setSnapshot(null);
+      setSessionId('');
+      selected.current = '';
+      setSession(null);
+      setSessions([]);
+      setPending([]);
+      setNotice(null);
+      setDevices([]);
+      setPushStatus(null);
+    }
+  }, []);
+  const refresh = useCallback(async () => {
+    if (!client || !active.current || refreshing.current) return;
+    refreshing.current = true;
+    try {
+      const state = await client.snapshot();
+      if (currentDevice.current !== client.credentials.deviceId) return;
+      setSnapshot(state);
+      setOnline(true);
+      setError('');
+      setPending((await client.reconcile()).filter((r) => r.status !== 'committed'));
+      if (selected.current) {
+        const history = await client.readSession(selected.current);
+        if (history.sessionId === selected.current) setSession(history);
+      }
+    } catch (e) {
+      if (currentDevice.current === client.credentials.deviceId) await report(e);
+    } finally {
+      refreshing.current = false;
+    }
+  }, [client, report]);
+  useEffect(() => {
+    loadConnection()
+      .then((record) => {
+        setConnection(record);
+        setStorageReady(true);
+      })
+      .catch((e) => setError(friendly(e)))
+      .finally(() => setLoading(false));
+  }, []);
+  useEffect(() => {
+    active.current = AppState.currentState === 'active';
+    const subscription = AppState.addEventListener('change', (state) => {
+      active.current = state === 'active';
+      if (active.current) refresh();
+    });
+    refresh();
+    const timer = setInterval(() => refresh(), 10000);
+    return () => {
+      subscription.remove();
+      clearInterval(timer);
+    };
+  }, [refresh]);
+  async function perform(work: () => Promise<unknown>) {
+    if (inFlight.current) return;
+    inFlight.current = true;
+    setBusy(true);
+    setError('');
+    try {
+      await work();
+      await refresh();
+    } catch (e) {
+      setError(friendly(e));
+      if (
+        !(e instanceof ApiError && e.status < 500) &&
+        !(e instanceof Error && e.name === 'ZodError')
+      )
+        setOnline(false);
+      if (client)
+        setPending(
+          (await client.reconcile().catch(() => [])).filter((r) => r.status !== 'committed'),
+        );
+    } finally {
+      inFlight.current = false;
+      setBusy(false);
+    }
+  }
+  const mutate = (command: ManagedAction) => client!.mutate(uuid(), command);
+  async function pair() {
+    await perform(async () => {
+      const result = await ManagedClient.pair(
+        origin.trim(),
+        code.trim(),
+        deviceName,
+        Platform.OS === 'ios' ? 'ios' : 'android',
+        false,
+        transport,
+      );
+      await saveConnection(result);
+      setConnection(result);
+      setCode('');
+    });
+  }
+  async function openSession(id: string) {
+    if (!client) return;
+    await perform(async () => {
+      const value = await client.readSession(id);
+      selected.current = id;
+      setSessionId(id);
+      setSession(value);
+      setPage('Chat');
+    });
+  }
+  async function enablePush() {
+    if (!client || !connection) return;
+    await perform(async () => {
+      const projectId =
+        Constants.easConfig?.projectId ?? Constants.expoConfig?.extra?.eas?.projectId;
+      if (!projectId)
+        throw Error(
+          'Notifications require an operator-configured EAS project and platform push credentials.',
+        );
+      if (!Device.isDevice)
+        throw Error('A real iPhone or Android device is required for native push acceptance.');
+      if (Platform.OS === 'android')
+        await Notifications.setNotificationChannelAsync('agent-updates', {
+          name: 'Agent updates',
+          importance: Notifications.AndroidImportance.HIGH,
+        });
+      const permission = await Notifications.requestPermissionsAsync();
+      if (permission.status !== 'granted')
+        throw Error('Notification permission was not granted. Inbox remains available.');
+      const token = (await Notifications.getExpoPushTokenAsync({ projectId })).data;
+      await client.request('/push/register', { token, projectId });
+      Alert.alert('Notifications enabled', 'Inbox remains the authoritative record.');
+    });
+  }
+  useEffect(() => {
+    if (!client || !connection) return;
+    const handle = async (notification: Notifications.Notification, opened: boolean) => {
+      const data = notification.request.content.data ?? {};
+      if (
+        data.authorityId !== connection.credentials.authorityId ||
+        typeof data.noticeId !== 'string'
+      )
+        return;
+      try {
+        await client
+          .request('/push/ack', {
+            noticeId: data.noticeId,
+            kind: opened ? 'opened' : 'foreground_received',
+          })
+          .catch(() => {});
+        if (opened) {
+          setPage('Inbox');
+          setNotice(await client.request('/inbox/' + data.noticeId));
+        }
+        await refresh();
+      } catch (e) {
+        setError(friendly(e));
+      }
+    };
+    const received = Notifications.addNotificationReceivedListener((n) => handle(n, false));
+    const response = Notifications.addNotificationResponseReceivedListener((r) =>
+      handle(r.notification, true),
+    );
+    Notifications.getLastNotificationResponseAsync().then((r) => {
+      if (r) handle(r.notification, true);
+    });
+    return () => {
+      received.remove();
+      response.remove();
+    };
+  }, [client, connection, refresh]);
+  if (loading)
+    return (
+      <View style={styles.container}>
+        <Text>Loading secure connection…</Text>
+      </View>
+    );
+  if (!connection)
+    return (
+      <ScrollView
+        testID={storageReady ? 'secure-storage-ready' : 'secure-storage-unavailable'}
+        contentContainerStyle={styles.container}
+        keyboardShouldPersistTaps="handled"
+      >
+        <Text style={styles.title}>Your Personal Agent</Text>
+        <Text style={styles.subtitle}>
+          Pair with your managed Harness. No model API key is stored on this phone.
+        </Text>
+        <Field label="HTTPS service address" value={origin} onChange={setOrigin} />
+        <Field label="One-use pairing code" value={code} onChange={setCode} secret />
+        <Field label="Device name" value={deviceName} onChange={setDeviceName} />
+        <Button
+          title="Pair this device"
+          disabled={busy || !storageReady || !origin || !code}
+          onPress={pair}
+        />
+        {error ? (
+          <Text accessibilityRole="alert" style={styles.error}>
+            {error}
+          </Text>
+        ) : null}
+        <Text style={styles.footnote}>
+          Development build · production model/push/device acceptance is still open.
+        </Text>
+      </ScrollView>
+    );
+  const disabled = busy || !online || pending.length > 0;
+  const records = (session?.events.records ?? [])
+    .filter((r: any) => r.type === 'event')
+    .map((r: any) => r.event);
+  const rows = conversationRows(records);
+  async function loadDevices() {
+    await perform(async () => {
+      setDevices((await client!.request('/devices')).items);
+      setPage('Devices');
+    });
+  }
+  return (
+    <View style={styles.fill}>
+      <View style={styles.header}>
+        <Text style={styles.title}>Always-on</Text>
+        <Text numberOfLines={1} style={styles.subtitle}>
+          {new URL(connection.origin).host} ·{' '}
+          {online ? 'Connected' : 'Offline — last confirmed data'}
+        </Text>
+        <View style={styles.row}>
+          <Button title="Refresh" disabled={busy} onPress={() => refresh()} />
+          <Button title="Notifications" disabled={disabled} onPress={enablePush} />
+        </View>
+      </View>
+      <ScrollView
+        horizontal
+        style={styles.tabs}
+        contentContainerStyle={styles.tabContent}
+        showsHorizontalScrollIndicator={false}
+      >
+        {pages.map((p) => (
+          <Pressable
+            key={p}
+            accessibilityRole="tab"
+            accessibilityState={{ selected: page === p }}
+            onPress={() => {
+              setPage(p);
+              if (p === 'Chat' && client)
+                client
+                  .sessions()
+                  .then((s) => setSessions(s.items))
+                  .catch(report);
+              if (p === 'Devices') loadDevices();
+            }}
+            style={[styles.tab, page === p && styles.selected]}
+          >
+            <Text style={styles.tabText}>{p}</Text>
+          </Pressable>
+        ))}
+      </ScrollView>
+      <ScrollView
+        style={styles.fill}
+        contentContainerStyle={styles.container}
+        keyboardShouldPersistTaps="handled"
+      >
+        {error ? (
+          <Text accessibilityRole="alert" style={styles.error}>
+            {error}
+          </Text>
+        ) : null}
+        {pending.length ? (
+          <View style={styles.card}>
+            <Text style={styles.heading}>Requests requiring review</Text>
+            <Text>
+              Unknown/not-recorded requests are never replayed. Check remote state before submitting
+              a replacement.
+            </Text>
+            {pending.map((p) => (
+              <View key={p.operationId}>
+                <Text selectable>
+                  {p.action} · {p.status} · {p.operationId}
+                </Text>
+                <Button
+                  title="Dismiss after review"
+                  onPress={() =>
+                    Alert.alert(
+                      'Dismiss this marker?',
+                      'This does not undo or repeat any server work.',
+                      [
+                        { text: 'Cancel', style: 'cancel' },
+                        {
+                          text: 'Dismiss',
+                          onPress: () =>
+                            perform(async () => {
+                              await storage!.remove(p.operationId);
+                            }),
+                        },
+                      ],
+                    )
+                  }
+                />
+              </View>
+            ))}
+          </View>
+        ) : null}
+        {!snapshot ? (
+          <Text>
+            Connect to load your agent. The server continues working while this app is closed.
+          </Text>
+        ) : null}
+        {page === 'Tasks' ? (
+          <>
+            <View style={styles.card}>
+              <Text style={styles.heading}>Create a task</Text>
+              <Field label="Task name" value={title} onChange={setTitle} />
+              <Field
+                label="What should your agent do?"
+                value={instruction}
+                onChange={setInstruction}
+                multiline
+              />
+              <View style={styles.row}>
+                {(['every', 'daily', 'once'] as const).map((s) => (
+                  <Button
+                    key={s}
+                    title={s === schedule ? '✓ ' + s : s}
+                    onPress={() => setSchedule(s)}
+                  />
+                ))}
+              </View>
+              {schedule === 'every' ? (
+                <Field label="Interval in minutes" value={minutes} onChange={setMinutes} />
+              ) : (
+                <>
+                  <Text>
+                    {schedule === 'once' ? date.toLocaleString() : date.toLocaleTimeString()}
+                  </Text>
+                  <View style={styles.row}>
+                    {schedule === 'once' ? (
+                      <Button title="Choose date" onPress={() => setPicker('date')} />
+                    ) : null}
+                    <Button title="Choose time" onPress={() => setPicker('time')} />
+                  </View>
+                  {picker ? (
+                    <DateTimePicker
+                      value={date}
+                      mode={picker}
+                      onChange={(_, next) => {
+                        setPicker(null);
+                        if (next) setDate(next);
+                      }}
+                    />
+                  ) : null}
+                </>
+              )}
+              <View style={styles.switchRow}>
+                <Text style={styles.flexText}>Allow read-only web research</Text>
+                <Switch value={research} onValueChange={setResearch} />
+              </View>
+              <Button
+                title="Create task"
+                disabled={disabled || !title.trim() || !instruction.trim()}
+                onPress={() =>
+                  perform(async () => {
+                    const timing =
+                      schedule === 'every'
+                        ? { kind: 'every' as const, every_seconds: Number(minutes) * 60 }
+                        : schedule === 'once'
+                          ? { kind: 'at' as const, at: date.toISOString() }
+                          : {
+                              kind: 'daily' as const,
+                              daily: {
+                                time: `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`,
+                                time_zone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+                              },
+                            };
+                    await mutate({
+                      action: 'task.create',
+                      data: {
+                        title,
+                        instruction,
+                        timing,
+                        allowedTools: research ? ['web_search', 'web_fetch'] : [],
+                      },
+                    });
+                    setTitle('');
+                    setInstruction('');
+                  })
+                }
+              />
+              <Text style={styles.footnote}>
+                Default budget: 30 runs, 8 model steps and 3 minutes per run. External writes
+                require native Harness approval.
+              </Text>
+            </View>
+            {snapshot?.tasks.map((task) => (
+              <View key={task.id} style={styles.card}>
+                <Text style={styles.heading}>{task.title}</Text>
+                <Text>
+                  {task.state} · next:{' '}
+                  {task.nextScheduledAt ? new Date(task.nextScheduledAt).toLocaleString() : '—'}
+                </Text>
+                <Text>{task.instruction}</Text>
+                <View style={styles.row}>
+                  <Button
+                    title={task.state === 'active' ? 'Pause' : 'Resume'}
+                    disabled={disabled || task.state === 'cancelled'}
+                    onPress={() =>
+                      perform(() =>
+                        mutate({
+                          action: 'task.control',
+                          data: {
+                            id: task.id,
+                            state: task.state === 'active' ? 'paused' : 'active',
+                          },
+                        }),
+                      )
+                    }
+                  />
+                  <Button
+                    title="Cancel"
+                    danger
+                    disabled={disabled}
+                    onPress={() =>
+                      perform(() =>
+                        mutate({
+                          action: 'task.control',
+                          data: { id: task.id, state: 'cancelled' },
+                        }),
+                      )
+                    }
+                  />
+                  <Button
+                    title="Run now"
+                    disabled={disabled || task.state !== 'active'}
+                    onPress={() =>
+                      perform(() => mutate({ action: 'task.run', data: { id: task.id } }))
+                    }
+                  />
+                </View>
+                {snapshot.runs
+                  .filter((r) => r.taskId === task.id)
+                  .slice(0, 5)
+                  .map((run) => (
+                    <View key={run.id}>
+                      <Text>{run.status}</Text>
+                      {run.result ? <Text>{run.result.summary}</Text> : null}
+                      <Button
+                        title="Open execution conversation"
+                        disabled={disabled}
+                        onPress={() => openSession(run.sessionId)}
+                      />
+                    </View>
+                  ))}
+              </View>
+            ))}
+          </>
+        ) : null}
+        {page === 'Goals' ? (
+          <>
+            <View style={styles.card}>
+              <Text style={styles.heading}>Ongoing goal</Text>
+              <Field label="Goal name" value={title} onChange={setTitle} />
+              <Field
+                label="What should the agent monitor?"
+                value={instruction}
+                onChange={setInstruction}
+                multiline
+              />
+              <Field label="Check every N minutes" value={minutes} onChange={setMinutes} />
+              <Button
+                title="Authorize bounded goal"
+                disabled={disabled || !title.trim() || !instruction.trim()}
+                onPress={() =>
+                  perform(async () => {
+                    await client!.createGoal(uuid(), {
+                      title,
+                      instruction,
+                      everySeconds: Number(minutes) * 60,
+                      allowedTools: ['web_search', 'web_fetch'],
+                      maxRuns: 30,
+                    });
+                    setTitle('');
+                    setInstruction('');
+                  })
+                }
+              />
+              <Text>
+                Uses native Schedule and the existing read-only task guard. No-change checks remain
+                silent.
+              </Text>
+            </View>
+            {snapshot?.goals.map((goal) => (
+              <View key={goal.id} style={styles.card}>
+                <Text style={styles.heading}>{goal.title}</Text>
+                <Text>{goal.instruction}</Text>
+                <Text>Task: {goal.taskId}</Text>
+                <View style={styles.row}>
+                  <Button
+                    title="Pause goal"
+                    disabled={disabled}
+                    onPress={() =>
+                      perform(() =>
+                        mutate({
+                          action: 'task.control',
+                          data: { id: goal.taskId, state: 'paused' },
+                        }),
+                      )
+                    }
+                  />
+                  <Button
+                    title="Resume goal"
+                    disabled={disabled}
+                    onPress={() =>
+                      perform(() =>
+                        mutate({
+                          action: 'task.control',
+                          data: { id: goal.taskId, state: 'active' },
+                        }),
+                      )
+                    }
+                  />
+                </View>
+              </View>
+            ))}
+          </>
+        ) : null}
+        {page === 'Chat' ? (
+          <>
+            <Button
+              title="New conversation"
+              disabled={disabled}
+              onPress={() =>
+                perform(async () => {
+                  const result = await mutate({
+                    action: 'session.create',
+                    data: { creationId: 'session-' + uuid() },
+                  });
+                  const value = await client!.readSession(result.result.sessionId);
+                  selected.current = result.result.sessionId;
+                  setSessionId(result.result.sessionId);
+                  setSession(value);
+                })
+              }
+            />
+            {sessions.map((item) => (
+              <Button
+                key={item.sessionId}
+                title={item.sessionId}
+                disabled={disabled}
+                onPress={() => openSession(item.sessionId)}
+              />
+            ))}
+            {sessionId ? (
+              <>
+                <Text selectable style={styles.footnote}>
+                  {sessionId}
+                </Text>
+                <Text>
+                  {session?.state?.running
+                    ? 'Agent running'
+                    : session?.state?.pendingInput?.length
+                      ? 'Requires attention on the managed Host'
+                      : 'Last confirmed conversation'}
+                </Text>
+                {rows.map((row) => (
+                  <View key={row.id} style={styles.card}>
+                    <Text style={styles.heading}>
+                      {row.role === 'received'
+                        ? 'Input received'
+                        : row.role === 'assistant'
+                          ? 'Agent'
+                          : row.role === 'you'
+                            ? 'You'
+                            : 'Task / context'}
+                    </Text>
+                    <Text selectable>{row.text}</Text>
+                  </View>
+                ))}
+                <Field label="Message your agent" value={message} onChange={setMessage} multiline />
+                <Button
+                  title="Send"
+                  disabled={disabled || !message.trim()}
+                  onPress={() =>
+                    perform(async () => {
+                      await mutate({
+                        action: 'session.prompt',
+                        data: { sessionId, text: message },
+                      });
+                      setMessage('');
+                      setSession(await client!.readSession(sessionId));
+                    })
+                  }
+                />
+                <Text style={styles.footnote}>
+                  An input receipt is not confirmation of model or business success.
+                </Text>
+              </>
+            ) : null}
+          </>
+        ) : null}
+        {page === 'Memory' ? (
+          <>
+            <View style={styles.card}>
+              <Text style={styles.heading}>{editing ? 'Edit saved memory' : 'Save a memory'}</Text>
+              <View style={styles.row}>
+                {(['fact', 'preference', 'project', 'goal'] as const).map((k) => (
+                  <Button key={k} title={k === kind ? '✓ ' + k : k} onPress={() => setKind(k)} />
+                ))}
+              </View>
+              <Field
+                label="Information to remember"
+                value={memory}
+                onChange={setMemory}
+                multiline
+              />
+              <View style={styles.switchRow}>
+                <Text style={styles.flexText}>
+                  I allow this information to be used across sessions.
+                </Text>
+                <Switch value={consent} onValueChange={setConsent} />
+              </View>
+              <Button
+                title="Save with my consent"
+                disabled={disabled || !consent || !memory.trim()}
+                onPress={() =>
+                  perform(async () => {
+                    await mutate({
+                      action: 'memory.save',
+                      data: {
+                        ...(editing ? { id: editing } : {}),
+                        kind,
+                        content: memory,
+                        source: 'Explicit mobile user consent',
+                        consent: true,
+                      },
+                    });
+                    setMemory('');
+                    setEditing(undefined);
+                    setConsent(false);
+                  })
+                }
+              />
+            </View>
+            {snapshot?.memories.map((m) => (
+              <View key={m.id} style={styles.card}>
+                <Text style={styles.heading}>
+                  {m.kind} · {m.consent ? 'Saved' : 'Awaiting consent'}
+                </Text>
+                <Text selectable>{m.content}</Text>
+                <Text style={styles.footnote}>
+                  {m.source} · {new Date(m.updatedAt).toLocaleString()}
+                </Text>
+                <View style={styles.row}>
+                  <Button
+                    title={m.consent ? 'Edit' : 'Review and confirm'}
+                    onPress={() => {
+                      setMemory(m.content);
+                      setKind(m.kind as typeof kind);
+                      setEditing(m.id);
+                      setConsent(false);
+                    }}
+                  />
+                  <Button
+                    title="Delete"
+                    danger
+                    disabled={disabled}
+                    onPress={() =>
+                      perform(() => mutate({ action: 'memory.delete', data: { id: m.id } }))
+                    }
+                  />
+                </View>
+              </View>
+            ))}
+          </>
+        ) : null}
+        {page === 'Inbox' ? (
+          <>
+            {notice ? (
+              <View style={styles.card}>
+                <Text style={styles.heading}>{notice.title}</Text>
+                <Text selectable>{notice.summary}</Text>
+                <Button
+                  title="Open task result"
+                  disabled={disabled}
+                  onPress={() =>
+                    perform(async () => {
+                      const run = await client!.request('/runs/' + notice.runId);
+                      const value = await client!.readSession(run.sessionId);
+                      selected.current = run.sessionId;
+                      setSessionId(run.sessionId);
+                      setSession(value);
+                      setPage('Chat');
+                    })
+                  }
+                />
+                <Button
+                  title="Mark read"
+                  disabled={disabled}
+                  onPress={() =>
+                    perform(() => mutate({ action: 'inbox.read', data: { id: notice.id } }))
+                  }
+                />
+              </View>
+            ) : null}
+            {snapshot?.inbox.map((n) => (
+              <View key={n.id} style={styles.card}>
+                <Text style={styles.heading}>
+                  {n.read ? '' : '● '}
+                  {n.title}
+                </Text>
+                <Text selectable>{n.summary}</Text>
+                <Text style={styles.footnote}>{new Date(n.createdAt).toLocaleString()}</Text>
+                <Button
+                  title="Mark read"
+                  disabled={disabled || n.read}
+                  onPress={() =>
+                    perform(() => mutate({ action: 'inbox.read', data: { id: n.id } }))
+                  }
+                />
+                {snapshot.runs.find((r) => r.id === n.runId) ? (
+                  <Button
+                    title="Open task result"
+                    disabled={disabled}
+                    onPress={() =>
+                      openSession(snapshot.runs.find((r) => r.id === n.runId)!.sessionId)
+                    }
+                  />
+                ) : null}
+              </View>
+            ))}
+          </>
+        ) : null}
+        {page === 'Devices' ? (
+          <>
+            <View style={styles.card}>
+              <Text style={styles.heading}>Access and notifications</Text>
+              <Text selectable>Authority: {connection.credentials.authorityId}</Text>
+              <Button
+                title="Pair another device"
+                disabled={disabled}
+                onPress={() =>
+                  perform(async () => setPairInfo(await client!.request('/devices/pair-code', {})))
+                }
+              />
+              {pairInfo ? (
+                <Text selectable style={styles.footnote}>
+                  One-use code: {pairInfo.code}
+                  {'\n'}Expires: {new Date(pairInfo.expiresAt).toLocaleString()}
+                </Text>
+              ) : null}
+              <Button
+                title="Check notification delivery"
+                disabled={disabled}
+                onPress={() =>
+                  perform(async () => setPushStatus(await client!.request('/push/status')))
+                }
+              />
+              {pushStatus ? (
+                <View>
+                  <Text style={styles.footnote}>
+                    {pushStatus.configured
+                      ? 'Push service configured'
+                      : 'Push service not configured'}{' '}
+                    ·{' '}
+                    {pushStatus.registration?.active
+                      ? 'This device opted in'
+                      : 'This device not subscribed'}
+                  </Text>
+                  {pushStatus.admissionLimitReached ? (
+                    <Text style={styles.error}>
+                      Notification storage is full. Contact the service operator; Inbox results are
+                      retained.
+                    </Text>
+                  ) : null}
+                  <Text style={styles.footnote}>
+                    A service-provider receipt does not confirm that this phone displayed the
+                    notification.
+                  </Text>
+                  {pushStatus.deliveries.map((d: any) => (
+                    <Text key={d.notice_id} style={styles.footnote}>
+                      {d.status}
+                      {d.error ? ' · ' + d.error : ''}
+                    </Text>
+                  ))}
+                </View>
+              ) : null}
+              <Button
+                title="Disable this device's push"
+                disabled={disabled}
+                onPress={() => perform(() => client!.request('/push/disable', {}))}
+              />
+              <Button
+                title="Remove access on this phone"
+                danger
+                onPress={() =>
+                  Alert.alert(
+                    'Remove this device?',
+                    'Tasks continue on the managed Host. If offline, remove this device later from another paired device.',
+                    [
+                      { text: 'Cancel', style: 'cancel' },
+                      {
+                        text: 'Remove',
+                        style: 'destructive',
+                        onPress: () =>
+                          perform(async () => {
+                            await client!
+                              .request('/devices/revoke', {
+                                deviceId: connection.credentials.deviceId,
+                              })
+                              .catch(() => {});
+                            await clearConnection();
+                            setConnection(null);
+                            setSnapshot(null);
+                            setSessionId('');
+                            selected.current = '';
+                            setSession(null);
+                            setSessions([]);
+                            setPending([]);
+                            setNotice(null);
+                            setDevices([]);
+                            setPushStatus(null);
+                            setSession(null);
+                          }),
+                      },
+                    ],
+                  )
+                }
+              />
+            </View>
+            {devices.map((d) => (
+              <View key={d.id} style={styles.card}>
+                <Text style={styles.heading}>{d.name}</Text>
+                <Text>
+                  {d.platform} · {d.revoked ? 'Revoked' : 'Active'}
+                </Text>
+                <Button
+                  title="Revoke device"
+                  disabled={disabled || !!d.revoked || d.id === connection.credentials.deviceId}
+                  danger
+                  onPress={() =>
+                    perform(async () => {
+                      await client!.request('/devices/revoke', { deviceId: d.id });
+                      setDevices((await client!.request('/devices')).items);
+                    })
+                  }
+                />
+              </View>
+            ))}
+          </>
+        ) : null}
+      </ScrollView>
+      <View style={styles.footer}>
+        <Text style={styles.footnote}>
+          Development preview · Your managed Host keeps the shared state
+        </Text>
+      </View>
+    </View>
+  );
+}
+export default function App() {
+  return (
+    <SafeAreaProvider>
+      <StatusBar barStyle="dark-content" />
+      <SafeAreaView style={styles.fill} edges={['top', 'bottom']}>
+        <KeyboardAvoidingView
+          style={styles.fill}
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        >
+          <AppContent />
+        </KeyboardAvoidingView>
+      </SafeAreaView>
+    </SafeAreaProvider>
+  );
+}
+const styles = StyleSheet.create({
+  fill: { flex: 1, backgroundColor: '#f5f7fa' },
+  container: { padding: 18, paddingBottom: 32, gap: 14 },
+  header: { padding: 18, paddingBottom: 10, backgroundColor: '#ffffff', gap: 5 },
+  title: { fontSize: 27, fontWeight: '700', color: '#17283a' },
+  subtitle: { fontSize: 13, color: '#516375', lineHeight: 20 },
+  tabs: { flexGrow: 0, backgroundColor: '#fff', maxHeight: 56 },
+  tabContent: { paddingHorizontal: 12, paddingVertical: 5, gap: 8 },
+  tab: { paddingHorizontal: 16, paddingVertical: 12, borderRadius: 12 },
+  selected: { backgroundColor: '#d9eee9' },
+  tabText: { color: '#173f38', fontWeight: '600' },
+  card: {
+    backgroundColor: '#fff',
+    padding: 18,
+    borderRadius: 16,
+    gap: 12,
+    borderColor: '#dbe2ea',
+    borderWidth: 1,
+  },
+  heading: { fontSize: 18, fontWeight: '600', color: '#17283a' },
+  field: { gap: 6 },
+  label: { fontSize: 14, color: '#31475a', fontWeight: '500' },
+  input: {
+    borderWidth: 1,
+    borderColor: '#9eadbb',
+    borderRadius: 10,
+    minHeight: 48,
+    padding: 12,
+    fontSize: 16,
+    color: '#152739',
+    backgroundColor: '#fff',
+  },
+  multiline: { minHeight: 100, textAlignVertical: 'top' },
+  button: {
+    backgroundColor: '#176c60',
+    borderRadius: 10,
+    minHeight: 46,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  buttonText: { color: '#fff', fontWeight: '600', fontSize: 14 },
+  danger: { backgroundColor: '#9d3e38' },
+  disabled: { opacity: 0.4 },
+  row: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  switchRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  flexText: { flex: 1, color: '#31475a' },
+  error: {
+    padding: 14,
+    borderRadius: 10,
+    backgroundColor: '#fae4e0',
+    color: '#8a2820',
+    lineHeight: 21,
+  },
+  footnote: { fontSize: 12, color: '#5a6977', lineHeight: 19 },
+  footer: {
+    paddingHorizontal: 18,
+    paddingVertical: 7,
+    borderTopWidth: 1,
+    borderTopColor: '#dbe2ea',
+  },
+});
