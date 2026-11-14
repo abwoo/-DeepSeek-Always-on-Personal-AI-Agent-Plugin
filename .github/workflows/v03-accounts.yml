@@ -24,10 +24,18 @@ jobs:
       - run: node scripts/build-managed.mjs && npm pack --ignore-scripts && npm pack ./packages/managed --ignore-scripts
       - name: Two actual isolated Harness processes with account routing
         run: node scripts/verify-v03-accounts.mjs
+      - name: Validate operator topology without provisioning external resources
+        run: ALWAYS_ON_PUBLIC_HOST=service.invalid DEEPSEEK_MODEL=operator-must-verify docker compose -f deploy/control/compose.yml config --quiet
+      - name: Build account controller image
+        run: docker build -f deploy/control/Dockerfile -t always-on-control:test .
+      - name: Record explicit production release gates
+        run: node scripts/verify-v03-release.mjs
       - uses: actions/upload-artifact@v4
         if: always()
         with:
           name: v03-account-native-evidence
-          path: test-results/v03-accounts.json
+          path: |
+            test-results/v03-accounts.json
+            test-results/v03-release-gate.json
           retention-days: 14
           if-no-files-found: warn

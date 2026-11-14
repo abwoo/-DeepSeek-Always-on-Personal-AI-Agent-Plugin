@@ -89,6 +89,7 @@ export function controlServer(store:ControlStore,pool:AgentPool,identity:Identit
     const upstream=await pool.operator(pool.slot(d.slot_id),'revoke',{deviceId:d.id}).then(()=>true,()=>false);
     // External revocation is immediate even when the isolated authority/provider is temporarily unavailable.
     const provider=await (saved.identity.refreshToken?identity.revoke(saved.identity.refreshToken):Promise.resolve()).then(()=>true,()=>false);
+    store.db.prepare('UPDATE revocations SET upstream_pending=?,provider_pending=?,attempts=attempts+1,next_at=? WHERE device_id=?').run(upstream?0:1,provider?0:1,Date.now()+15000,d.id);
     if(!upstream||!provider)store.audit(d.account_id,'revocation_cleanup_pending');
     return {revoked:true,upstreamRevoked:upstream,providerRevoked:provider};
   }
@@ -156,5 +157,13 @@ export function controlServer(store:ControlStore,pool:AgentPool,identity:Identit
     finally{clearTimeout(timer);}
   });
   server.requestTimeout=25000;server.headersTimeout=10000;server.maxHeadersCount=50;
-  return {server,close:async()=>{await new Promise<void>(resolve=>server.close(()=>resolve()));await serial;}};
+  let stopping=false,cleanup:Promise<unknown>=Promise.resolve();
+  const cleanupTimer=setInterval(()=>{
+    if(stopping||queued)return;
+    cleanup=queue(async()=>{
+      const pending=store.db.prepare('SELECT devices.* FROM devices JOIN revocations ON devices.id=revocations.device_id WHERE (upstream_pending=1 OR provider_pending=1) AND next_at<=? ORDER BY next_at LIMIT 4').all(Date.now()) as unknown as AccountDevice[];
+      for(const d of pending)await revoke(d);
+    }).catch(()=>{});
+  },15000);cleanupTimer.unref();
+  return {server,close:async()=>{stopping=true;clearInterval(cleanupTimer);await new Promise<void>(resolve=>server.close(()=>resolve()));await serial;await cleanup;}};
 }

@@ -8,6 +8,7 @@ const ref=credentialRef('ALWAYS_ON_ACCOUNT_V3');
 export class AccountDesktop extends PairedDesktop {
   private pendingLogin?:{id:string;verifier:string;expiresAt:string};
   private accountCtx:Context;
+  private cached?:AccountManagedClient;
   constructor(ctx:Context,private serviceOrigin:string|null){super(ctx);this.accountCtx=ctx;}
   protected override async record(){
     const value=await this.accountCtx.credentials.resolve(ref);
@@ -16,7 +17,9 @@ export class AccountDesktop extends PairedDesktop {
   private async save(next:AccountConnection){await this.accountCtx.credentials.set(ref,JSON.stringify(next));}
   protected override async client(){
     const c=await this.record();if(!c)throw Error('Sign in to continue');
-    return new AccountManagedClient(c,next=>this.save(next),this.operations(c));
+    if(!this.cached||this.cached.credentials.deviceId!==c.credentials.deviceId||this.cached.credentials.token!==c.credentials.token)
+      this.cached=new AccountManagedClient(c,next=>this.save(next),this.operations(c));
+    return this.cached;
   }
   protected override async failure(e:unknown){
     await super.failure(e);

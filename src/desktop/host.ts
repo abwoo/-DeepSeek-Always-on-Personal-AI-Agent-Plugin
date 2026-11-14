@@ -1,5 +1,6 @@
 import type { Context } from '@deepseek-ai/cordis';
 import type {} from '@deepseek-ai/dsh-client-connection';
+import type {} from '@deepseek-ai/dsh-plugin-manager';
 import { PairedDesktop } from './device.js';
 import { AccountDesktop } from './account.js';
 import { releaseServiceOrigin } from '../shared/service-config.js';
@@ -99,7 +100,12 @@ export async function apply(ctx: Context) {
   const service = preview?new DesktopRemote(process.env.ALWAYS_ON_DESKTOP_REMOTE_TOKEN,process.env.ALWAYS_ON_DESKTOP_REMOTE_ORIGIN,process.env.ALWAYS_ON_DESKTOP_ALLOW_LOOPBACK==='1'):process.env.ALWAYS_ON_DESKTOP_ADVANCED_PAIRING==='1'?new PairedDesktop(ctx,process.env.ALWAYS_ON_DESKTOP_ALLOW_LOOPBACK==='1'):new AccountDesktop(ctx,releaseServiceOrigin);
   ctx.effect(() => () => service.dispose());
   const register = (path: string, methods: ('GET' | 'POST')[], handler: (request: Request) => Promise<Response>) =>
-    ctx.effect(() => ctx.connection.fetch.register({ path, methods, requestBody: 'buffered', fetch: handler }));
+    ctx.effect(() => ctx.connection.fetch.register({ path, methods, requestBody: 'buffered', fetch:async(request)=>{
+      // Profile bundle selection is authoritative even while an installed client module remains discoverable.
+      const manager=ctx.get('pluginManager');
+      if(manager){const bundle=(await manager.listBundles()).find(b=>b.name==='@abwoo/deepseek-always-on-desktop');if(!bundle?.enabled)return Response.json({error:'Plugin is disabled'},{status:404});}
+      return handler(request);
+    } }));
   const json = (data: unknown, status = 200) => Response.json(data, { status, headers: { 'cache-control': 'no-store' } });
   const body = async (request: Request) => {
     if (!request.headers.get('content-type')?.startsWith('application/json')) throw new SyntaxError('JSON required');
@@ -115,6 +121,10 @@ export async function apply(ctx: Context) {
     try{return json(await (action==='login-start'?service.startLogin():service.finishLogin()));}catch(e){return json({error:e instanceof Error?e.message:'Sign in unavailable'},503);}
   });
   register('/api/always-on-desktop/status', ['GET'], async () => json(await service.status()));
+  register('/api/always-on-desktop/events',['POST'],async request=>{
+    if(!(service instanceof PairedDesktop))return json({error:'Event feed unavailable in diagnostic mode'},409);
+    try{return json(await service.events(await body(request)));}catch(e){return json({error:e instanceof Error?e.message:'Event feed unavailable'},e instanceof Error&&'status'in e?Number(e.status):503);}
+  });
   register('/api/always-on-desktop/state', ['GET', 'POST'], async (request) => {
     try {
       if (request.method === 'GET') return json(await service.snapshot());

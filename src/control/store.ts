@@ -39,6 +39,7 @@ export class ControlStore {
         CREATE TABLE IF NOT EXISTS logins(id TEXT PRIMARY KEY,state_hash TEXT UNIQUE NOT NULL,client_challenge TEXT NOT NULL,secret TEXT NOT NULL,platform TEXT NOT NULL,name TEXT NOT NULL,mobile INTEGER NOT NULL,expires_at INTEGER NOT NULL,status TEXT NOT NULL,account_id TEXT REFERENCES accounts(id),result TEXT);
         CREATE TABLE IF NOT EXISTS devices(id TEXT PRIMARY KEY,account_id TEXT NOT NULL REFERENCES accounts(id),slot_id TEXT NOT NULL,token_hash TEXT UNIQUE NOT NULL,refresh_hash TEXT UNIQUE NOT NULL,secret TEXT NOT NULL,expires_at INTEGER NOT NULL,refresh_expires_at INTEGER NOT NULL,revoked INTEGER NOT NULL DEFAULT 0,status TEXT NOT NULL);
         CREATE TABLE IF NOT EXISTS audit(seq INTEGER PRIMARY KEY AUTOINCREMENT,account_id TEXT,kind TEXT NOT NULL,created_at INTEGER NOT NULL);
+        CREATE TABLE IF NOT EXISTS revocations(device_id TEXT PRIMARY KEY REFERENCES devices(id),upstream_pending INTEGER NOT NULL DEFAULT 1,provider_pending INTEGER NOT NULL DEFAULT 1,attempts INTEGER NOT NULL DEFAULT 0,next_at INTEGER NOT NULL DEFAULT 0);
         PRAGMA user_version=1;
         UPDATE logins SET status='unknown' WHERE status IN ('exchanging','claiming');
         UPDATE devices SET status='reauth' WHERE status='refreshing';
@@ -119,6 +120,7 @@ export class ControlStore {
     const d = this.db.prepare('SELECT * FROM devices WHERE id=? AND account_id=?').get(deviceId,accountId) as AccountDevice|undefined;
     if (!d) throw new GatewayError(404,'device_not_found');
     this.db.prepare('UPDATE devices SET revoked=1 WHERE id=? AND account_id=?').run(deviceId,accountId);
+    this.db.prepare('INSERT OR IGNORE INTO revocations(device_id) VALUES(?)').run(deviceId);
     this.audit(accountId,'device_revoked');
     return d;
   }

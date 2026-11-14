@@ -6,7 +6,7 @@ window.__ModuleLoader__.load({
     const React = require('react'), h = React.createElement;
     const { Panel, en, zh, css } = createPanelModule(React);
     const strings = {
-      en: { ...en, welcome:'Your Personal Agent', welcomeDescription:'Sign in to continue with your shared agent, tasks and memory.', signIn:'Sign in', continueLogin:'Continue securely in your browser', provisioning:'Preparing your personal agent…',loginWaiting:'Waiting for sign in…', remoteOnly:'Personal Agent conversations are hosted. Your local Harness workspace stays separate.', signOut:'Sign out', title: 'Personal Agent', overview: 'Agent & tasks', conversations: 'Conversations',
+      en: { ...en, livePartial:'Live partial reply (not completed)', welcome:'Your Personal Agent', welcomeDescription:'Sign in to continue with your shared agent, tasks and memory.', signIn:'Sign in', continueLogin:'Continue securely in your browser', provisioning:'Preparing your personal agent…',loginWaiting:'Waiting for sign in…', remoteOnly:'Personal Agent conversations are hosted. Your local Harness workspace stays separate.', signOut:'Sign out', title: 'Personal Agent', overview: 'Agent & tasks', conversations: 'Conversations',
         authority: 'Managed Host', unconfigured: 'Managed Host not configured', disconnected: 'Disconnected',
         connected: 'Connected', preview: 'Shared managed Personal Agent · development preview',
         newSession: 'New remote conversation', send: 'Send to agent', prompt: 'Message your agent',
@@ -15,7 +15,7 @@ window.__ModuleLoader__.load({
         sessionRunning: 'Agent running', idle: 'Agent idle', attention: 'Requires attention on the managed Host',
         unknown: 'Last confirmed conversation; refresh to reconcile before retrying.', you: 'You', assistant: 'Agent', received: 'Input received', context: 'Task / context',
         pushOff: 'Native notifications are not configured in this development preview.' },
-      zh: { ...zh, welcome:'你的个人智能体', welcomeDescription:'登录即可继续使用同一个智能体、任务和长期记忆。', signIn:'登录',continueLogin:'在系统浏览器中继续安全登录',provisioning:'正在准备你的个人智能体…',loginWaiting:'等待完成登录…',remoteOnly:'个人智能体会话保存在托管服务中，与本机 Harness 工作区分开。',signOut:'退出登录', title: '个人智能体', overview: '智能体与任务', conversations: '会话',
+      zh: { ...zh, livePartial:'正在生成的回复（尚未完成）', welcome:'你的个人智能体', welcomeDescription:'登录即可继续使用同一个智能体、任务和长期记忆。', signIn:'登录',continueLogin:'在系统浏览器中继续安全登录',provisioning:'正在准备你的个人智能体…',loginWaiting:'等待完成登录…',remoteOnly:'个人智能体会话保存在托管服务中，与本机 Harness 工作区分开。',signOut:'退出登录', title: '个人智能体', overview: '智能体与任务', conversations: '会话',
         authority: '托管 Host', unconfigured: '尚未配置托管 Host', disconnected: '已断开连接', connected: '已连接',
         preview: '共享托管个人智能体 · 开发预览', newSession: '新建远程会话', send: '发送给智能体',
         prompt: '给智能体的消息', receipt: 'Harness 已接收输入，不代表模型已执行完成。',
@@ -31,7 +31,7 @@ window.__ModuleLoader__.load({
     function Conversation({ t, selected, onConnection }) {
       const [id, setId] = React.useState(selected || ''), [data, setData] = React.useState(null),
         [items, setItems] = React.useState([]), [error, setError] = React.useState(''),
-        [busy, setBusy] = React.useState(false), [text, setText] = React.useState('');
+        [busy, setBusy] = React.useState(false), [text, setText] = React.useState(''),[liveText,setLiveText]=React.useState('');
       const creationId = React.useRef(null), requestId = React.useRef(null), current = React.useRef(id);
       current.current = id;
       async function refresh(target = current.current) {
@@ -42,6 +42,17 @@ window.__ModuleLoader__.load({
         } catch (e) { setError(e.message); }
       }
       React.useEffect(() => { refresh(); const timer = setInterval(() => refresh(), 5000); return () => clearInterval(timer); }, []);
+      React.useEffect(()=>{
+        let stopped=false,cursor={after:0};
+        const run=async()=>{while(!stopped){try{
+          const r=await fetch('/api/always-on-desktop/events',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({...cursor,...(current.current?{sessionId:current.current}:{})})});const result=await r.json();
+          if(stopped)return;if(r.status===409)return;if(!r.ok){if(r.status===410){cursor={after:0};setLiveText('');await refresh();continue;}throw Error(result.error);}
+          cursor={after:result.revision,epoch:result.epoch,live:result.live};if(result.resetLive)setLiveText('');
+          for(const frame of result.frames||[]){if(frame.sessionId!==current.current)continue;if(frame.kind==='start'||frame.kind==='end')setLiveText('');if(frame.kind==='text-delta')setLiveText(text=>(text+String(frame.data.text)).slice(-24000));}
+          if(result.items?.length||result.resetLive)await refresh();
+          await new Promise(r=>setTimeout(r,100));
+        }catch(e){if(!stopped){setError(e.message);await new Promise(r=>setTimeout(r,2000));}}}};run();return()=>{stopped=true;};
+      },[]);
       async function action(body) {
         setBusy(true); setError('');
         try {
@@ -65,6 +76,7 @@ window.__ModuleLoader__.load({
         data ? h(React.Fragment, null,
           h('p', { role: 'status' }, data.state.pendingInput.length ? t('attention') : data.state.running ? t('sessionRunning') : lastTurn === 'error' ? t('failed') : t('idle')),
           data.inputAccepted ? h('p', null, t('receipt')) : null,
+          liveText?h('article',null,h('p',null,t('livePartial')),h('pre',null,liveText)):null,
           messages.map((message) => h('article', { key: message.id }, h('h3', null, t(message.role)), h('pre', null, message.text))),
           h('details', null, h('summary', null, t('runs')), h('pre', null, JSON.stringify({ sessionId: data.sessionId, state: data.state, lastTurn, cursor: data.events.cursor }, null, 2))),
           h('form', { onSubmit: (e) => { e.preventDefault(); requestId.current ||= crypto.randomUUID(); action({ action: 'prompt', sessionId: data.sessionId, requestId: requestId.current, text }); } },
@@ -97,7 +109,7 @@ window.__ModuleLoader__.load({
       const [status, setStatus] = React.useState(null), [view, setView] = React.useState('overview'), [session, setSession] = React.useState(''),[pending,setPending]=React.useState([]),[controlError,setControlError]=React.useState('');
       React.useEffect(() => {
         let active = true;
-        const load = () => fetch('/api/always-on-desktop/status').then((r) => r.json()).then((s) => { if (active) setStatus(s);if(active&&s.configured&&s.credentialMode==='device-pairing')fetch('/api/always-on-desktop/pending',{method:'POST',headers:{'content-type':'application/json'},body:'{}'}).then(r=>r.json()).then(p=>{if(active&&Array.isArray(p))setPending(p.filter(x=>x.status!=='committed'));}).catch(()=>{}); }).catch(() => { if (active) setStatus((s) => ({ ...s, connected: false })); });
+        const load = () => fetch('/api/always-on-desktop/status').then((r) => r.json()).then((s) => { if (active) setStatus(s);if(active&&s.configured&&['device-pairing','account'].includes(s.credentialMode))fetch('/api/always-on-desktop/pending',{method:'POST',headers:{'content-type':'application/json'},body:'{}'}).then(r=>r.json()).then(p=>{if(active&&Array.isArray(p))setPending(p.filter(x=>x.status!=='committed'));}).catch(()=>{}); }).catch(() => { if (active) setStatus((s) => ({ ...s, connected: false })); });
         load(); const timer = setInterval(load, 3000); return () => { active = false; clearInterval(timer); };
       }, []);
       if(status?.credentialMode==='account'&&!status.configured)return h(React.Fragment,null,h('style',null,css),h(AccountWelcome,{t,onSignedIn:setStatus}));

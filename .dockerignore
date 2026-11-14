@@ -20,3 +20,7 @@ apps/mobile/.expo
 **/*.keystore
 **/*.mobileprovision
 apps/mobile/credentials.json
+
+deploy/control/operator/
+deploy/control/Caddyfile
+*.aobackup

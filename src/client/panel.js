@@ -288,7 +288,7 @@ export function createPanelModule(React) {
                 v = new FormData(f);
               if (
                 await action('memory.save', {
-                  ...(editing ? { id: editing.id } : {}),
+                  ...(editing ? { id: editing.id, expectedVersion: editing.version ?? 0 } : {}),
                   kind: v.get('kind'),
                   content: v.get('content'),
                   source: v.get('source'),

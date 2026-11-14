@@ -137,7 +137,7 @@ async function pluginsUi() {
   await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
   const spec=`http://127.0.0.1:${server.address().port}/desktop.tgz`;
   async function guarded(work){await boot(async page=>{try{await work(page);}catch(e){await writeFile(join(output,'plugins-ui-dom.txt'),await page.locator('body').innerText());await capture(page,'plugins-ui-failure.png');throw e;}});}
-  async function detail(page){await page.getByText('Plugins',{exact:true}).first().click();await page.getByRole('button',{name:'View DeepSeek Always-on',exact:true}).click();}
+  async function detail(page){await page.getByText('Plugins',{exact:true}).first().click();await page.getByRole('button',{name:'View DeepSeek Always-on Personal Agent',exact:true}).click();}
   async function install(page){
     await page.getByText('Plugins',{exact:true}).first().click();
     await page.getByRole('button',{name:'Add plugin',exact:true}).click();
@@ -153,16 +153,16 @@ async function pluginsUi() {
     await guarded(async page=>{await install(page);});
     await guarded(async page=>{
       await expect(page.getByText('Personal Agent',{exact:true}).first()).toBeVisible({timeout:30000});evidence.graphicalInstallation=true;
-      await detail(page);const toggle=page.getByRole('switch',{name:'Enable DeepSeek Always-on',exact:true});await toggle.click();await expect(toggle).not.toBeChecked();
+      await detail(page);const toggle=page.getByRole('switch',{name:'Enable DeepSeek Always-on Personal Agent',exact:true});await toggle.click();await expect(toggle).not.toBeChecked();
     });
     await guarded(async page=>{
       await expect(page.getByText('Personal Agent',{exact:true})).toHaveCount(0,{timeout:30000});evidence.graphicalDisable=true;
-      await detail(page);const toggle=page.getByRole('switch',{name:'Enable DeepSeek Always-on',exact:true});await toggle.click();await expect(toggle).toBeChecked();
+      await detail(page);const toggle=page.getByRole('switch',{name:'Enable DeepSeek Always-on Personal Agent',exact:true});await toggle.click();await expect(toggle).toBeChecked();
     });
     await guarded(async page=>{
       await expect(page.getByText('Personal Agent',{exact:true}).first()).toBeVisible({timeout:30000});evidence.graphicalEnable=true;
       await detail(page);await capture(page,'plugins-ui.png');
-      await page.getByRole('button',{name:'Uninstall DeepSeek Always-on',exact:true}).click();
+      await page.getByRole('button',{name:'Uninstall DeepSeek Always-on Personal Agent',exact:true}).click();
       await page.getByRole('dialog').getByRole('button',{name:'Uninstall',exact:true}).click();
       await expect(page.getByRole('button',{name:'Add plugin',exact:true})).toBeVisible({timeout:90000});
     });

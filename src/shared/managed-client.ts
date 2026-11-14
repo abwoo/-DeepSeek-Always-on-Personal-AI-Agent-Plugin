@@ -195,3 +195,5 @@ export function resultBeforeSeq(run: {
   const seq = Number(raw);
   return Number.isSafeInteger(seq) && seq < Number.MAX_SAFE_INTEGER ? seq + 1 : undefined;
 }
+
+export {snapshotSchema} from './managed-contract.js';

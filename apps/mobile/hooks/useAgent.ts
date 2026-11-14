@@ -31,6 +31,7 @@ import {
   type ManagedSnapshot,
 } from '@abwoo/always-on-client';
 import { loadProductConnection, saveProductConnection, clearProductConnection, operationStorage } from '../credentials';
+import {loadOfflineSnapshot,saveOfflineSnapshot,clearOfflineSnapshot} from '../cache';
 import { AccountApi, AccountManagedClient, ApiError, type AccountConnection } from '@abwoo/always-on-client/account';
 
 Notifications.setNotificationHandler({
@@ -105,6 +106,7 @@ export function useAgent() {
     setError(friendly(e));
     setOnline(false);
     if (e instanceof ApiError && e.status === 401) {
+      if(connection)await clearOfflineSnapshot(connection).catch(()=>{});
       await clearProductConnection();
       setConnection(null);
       setSnapshot(null);
@@ -119,7 +121,7 @@ export function useAgent() {
       setDevices([]);
       setPushStatus(null);
     }
-  }, []);
+  }, [connection]);
   const refresh = useCallback(async () => {
     if (!client || !active.current || refreshing.current) return;
     refreshing.current = true;
@@ -127,6 +129,7 @@ export function useAgent() {
       const state = await client.snapshot();
       if (currentDevice.current !== client.credentials.deviceId) return;
       setSnapshot(state);
+      if(connection)void saveOfflineSnapshot(connection,state).catch(()=>{});
       setOnline(true);
       setError('');
       setPending((await client.reconcile()).filter((r) => r.status !== 'committed'));
@@ -152,8 +155,9 @@ export function useAgent() {
   }, [client, report]);
   useEffect(() => {
     loadProductConnection()
-      .then((record) => {
+      .then(async(record) => {
         setConnection(record);
+        if(record){const cached=await loadOfflineSnapshot(record).catch(()=>null);if(cached)setSnapshot(cached.snapshot);}
         setStorageReady(true);
       })
       .catch((e) => setError(friendly(e)))
@@ -250,7 +254,7 @@ export function useAgent() {
   }
   async function logout(){
     if(!client)return;
-    await perform(async()=>{await client.logout();await clearProductConnection();setConnection(null);setSnapshot(null);setSession(null);setSessionId('');selected.current='';focused.current=null;setFocusedRun(null);setNotice(null);setDevices([]);setPushStatus(null);setPending([]);});
+    await perform(async()=>{await client.logout();if(connection)await clearOfflineSnapshot(connection);await clearProductConnection();setConnection(null);setSnapshot(null);setSession(null);setSessionId('');selected.current='';focused.current=null;setFocusedRun(null);setNotice(null);setDevices([]);setPushStatus(null);setPending([]);});
   }
   async function openSession(id: string) {
     if (!client) return;
