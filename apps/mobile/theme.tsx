@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import { StyleSheet, useColorScheme } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
-import { zh } from './locales';
+import { localize } from './locales';
 type Theme = 'system' | 'light' | 'dark';
 const UiContext = createContext<any>(null);
 export function UiProvider({ children }: { children: React.ReactNode }) {
@@ -29,12 +29,8 @@ export function UiProvider({ children }: { children: React.ReactNode }) {
       JSON.stringify({ language: lang, theme: appearance }),
     ).catch(() => {});
   };
-  const t = (raw: string) => {
-    const clean = raw.replace(/\s+/g, ' ').trim();
-    if (language === 'en') return raw;
-    const tick = clean.startsWith('✓ ') ? '✓ ' : '';
-    return tick + (zh[clean.replace(/^✓ /, '')] ?? raw);
-  };
+  const t = (raw: string) => localize(raw, language);
+
   const value = {
     language,
     theme,

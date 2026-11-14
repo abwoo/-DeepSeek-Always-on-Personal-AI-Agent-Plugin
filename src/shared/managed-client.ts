@@ -52,7 +52,11 @@ export class ApiError extends Error {
     readonly status: number,
     readonly code: string,
   ) {
-    super(code);
+    super(
+      code === 'memory_conflict'
+        ? 'This memory changed on another device. Refresh and review before saving.'
+        : code,
+    );
   }
 }
 export function managedOrigin(input: string, allowLoopback = false) {
@@ -120,10 +124,11 @@ export class ManagedClient {
   async snapshot() {
     return snapshotSchema.parse(await this.request('/snapshot'));
   }
-  events(cursor:{after:number;epoch?:string;live?:number},sessionId?:string){
-    const q=new URLSearchParams({after:String(cursor.after),live:String(cursor.live??0)});
-    if(cursor.epoch)q.set('epoch',cursor.epoch);if(sessionId)q.set('sessionId',sessionId);
-    return this.request('/events?'+q);
+  events(cursor: { after: number; epoch?: string; live?: number }, sessionId?: string) {
+    const q = new URLSearchParams({ after: String(cursor.after), live: String(cursor.live ?? 0) });
+    if (cursor.epoch) q.set('epoch', cursor.epoch);
+    if (sessionId) q.set('sessionId', sessionId);
+    return this.request('/events?' + q);
   }
   sessions() {
     return this.request('/sessions');
@@ -196,4 +201,4 @@ export function resultBeforeSeq(run: {
   return Number.isSafeInteger(seq) && seq < Number.MAX_SAFE_INTEGER ? seq + 1 : undefined;
 }
 
-export {snapshotSchema} from './managed-contract.js';
+export { snapshotSchema } from './managed-contract.js';

@@ -162,6 +162,43 @@ try {
   });
   assert.ok((await desktop.snapshot()).memories.some((m) => m.content === 'Alice-only project'));
   assert.equal((await other.snapshot()).memories.length, 0);
+  const savedMemory = (await desktop.snapshot()).memories.find(
+    (m) => m.content === 'Alice-only project',
+  );
+  const editId = randomUUID(),
+    editCommand = {
+      action: 'memory.save',
+      data: {
+        id: savedMemory.id,
+        kind: 'project',
+        content: 'Desktop confirmed revision',
+        source: 'Explicit consent',
+        consent: true,
+        expectedVersion: Number(savedMemory.version ?? 0),
+      },
+    };
+  const editReceipt = await desktop.mutate(editId, editCommand);
+  assert.deepEqual(await desktop.mutate(editId, editCommand), editReceipt);
+  await assert.rejects(
+    () =>
+      mobile.mutate(randomUUID(), {
+        action: 'memory.save',
+        data: {
+          id: savedMemory.id,
+          kind: 'project',
+          content: 'Stale phone revision',
+          source: 'Explicit consent',
+          consent: true,
+          expectedVersion: Number(savedMemory.version ?? 0),
+        },
+      }),
+    (error) => error.code === 'memory_conflict',
+  );
+  assert.equal(
+    (await mobile.snapshot()).memories.find((m) => m.id === savedMemory.id).content,
+    'Desktop confirmed revision',
+  );
+
   const s = await desktop.mutate(randomUUID(), {
       action: 'session.create',
       data: { creationId: 'session-' + randomUUID() },
@@ -227,6 +264,7 @@ try {
         crossAccountSessionAndTaskDenied: true,
         sharedTask: true,
         sharedMemoryLifecycle: true,
+        crossDeviceMemoryConflictRejected: true,
         sharedNativeSessionInput: true,
         actualNativeEventFeed: true,
         sharedGoal: true,

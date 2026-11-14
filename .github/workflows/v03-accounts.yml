@@ -10,6 +10,7 @@ on:
         scripts/build-managed*,
         package*.json,
         deploy/control/**,
+        deploy/aws/**,
         .github/workflows/v03-accounts.yml,
       ]
   pull_request:
@@ -51,3 +52,21 @@ jobs:
             test-results/v03-backup.json
           retention-days: 14
           if-no-files-found: warn
+
+  infrastructure-schema:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+        with: { terraform_version: '1.13.3' }
+      - run: terraform init -backend=false -input=false
+        working-directory: deploy/aws
+      - run: terraform validate
+        working-directory: deploy/aws
+      - uses: actions/upload-artifact@v4
+        with:
+          name: v03-reviewed-infrastructure-provider-lock
+          path: deploy/aws/.terraform.lock.hcl
+          include-hidden-files: true
+          retention-days: 14

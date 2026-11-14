@@ -6,6 +6,7 @@ test('two devices cannot silently overwrite a consented memory revision; old JSO
   const store = new Store(':memory:'),
     memory = new MemoryService(store);
   try {
+    assert.throws(()=>memory.save({id:'',kind:'fact',content:'Invalid identity',source:'User',consent:true}));
     const first = memory.save({
       kind: 'project',
       content: 'Original confirmed context',

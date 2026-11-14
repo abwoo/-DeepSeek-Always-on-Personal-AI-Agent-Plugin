@@ -1,5 +1,14 @@
 // Product copy only. User messages, memories and model results remain verbatim.
+export function localize(raw: string, language: 'en' | 'zh') {
+  if (language === 'en') return raw;
+  const clean = raw.replace(/\s+/g, ' ').trim(),
+    tick = clean.startsWith('✓ ') ? '✓ ' : '';
+  const translated = zh[clean.replace(/^✓ /, '')];
+  return translated ? tick + translated : raw;
+}
 export const zh: Record<string, string> = {
+  'This memory changed on another device. Refresh and review before saving.':
+    '这条记忆已在其他设备上修改，请刷新并核实后再保存。',
   'Notifications are not available yet. Your Inbox is still available.':
     '通知服务暂不可用，你仍可查看收件箱。',
   'System notifications require an installed app on a phone.': '系统通知需要在手机上安装应用。',

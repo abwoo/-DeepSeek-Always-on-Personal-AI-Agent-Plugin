@@ -24,3 +24,7 @@ apps/mobile/credentials.json
 deploy/control/operator/
 deploy/control/Caddyfile
 *.aobackup
+
+**/.terraform/
+*.tfstate*
+*.tfvars

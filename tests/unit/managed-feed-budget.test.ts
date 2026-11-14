@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { GatewayStore } from '../../src/managed/store.js';
 import { LiveFeed } from '../../src/managed/feed.js';
-import { AccountBudget } from '../../src/managed/policy.js';
+import { AccountBudget, installAccountPolicy } from '../../src/managed/policy.js';
 test('paged durable cursor never skips retained changes; future/gapped cursors require reconciliation', () => {
   const s = new GatewayStore(':memory:');
   try {
@@ -16,6 +16,53 @@ test('paged durable cursor never skips retained changes; future/gapped cursors r
     assert.equal(a.items.length + b.items.length + c.items.length, 450);
     assert.throws(() => s.changes(999));
   } finally {
+    s.close();
+  }
+});
+test('bound account hook limits simultaneous native turns and denies shell regardless of interactive task state (hook fixture)', async () => {
+  const s = new GatewayStore(':memory:'),
+    handlers = new Map<string, Function>(),
+    cleanups: Function[] = [];
+  let guard: (exec: { name: string }) => unknown = () => undefined;
+  const ctx = {
+    tools: {
+      guard: (fn: typeof guard) => {
+        guard = fn;
+      },
+    },
+    on: (name: string, fn: Function) => {
+      handlers.set(name, fn);
+    },
+    effect: (setup: () => Function) => {
+      cleanups.push(setup());
+    },
+  };
+  try {
+    s.db.prepare("INSERT INTO meta VALUES('account_id','explicit-account-fixture')").run();
+    installAccountPolicy(ctx as any, s);
+    const agent = (id: string) => ({
+        session: { id },
+        options: { maxTokens: 8000 },
+        cancel: () => {},
+      }),
+      a = agent('a'),
+      b = agent('b'),
+      c = agent('c');
+    const enter = (agent: any) =>
+      handlers.get('agent/pre-step')!({ agent, turn: 1 }, async () => ({
+        kind: 'enter',
+        messages: [],
+      }));
+    await enter(a);
+    await enter(b);
+    await assert.rejects(() => enter(c), /concurrent-turn/);
+    assert.equal(a.options.maxTokens, 2048);
+    assert.ok(guard({ name: 'shell' }));
+    assert.equal(guard({ name: 'web_search' }), undefined);
+    handlers.get('session/event')!(a.session, { type: 'turn/end', data: { turn: 1 } });
+    await enter(c);
+  } finally {
+    for (const cleanup of cleanups) cleanup();
     s.close();
   }
 });

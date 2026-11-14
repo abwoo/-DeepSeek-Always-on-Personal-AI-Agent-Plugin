@@ -88,9 +88,11 @@ export function installAccountPolicy(ctx: Context, store: GatewayStore) {
   );
   ctx.on('agent/pre-step', async ({ agent, turn }, next) => {
     if (bound()) {
+      const id = agent.session.id + ':' + turn;
+      if (!timers.has(id) && timers.size >= 2)
+        throw Error('Managed account concurrent-turn limit reached');
       budget.admit(agent.session.id, turn);
       agent.options.maxTokens = Math.min(agent.options.maxTokens ?? 2048, 2048);
-      const id = agent.session.id + ':' + turn;
       if (!timers.has(id)) {
         const timer = setTimeout(() => {
           timers.delete(id);

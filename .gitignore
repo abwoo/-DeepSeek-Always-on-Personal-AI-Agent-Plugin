@@ -38,3 +38,7 @@ packages/client/account.js
 deploy/control/operator/
 deploy/control/Caddyfile
 *.aobackup
+
+**/.terraform/
+*.tfstate*
+*.tfvars

@@ -270,7 +270,7 @@ try {
       await page.getByRole('button',{name:'Devices',exact:true}).click();
       await expect(page.getByRole('heading',{name:'Actual native Desktop',exact:true})).toBeVisible();
       await page.getByRole('button',{name:'Pair another device',exact:true}).click();
-      await expect(page.getByText('One-use code · expires',{exact:false})).toBeVisible();
+      await expect(page.getByText('One-use code expires',{exact:false})).toBeVisible();
       const code=await page.locator('.ao article pre').innerText();
       const another=await ManagedClient.pair(evidence.remoteAuthority,code,'Native UI pairing proof','other',true);if(another.credentials.authorityId!==phoneClient.credentials.authorityId)throw Error('Native pairing UI issued another authority');
       const extra=new ManagedClient(another.origin,another.credentials,undefined,true);await extra.request('/devices/revoke',{deviceId:extra.credentials.deviceId});

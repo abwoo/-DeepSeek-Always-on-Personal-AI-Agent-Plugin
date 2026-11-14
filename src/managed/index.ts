@@ -393,6 +393,16 @@ export async function apply(ctx: Context, config: Config = {}) {
       const body = mutationSchema.parse(await readBody(req));
       return serialized(async () => {
         store.authenticate(authorization.slice(7));
+        if (
+          !store.operation(device.id, body.operationId) &&
+          body.command.action === 'memory.save' &&
+          body.command.data.expectedVersion !== undefined
+        ) {
+          const memory = body.command.data;
+          const current = ctx.alwaysOn.memory.list().find((m) => m.id === memory.id);
+          if ((current?.version ?? 0) !== memory.expectedVersion)
+            throw new GatewayError(409, 'memory_conflict');
+        }
         const result = await store.execute(device.id, body.operationId, body.command, () =>
           runCommand(device, body.operationId, body.command),
         );
