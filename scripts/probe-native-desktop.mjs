@@ -6,6 +6,7 @@ import { promisify } from 'node:util';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { setTimeout as delay } from 'node:timers/promises';
 import { dirname, join, resolve } from 'node:path';
+import { ManagedClient } from '../dist/shared/managed-client.js';
 import { connectProbe } from '../dist/remote/probe-connection.js';
 const executable = process.env.ALWAYS_ON_DESKTOP_EXE;
 if (!['win32', 'darwin'].includes(process.platform) || !executable) throw new Error('Real installed native Desktop required');
@@ -13,7 +14,7 @@ const output = process.platform === 'win32' ? '.artifacts/windows-desktop' : '.a
 await mkdir(output, { recursive: true });
 const evidence = { platform: process.platform, nativePlugin: false, restartPersistence: false,
   remoteDesktopSession: false, realDeepSeek: false, realPhone: false, mvpReady: false };
-let remoteProcess, observer;
+let remoteProcess, observer, phoneClient, pairingCode;
 async function verifyRuntime() {
   const root = process.platform === 'win32' ? join(dirname(executable), 'resources', 'app.asar', 'dsh')
     : join(dirname(executable), '..', 'Resources', 'app.asar', 'dsh');
@@ -41,11 +42,12 @@ async function stopTree(child) {
 async function startRemote() {
   const root = join(process.env.RUNNER_TEMP, 'always-on-remote-authority');
   const env = { ...process.env, DSH_HOME: join(root, 'profile'), ALWAYS_ON_DATA_DIR: join(root, 'data'),
-    ALWAYS_ON_DOCUMENTS_DIR: join(root, 'documents') };
+    ALWAYS_ON_DOCUMENTS_DIR: join(root, 'documents'),ALWAYS_ON_GATEWAY_ALLOW_LOOPBACK:'1' };
   const cli = resolve('node_modules/@deepseek-ai/dsh/lib/bin.js');
   const version = JSON.parse(await readFile('package.json', 'utf8')).version;
   await promisify(execFile)(process.execPath, [cli, 'plugin', '--profile', 'web', 'add',
     resolve(`abwoo-deepseek-always-on-${version}.tgz`)], { env, timeout: 120000 });
+  await promisify(execFile)(process.execPath,[cli,'plugin','--profile','web','add',resolve('abwoo-deepseek-always-on-managed-0.2.0-dev.1.tgz')],{env,timeout:120000});
   remoteProcess = spawn(process.execPath, [cli, 'web', '--patch', resolve('deploy/headless.patch.yml'), '--no-open', '--port', '0'], { env, detached: process.platform === 'darwin', stdio: ['ignore', 'pipe', 'pipe'] });
   const url = await new Promise((ok, fail) => {
     let output = '';
@@ -66,10 +68,14 @@ async function startRemote() {
   process.env.ALWAYS_ON_PHASE0_REMOTE_ORIGIN = url.origin;
   process.env.ALWAYS_ON_PHASE0_REMOTE_TOKEN = url.searchParams.get('token');
   process.env.ALWAYS_ON_PHASE0_ALLOW_LOOPBACK = '1';
-  process.env.ALWAYS_ON_DESKTOP_OPERATOR_PREVIEW = '1';
+  delete process.env.ALWAYS_ON_DESKTOP_OPERATOR_PREVIEW;
   process.env.ALWAYS_ON_DESKTOP_REMOTE_ORIGIN = url.origin;
   process.env.ALWAYS_ON_DESKTOP_REMOTE_TOKEN = url.searchParams.get('token');
   process.env.ALWAYS_ON_DESKTOP_ALLOW_LOOPBACK = '1';
+  const login=await fetch(url,{redirect:'manual'});const cookie=login.headers.getSetCookie().map(s=>s.split(';')[0]).join('; ');
+  async function pairCode(){const response=await fetch(url.origin+'/api/always-on-managed/admin',{method:'POST',headers:{cookie,'content-type':'application/json'},body:JSON.stringify({action:'pair.create'})});if(!response.ok)throw Error('Pairing admin unavailable');return (await response.json()).code;}
+  const pairedPhone=await ManagedClient.pair(url.origin,await pairCode(),'Independent mobile protocol observer','other',true);
+  phoneClient=new ManagedClient(pairedPhone.origin,pairedPhone.credentials,undefined,true);pairingCode=await pairCode();
   observer = await connectProbe(url.origin, url.searchParams.get('token'), true);
   evidence.remoteAuthority = url.origin;
 }
@@ -162,7 +168,15 @@ try {
       await capture(page, 'native-remote-session.png');
       // Phase 1 product package: same remote state, not the local compatibility task.
       await page.getByText('Personal Agent', { exact: true }).click();
+      await page.getByLabel('HTTPS service address').fill(evidence.remoteAuthority);
+      await page.getByLabel('One-use pairing code').fill(pairingCode);
+      await page.getByLabel('Device name').fill('Actual native Desktop');
+      await page.getByRole('button',{name:'Pair Desktop',exact:true}).click();
       await expect(page.getByTestId('desktop-remote-authority')).toContainText(evidence.remoteAuthority);
+      await expect(page.getByText('Connected',{exact:true})).toBeVisible();
+      const pairedStatus=await page.evaluate(async()=>(await fetch('/api/always-on-desktop/status')).json());
+      if(pairedStatus.credentialMode!=='device-pairing'||!pairedStatus.deviceId)throw Error('Desktop did not use revocable device credentials');
+      evidence.nativeDevicePairing=true;
       await page.getByRole('button', { name: 'Tasks', exact: true }).click();
       await page.getByLabel('Task name').fill('Personal Agent shared task');
       await page.getByLabel('What should your agent check?').fill('Remote-only read-only development check.');
@@ -171,6 +185,7 @@ try {
       const shared = await (await observer.alwaysOn('GET')).json();
       sharedTaskId = shared.tasks.find((t) => t.title === 'Personal Agent shared task')?.id;
       if (!sharedTaskId) throw new Error('Desktop task mutation did not persist on the remote authority');
+      const phoneState=await phoneClient.snapshot();if(!phoneState.tasks.some(t=>t.id===sharedTaskId))throw Error('Mobile protocol reads a different authority');
       const local = await page.evaluate(async () => (await fetch('/api/always-on')).json());
       if (local.tasks.some((t) => t.id === sharedTaskId)) throw new Error('Shared task was copied to the local Host');
       await page.getByRole('button', { name: 'Memory', exact: true }).click();
@@ -192,6 +207,8 @@ try {
       evidence.desktopSharedTaskId = sharedTaskId;
       evidence.desktopSessionId = personalSessionId;
       evidence.desktopSharedMemory = true;
+      const sharedSession=await phoneClient.readSession(personalSessionId);if(!JSON.stringify(sharedSession).includes('Phase 1 actual native conversation input'))throw Error('Mobile protocol did not read the same Desktop Session');
+      evidence.nativeDesktopAndMobileProtocolSameAuthority=true;
       await capture(page, 'personal-agent.png');
     });
     const afterDesktopExit = await observer.session.events({ address: { kind: 'session', sessionId: remoteId } });

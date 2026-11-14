@@ -31,6 +31,8 @@ jobs:
       - run: npm ci
       - run: npm run build
       - run: node scripts/build-phase0-probe.mjs
+      - run: node scripts/build-managed.mjs
+      - run: npm pack ./packages/managed --ignore-scripts
       - run: node scripts/build-desktop.mjs
       - name: Download and verify official signed installer
         shell: pwsh

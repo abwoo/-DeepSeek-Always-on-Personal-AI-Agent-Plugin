@@ -1,5 +1,6 @@
 import type { Context } from '@deepseek-ai/cordis';
 import type {} from '@deepseek-ai/dsh-client-connection';
+import { PairedDesktop } from './device.js';
 import { z } from 'zod';
 import { connectProbe, validateAuthority } from '../remote/probe-connection.js';
 
@@ -49,7 +50,7 @@ export class DesktopRemote {
     } catch (error) { await this.disconnect(); throw error; }
   }
   async mutate(body: unknown) {
-    const parsed = mutation.parse(body);
+    const {operationId:_,...legacy} = body as Record<string,unknown>;const parsed = mutation.parse(legacy);
     const c = await this.connect(true);
     try {
       const response = await c.alwaysOn('POST', parsed);
@@ -58,7 +59,7 @@ export class DesktopRemote {
     } catch { await this.disconnect(); throw new Error('Outcome unknown; review remote state before retrying. No automatic retry was made.'); }
   }
   async session(body: unknown) {
-    const command = sessionCommand.parse(body);
+    const {operationId:_,...legacy} = body as Record<string,unknown>;const command = sessionCommand.parse(legacy);
     const write = !['list', 'read'].includes(command.action);
     const c = await this.connect(write);
     try {
@@ -90,11 +91,10 @@ export class DesktopRemote {
   }
 }
 
-export const inject = ['connection'];
+export const inject = ['connection','credentials'];
 export async function apply(ctx: Context) {
   const preview = process.env.ALWAYS_ON_DESKTOP_OPERATOR_PREVIEW === '1';
-  const service = new DesktopRemote(preview ? process.env.ALWAYS_ON_DESKTOP_REMOTE_TOKEN : undefined,
-    preview ? process.env.ALWAYS_ON_DESKTOP_REMOTE_ORIGIN : undefined, process.env.ALWAYS_ON_DESKTOP_ALLOW_LOOPBACK === '1');
+  const service = preview?new DesktopRemote(process.env.ALWAYS_ON_DESKTOP_REMOTE_TOKEN,process.env.ALWAYS_ON_DESKTOP_REMOTE_ORIGIN,process.env.ALWAYS_ON_DESKTOP_ALLOW_LOOPBACK==='1'):new PairedDesktop(ctx,process.env.ALWAYS_ON_DESKTOP_ALLOW_LOOPBACK==='1');
   ctx.effect(() => () => service.dispose());
   const register = (path: string, methods: ('GET' | 'POST')[], handler: (request: Request) => Promise<Response>) =>
     ctx.effect(() => ctx.connection.fetch.register({ path, methods, requestBody: 'buffered', fetch: handler }));
@@ -104,15 +104,19 @@ export async function apply(ctx: Context) {
     const text = await request.text(); if (text.length > 65536) throw new SyntaxError('Request too large');
     return JSON.parse(text);
   };
-  register('/api/always-on-desktop/status', ['GET'], async () => json(service.status()));
+  for(const action of ['pair','forget','pending','dismiss','manage'] as const)register('/api/always-on-desktop/'+action,['POST'],async request=>{
+    if(!(service instanceof PairedDesktop))return json({error:'Device pairing is unavailable in operator diagnostic mode'},409);
+    try{return json(await (action==='pair'?service.pair(await body(request)):action==='forget'?service.forget():action==='dismiss'?service.dismiss(await body(request)):action==='manage'?service.manage(await body(request)):service.pending()));}catch(e){return json({error:e instanceof z.ZodError?'Invalid pairing command':e instanceof Error?e.message:'Pairing unavailable'},400);}
+  });
+  register('/api/always-on-desktop/status', ['GET'], async () => json(await service.status()));
   register('/api/always-on-desktop/state', ['GET', 'POST'], async (request) => {
     try {
       if (request.method === 'GET') return json(await service.snapshot());
       const result = await service.mutate(await body(request)); return json(result.body, result.status);
-    } catch (e) { return json({ ok: false, error: e instanceof z.ZodError || e instanceof SyntaxError ? 'Invalid action' : e instanceof Error ? e.message : 'Remote unavailable', connection: service.status() }, e instanceof z.ZodError || e instanceof SyntaxError ? 400 : 503); }
+    } catch (e) { return json({ ok: false, error: e instanceof z.ZodError || e instanceof SyntaxError ? 'Invalid action' : e instanceof Error ? e.message : 'Remote unavailable', connection: await service.status() }, e instanceof z.ZodError || e instanceof SyntaxError ? 400 : 503); }
   });
   register('/api/always-on-desktop/sessions', ['POST'], async (request) => {
     try { return json(await service.session(await body(request))); }
-    catch (e) { return json({ error: e instanceof z.ZodError || e instanceof SyntaxError ? 'Invalid Session command' : e instanceof Error ? e.message : 'Remote unavailable', connection: service.status() }, e instanceof z.ZodError || e instanceof SyntaxError ? 400 : 503); }
+    catch (e) { return json({ error: e instanceof z.ZodError || e instanceof SyntaxError ? 'Invalid Session command' : e instanceof Error ? e.message : 'Remote unavailable', connection: await service.status() }, e instanceof z.ZodError || e instanceof SyntaxError ? 400 : 503); }
   });
 }

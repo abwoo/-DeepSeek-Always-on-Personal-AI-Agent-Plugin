@@ -135,7 +135,7 @@ export function createPanelModule(React) {
       notice: '没有新进展时不推送；结果仍保存在执行记录中。',
     };
     const css = `.ao{height:100%;overflow:auto;color:var(--dsh-text-primary,inherit);padding:28px clamp(16px,4vw,52px);padding-top:max(28px,var(--dsh-frame-leading-clearance,28px));font:inherit;box-sizing:border-box}.ao *{box-sizing:border-box}.ao header{display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap}.ao h1{font-size:26px;margin:0}.ao .muted{opacity:.66;font-size:13px;line-height:1.6}.ao nav{display:flex;gap:8px;flex-wrap:wrap;margin:22px 0}.ao button{min-height:44px;border:1px solid #8293a547;border-radius:9px;padding:9px 15px;background:transparent;color:inherit;cursor:pointer;font:inherit}.ao button[aria-selected=true],.ao .primary{background:#25887922;border-color:#50ae9a}.ao button:disabled{opacity:.45;cursor:wait}.ao .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));gap:16px}.ao article,.ao form,.ao .stats{border:1px solid #8293a533;border-radius:14px;padding:20px;margin-bottom:14px}.ao label{display:grid;gap:7px;margin-bottom:14px;font-size:14px}.ao input,.ao textarea,.ao select{min-height:44px;width:100%;padding:10px;border:1px solid #8293a555;border-radius:8px;color:inherit;background:transparent;font:inherit}.ao select option{color:#14253c;background:white}.ao textarea{min-height:96px;resize:vertical}.ao .actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}.ao .badge{display:inline-block;padding:4px 9px;border-radius:20px;background:#66b9a51a;font-size:12px}.ao .error{border:1px solid #d47d6c;padding:12px;border-radius:8px;margin:12px 0;overflow-wrap:anywhere}.ao .check{display:flex;align-items:center;gap:10px}.ao .check input{width:20px;min-height:20px}.ao pre{white-space:pre-wrap;overflow-wrap:anywhere;font:inherit}.ao a{color:#409e8c}.ao h3{margin:0 0 12px;overflow-wrap:anywhere}.ao .stats{font-size:28px}.ao .stats span{display:block;font-size:13px;opacity:.7;margin-top:6px}@media(max-width:600px){.ao{padding:20px 16px;padding-top:48px}.ao nav button{flex:1}.ao form,.ao article{padding:16px}}`;
-    function Panel({ t, openSession, apiPath = '/api/always-on', onSnapshot }) {
+    function Panel({ t, openSession, apiPath = '/api/always-on', onSnapshot, operationIds = false }) {
       const [data, setData] = React.useState(null),
         [connected, setConnected] = React.useState(true),
         [tab, setTab] = React.useState(
@@ -158,7 +158,7 @@ export function createPanelModule(React) {
             );
           const next = await r.json();
           setData(next);
-          setConnected(true);
+          setConnected(!next.pendingOperations?.length);
           onSnapshot?.(next);
           setError('');
         } catch (e) {
@@ -187,7 +187,7 @@ export function createPanelModule(React) {
             method: 'POST',
             credentials: 'same-origin',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ action: name, data: value }),
+            body: JSON.stringify({ action: name, data: value, ...(operationIds ? {operationId: crypto.randomUUID()} : {}) }),
           });
           const result = await r.json();
           if (!r.ok || !result.ok) throw new Error(result.error ?? t('error'));

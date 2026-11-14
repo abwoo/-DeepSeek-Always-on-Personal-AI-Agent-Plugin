@@ -8,7 +8,7 @@ window.__ModuleLoader__.load({
     const strings = {
       en: { ...en, title: 'Personal Agent', overview: 'Agent & tasks', conversations: 'Conversations',
         authority: 'Managed Host', unconfigured: 'Managed Host not configured', disconnected: 'Disconnected',
-        connected: 'Connected', preview: 'Operator preview · device pairing is not released',
+        connected: 'Connected', preview: 'Shared managed Personal Agent · development preview',
         newSession: 'New remote conversation', send: 'Send to agent', prompt: 'Message your agent',
         receipt: 'Input accepted by Harness. This does not confirm model completion.',
         sessionId: 'Remote Session ID', load: 'Open conversation', cancelTurn: 'Cancel current turn',
@@ -17,7 +17,7 @@ window.__ModuleLoader__.load({
         pushOff: 'Native notifications are not configured in this development preview.' },
       zh: { ...zh, title: '个人智能体', overview: '智能体与任务', conversations: '会话',
         authority: '托管 Host', unconfigured: '尚未配置托管 Host', disconnected: '已断开连接', connected: '已连接',
-        preview: '管理员预览 · 设备配对尚未发布', newSession: '新建远程会话', send: '发送给智能体',
+        preview: '共享托管个人智能体 · 开发预览', newSession: '新建远程会话', send: '发送给智能体',
         prompt: '给智能体的消息', receipt: 'Harness 已接收输入，不代表模型已执行完成。',
         sessionId: '远程会话 ID', load: '打开会话', cancelTurn: '取消当前执行', sessionRunning: '智能体正在运行',
         idle: '智能体空闲', attention: '需要在托管 Host 处理授权或问题', unknown: '当前为最后确认的会话，请刷新核实后再重试。',
@@ -55,7 +55,7 @@ window.__ModuleLoader__.load({
       const lastTurn = events.filter((e) => e.type === 'turn/end').at(-1)?.data.reason?.kind;
       return h('section', { className: 'ao' }, h('h2', null, t('conversations')),
         h('div', { className: 'actions' },
-          h('button', { disabled: busy, onClick: () => { creationId.current ||= `session-${crypto.randomUUID()}`; action({ action: 'create', creationId: creationId.current }); } }, t('newSession')),
+          h('button', { disabled: busy, onClick: () => { creationId.current ||= `session-${crypto.randomUUID()}`; action({ action: 'create', creationId: creationId.current, operationId: crypto.randomUUID() }); } }, t('newSession')),
           h('button', { disabled: busy, onClick: () => refresh() }, t('refresh'))),
         h('form', { onSubmit: (e) => { e.preventDefault(); setData(null); refresh(id); } },
           h('label', null, t('sessionId'), h('input', { 'aria-label': t('sessionId'), value: id, onChange: (e) => { current.current = e.target.value; setId(e.target.value); setData(null); } })),
@@ -70,24 +70,44 @@ window.__ModuleLoader__.load({
           h('form', { onSubmit: (e) => { e.preventDefault(); requestId.current ||= crypto.randomUUID(); action({ action: 'prompt', sessionId: data.sessionId, requestId: requestId.current, text }); } },
             h('label', null, t('prompt'), h('textarea', { 'aria-label': t('prompt'), value: text, onChange: (e) => { setText(e.target.value); } })),
             h('button', { disabled: busy || !!error || !text.trim() }, t('send')),
-            h('button', { type: 'button', disabled: busy || !!error || !data.state.running, onClick: () => action({ action: 'cancel', sessionId: data.sessionId }) }, t('cancelTurn')))) : null);
+            h('button', { type: 'button', disabled: busy || !!error || !data.state.running, onClick: () => action({ action: 'cancel', sessionId: data.sessionId, operationId: crypto.randomUUID() }) }, t('cancelTurn')))) : null);
+    }
+    function Pairing({onPaired}) {
+      const [origin,setOrigin]=React.useState(''),[code,setCode]=React.useState(''),[name,setName]=React.useState('My Desktop'),[error,setError]=React.useState(''),[busy,setBusy]=React.useState(false);
+      return h('form',{className:'ao',onSubmit:async e=>{e.preventDefault();setBusy(true);try{const r=await fetch('/api/always-on-desktop/pair',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({origin,code,name})});const data=await r.json();if(!r.ok)throw Error(data.error);setCode('');onPaired(data);}catch(e){setError(e.message);}finally{setBusy(false);}}},h('h2',null,'Pair your Personal Agent'),h('p',null,'Use your managed service address and a one-use code. This panel uses the same remote agent as your phone.'),[['HTTPS service address',origin,setOrigin],['One-use pairing code',code,setCode],['Device name',name,setName]].map(([label,value,set])=>h('label',{key:label},label,h('input',{required:true,type:label.includes('code')?'password':'text',value,onChange:e=>set(e.target.value)}))),h('button',{disabled:busy},'Pair Desktop'),error?h('p',{role:'alert'},error):null);
+    }
+    function ManagedTools({view}){
+      const [items,setItems]=React.useState([]),[code,setCode]=React.useState(null),[error,setError]=React.useState(''),[busy,setBusy]=React.useState(false);
+      async function call(body){const r=await fetch('/api/always-on-desktop/manage',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(body)});const data=await r.json();if(!r.ok)throw Error(data.error);return data;}
+      async function refresh(){try{setItems((await call({action:view==='goals'?'goals.list':'devices.list'})).items);setError('');}catch(e){setError(e.message);}}
+      React.useEffect(()=>{refresh();const timer=setInterval(refresh,10000);return()=>clearInterval(timer);},[view]);
+      async function act(body){setBusy(true);try{const result=await call(body);if(body.action==='devices.pair-code')setCode(result);await refresh();}catch(e){setError(e.message);}finally{setBusy(false);}}
+      return h('section',{className:'ao'},h('h2',null,view==='goals'?'Ongoing goals':'Paired devices'),error?h('p',{role:'alert'},error):null,
+       view==='goals'?h('form',{onSubmit:e=>{e.preventDefault();const f=new FormData(e.currentTarget);act({action:'goals.create',operationId:crypto.randomUUID(),goal:{title:f.get('title'),instruction:f.get('instruction'),everySeconds:Number(f.get('minutes'))*60,maxRuns:30,allowedTools:['web_search','web_fetch']}});}},h('label',null,'Goal name',h('input',{name:'title',required:true,maxLength:120})),h('label',null,'What should the agent watch?',h('textarea',{name:'instruction',required:true,maxLength:12000})),h('label',null,'Check every (minutes)',h('input',{name:'minutes',type:'number',min:1,max:525600,defaultValue:1440,required:true})),h('p',null,'Read-only research, up to 30 runs. Pause or cancel the linked task in Tasks.'),h('button',{disabled:busy},'Create ongoing goal')):
+       h('div',null,h('button',{disabled:busy,onClick:()=>act({action:'devices.pair-code'})},'Pair another device'),code?h('article',null,h('p',null,'One-use code · expires ',code.expiresAt),h('pre',null,code.code),h('button',{onClick:()=>setCode(null)},'Hide code')):null),
+       items.map(item=>h('article',{key:item.id},h('h3',null,item.title||item.name),view==='goals'?h('p',null,item.instruction,' · Task ',item.taskId):h('p',null,item.platform,' · ',item.revoked?'Revoked':'Paired'),view==='devices'&&!item.revoked?h('button',{disabled:busy,onClick:()=>{if(confirm('Revoke this device?'))act({action:'devices.revoke',deviceId:item.id});}},'Revoke access'):null)));
     }
     function Desktop({ t }) {
-      const [status, setStatus] = React.useState(null), [view, setView] = React.useState('overview'), [session, setSession] = React.useState('');
+      const [status, setStatus] = React.useState(null), [view, setView] = React.useState('overview'), [session, setSession] = React.useState(''),[pending,setPending]=React.useState([]),[controlError,setControlError]=React.useState('');
       React.useEffect(() => {
         let active = true;
-        const load = () => fetch('/api/always-on-desktop/status').then((r) => r.json()).then((s) => { if (active) setStatus(s); }).catch(() => { if (active) setStatus((s) => ({ ...s, connected: false })); });
+        const load = () => fetch('/api/always-on-desktop/status').then((r) => r.json()).then((s) => { if (active) setStatus(s);if(active&&s.configured&&s.credentialMode==='device-pairing')fetch('/api/always-on-desktop/pending',{method:'POST',headers:{'content-type':'application/json'},body:'{}'}).then(r=>r.json()).then(p=>{if(active&&Array.isArray(p))setPending(p.filter(x=>x.status!=='committed'));}).catch(()=>{}); }).catch(() => { if (active) setStatus((s) => ({ ...s, connected: false })); });
         load(); const timer = setInterval(load, 3000); return () => { active = false; clearInterval(timer); };
       }, []);
+      if(status?.credentialMode==='device-pairing'&&!status.configured)return h(React.Fragment,null,h('style',null,css),h(Pairing,{onPaired:setStatus}));
+      async function control(action,body={}){try{const r=await fetch('/api/always-on-desktop/'+action,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(body)});const data=await r.json();if(!r.ok)throw Error(data.error);setControlError('');if(action==='forget'){setStatus(data);setPending([]);}else if(action==='dismiss')setPending(pending.filter(p=>p.operationId!==body.operationId));}catch(e){setControlError(e.message);}}
       return h('div', { style: { height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden' } }, h('style', null, css),
         h('header', { className: 'ao', style: { height: 'auto', paddingBottom: 0, flexShrink: 0 } },
           h('p', { 'data-testid': 'desktop-remote-authority' }, t('authority'), ': ', status?.authority || t('unconfigured')),
           h('p', { role: 'status' }, status?.connected ? t('connected') : t('disconnected')),
           h('p', { className: 'muted' }, t('preview')),
-          h('nav', null, ['overview', 'conversations'].map((v) => h('button', { key: v, 'aria-selected': view === v, onClick: () => setView(v) }, t(v))))),
+          status?.credentialMode==='device-pairing'?h('button',{onClick:()=>{if(confirm('Revoke this Desktop device and remove its local credentials?'))control('forget');}},'Remove device access'):null,
+          controlError?h('p',{role:'alert'},controlError):null,
+          pending.map(p=>h('article',{key:p.operationId},h('p',null,'Review uncertain operation: ',p.action,' · ',p.status),h('button',{onClick:()=>{if(confirm('Review the managed task or Session first. Dismissing does not reverse or retry it.'))control('dismiss',{operationId:p.operationId});}},'Dismiss after review'))),
+          h('nav', null, ['overview', 'conversations',...(status?.credentialMode==='device-pairing'?['goals','devices']:[])].map((v) => h('button', { key: v, 'aria-selected': view === v, onClick: () => setView(v) }, v==='goals'?'Goals':v==='devices'?'Devices':t(v))))),
         h('div', { style: { flex: 1, minHeight: 0, overflow: 'hidden' } },
-          view === 'overview' ? h(Panel, { t, apiPath: '/api/always-on-desktop/state', onSnapshot: (data) => setStatus(data.connection), openSession: (id) => { setSession(id); setView('conversations'); } })
-            : h(Conversation, { t, selected: session, onConnection: setStatus })));
+          view === 'overview' ? h(Panel, { t, apiPath: '/api/always-on-desktop/state', operationIds: true, onSnapshot: (data) => {setStatus(data.connection);setPending(data.pendingOperations||[]);}, openSession: (id) => { setSession(id); setView('conversations'); } })
+            : ['goals','devices'].includes(view)?h(ManagedTools,{key:view,view}):pending.length?h('p',{className:'ao'},'Review pending operations before sending another message.'):h(Conversation, { t, selected: session, onConnection: setStatus })));
     }
     return { inject: ['slots', 'locale'], apply(ctx) {
       ctx.effect(() => ctx.locale.register('abwoo.personalAgent', strings)); const t = ctx.locale.bind('abwoo.personalAgent');
