@@ -3,10 +3,10 @@
   "pullRequest": 4,
   "baseCommit": "7f18534bda7506162e0377321150c560c21244b9",
   "productImplementationCommit": "b4b63e6aa32ce4db23f81fc59314b3a8d4c3b4fa",
-  "latestNativeTestImplementationCommit": "2597bacf9ca2e1de3f7532a5266f64786abb53fe",
+  "latestNativeTestImplementationCommit": "3083f4127aacbd5233ce98aa2d4cda0769939e72",
   "status": "Engineering verification in progress; final native checks pending",
   "mvpReady": false,
-  "productionGateStatus": "T01\u2013T22 Blocked; no Level 4/5",
+  "productionGateStatus": "T01–T22 Blocked; no Level 4/5",
   "versions": {
     "harness": "0.2.2-rc.3",
     "cordis": "4.1.0",
@@ -213,7 +213,91 @@
     {
       "path": "production-blockers.json",
       "sha256": "5e8595ee6591f2fc94f8a09d64997069b8043563efe80ba4cc2940ce38e62573",
-      "scope": "Current T01\u2013T22 production gates: all Blocked"
+      "scope": "Current T01–T22 production gates: all Blocked"
+    },
+    {
+      "path": "cloud-accounts/v03-accounts.json",
+      "sha256": "d1b3c4fdde1ed07315901c68127848591f2309e817466514bf8399648c5882a2",
+      "runId": 43711774869,
+      "jobId": 132804678218,
+      "artifactId": 14160936166,
+      "zipDigestReportedByGitHub": "sha256:2e7b4a3b3bc91729b26cf22bf02ef7d527ce6dad80f538b7641fd6284b1b5677",
+      "originalPath": "v03-accounts.json",
+      "reportedSourceCommit": "3083f4127aacbd5233ce98aa2d4cda0769939e72",
+      "checkoutCommit": "3083f4127aacbd5233ce98aa2d4cda0769939e72",
+      "capture": "Exact bytes from source-controlled CI logger; SHA-256 calculated in CI and checked again from repository files. ZIP digest reported by GitHub, not independently downloaded in this capture."
+    },
+    {
+      "path": "cloud-accounts/v03-backup.json",
+      "sha256": "740703a679de10039dcf7532dfdff6abcdbee6d7313998b2060b85d9c54ee7f6",
+      "runId": 43711774869,
+      "jobId": 132804678218,
+      "artifactId": 14160936166,
+      "zipDigestReportedByGitHub": "sha256:2e7b4a3b3bc91729b26cf22bf02ef7d527ce6dad80f538b7641fd6284b1b5677",
+      "originalPath": "v03-backup.json",
+      "reportedSourceCommit": "3083f4127aacbd5233ce98aa2d4cda0769939e72",
+      "checkoutCommit": "3083f4127aacbd5233ce98aa2d4cda0769939e72",
+      "capture": "Exact bytes from source-controlled CI logger; SHA-256 calculated in CI and checked again from repository files. ZIP digest reported by GitHub, not independently downloaded in this capture."
+    },
+    {
+      "path": "cloud-accounts/control-proxy.json",
+      "sha256": "748df12597726e05cc81b689aed718c75b84eaaba482d95e82985ec06866afb9",
+      "runId": 43711774869,
+      "jobId": 132804678218,
+      "artifactId": 14160936166,
+      "zipDigestReportedByGitHub": "sha256:2e7b4a3b3bc91729b26cf22bf02ef7d527ce6dad80f538b7641fd6284b1b5677",
+      "originalPath": "control-proxy.json",
+      "reportedSourceCommit": "3083f4127aacbd5233ce98aa2d4cda0769939e72",
+      "checkoutCommit": "3083f4127aacbd5233ce98aa2d4cda0769939e72",
+      "capture": "Exact bytes from source-controlled CI logger; SHA-256 calculated in CI and checked again from repository files. ZIP digest reported by GitHub, not independently downloaded in this capture."
+    },
+    {
+      "path": "cloud-accounts/mobile-component-contract.json",
+      "sha256": "6eede0d7d0532d02098c5babd039497783685c0b5ed78572d1bae6aff9250d4c",
+      "runId": 43711774869,
+      "jobId": 132804678218,
+      "artifactId": 14160936166,
+      "zipDigestReportedByGitHub": "sha256:2e7b4a3b3bc91729b26cf22bf02ef7d527ce6dad80f538b7641fd6284b1b5677",
+      "originalPath": "mobile-component-contract.json",
+      "reportedSourceCommit": "3083f4127aacbd5233ce98aa2d4cda0769939e72",
+      "checkoutCommit": "3083f4127aacbd5233ce98aa2d4cda0769939e72",
+      "capture": "Exact bytes from source-controlled CI logger; SHA-256 calculated in CI and checked again from repository files. ZIP digest reported by GitHub, not independently downloaded in this capture."
+    },
+    {
+      "path": "cloud-accounts/v03-release-gate.json",
+      "sha256": "69d35ca2374c40202e87e52ae9f95e04b17e5c65bd3bec10ef16657593c60bd4",
+      "runId": 43711774869,
+      "jobId": 132804678218,
+      "artifactId": 14160936166,
+      "zipDigestReportedByGitHub": "sha256:2e7b4a3b3bc91729b26cf22bf02ef7d527ce6dad80f538b7641fd6284b1b5677",
+      "originalPath": "v03-release-gate.json",
+      "reportedSourceCommit": "3083f4127aacbd5233ce98aa2d4cda0769939e72",
+      "checkoutCommit": "3083f4127aacbd5233ce98aa2d4cda0769939e72",
+      "capture": "Exact bytes from source-controlled CI logger; SHA-256 calculated in CI and checked again from repository files. ZIP digest reported by GitHub, not independently downloaded in this capture."
+    },
+    {
+      "path": "cloud-runtime/managed-authority.json",
+      "sha256": "406909ea9ff71ff54ed2370c366ffc7c20244ef2ca10b3f7c74b00374aa2a57f",
+      "runId": 43711774758,
+      "jobId": 132804678007,
+      "artifactId": 14160539350,
+      "zipDigestReportedByGitHub": "sha256:54b4a7cd80a407d845a6cf208ff852d6c026c4e361c947f81c1fd89d596db27b",
+      "originalPath": "managed-authority.json",
+      "reportedSourceCommit": null,
+      "checkoutCommit": "3083f4127aacbd5233ce98aa2d4cda0769939e72",
+      "capture": "Exact bytes from source-controlled CI logger; SHA-256 calculated in CI and checked again from repository files. ZIP digest reported by GitHub, not independently downloaded in this capture."
+    },
+    {
+      "path": "cloud-runtime/managed-container.json",
+      "sha256": "2781844e5edc6367d8c5dd0d812dc28482dae4bccafe930eebb9b30cd1efd6a2",
+      "runId": 43711774758,
+      "jobId": 132804678007,
+      "artifactId": 14160539350,
+      "zipDigestReportedByGitHub": "sha256:54b4a7cd80a407d845a6cf208ff852d6c026c4e361c947f81c1fd89d596db27b",
+      "originalPath": "managed-container.json",
+      "reportedSourceCommit": "3083f4127aacbd5233ce98aa2d4cda0769939e72",
+      "checkoutCommit": "3083f4127aacbd5233ce98aa2d4cda0769939e72",
+      "capture": "Exact bytes from source-controlled CI logger; SHA-256 calculated in CI and checked again from repository files. ZIP digest reported by GitHub, not independently downloaded in this capture."
     }
   ],
   "failedObservations": [
@@ -226,8 +310,30 @@
       "runId": 43706818285,
       "headCommit": "d86bd88ce337a885526bd6f078a4bde2b6986854",
       "reason": "Android engineering-only network config missing required explicit includeSubdomains; native lint retained, fixed to false. Ordinary preview APK compiled before this test-only failure."
+    },
+    {
+      "runId": 43708029655,
+      "headCommit": "2597bacf9ca2e1de3f7532a5266f64786abb53fe",
+      "reason": "Engineering APK compiled; native backend fixture lacked required pnpm. Subsequent workflow provisions the same pinned installer used by other real Harness tests. iOS launchctl RPC also timed out; no native app success inferred."
+    },
+    {
+      "runId": 43709246702,
+      "headCommit": "10ef276f8b0989a081815f155d7b4ab8a3639870",
+      "jobId": 132797024141,
+      "artifactId": 14160123244,
+      "reason": "Native task/offline execution/restart, memory, goal, Inbox and chat observations succeeded; whole native test remained Fail because it looked for a composite notification status as an independent control. New runner checks actual displayed status, exact paced-key input/readback and selected native Session. No fast-IME-paste acceptance is claimed.",
+      "partialTaskId": "f1ff45aa-0570-4886-93d8-446f233e416b",
+      "partialRunId": "a9061383-5102-4dca-985e-eb1b061dceaa"
+    },
+    {
+      "runId": 43712124328,
+      "headCommit": "03dc4c7f18a31edf6b1bbd4e5dbf0a4318d86b04",
+      "reason": "New evidence verifier had a string-replacement syntax error before reading hashes. Fixed without modifying archived observations or removing integrity assertions; subsequent core/account verification passed."
     }
   ],
   "artifactRetention": "Actions binaries/screenshots 14 days; only small raw observations retained here. Download and verify needed binaries before expiry. Windows raw CRLF observations preserved byte-for-byte.",
-  "provenance": "PR observations explicitly record their tested merge checkout where present; headCommit is not silently substituted. Sources without a field are bound by their original run/artifact/hash."
+  "provenance": "PR observations explicitly record their tested merge checkout where present; headCommit is not silently substituted. Sources without a field are bound by their original run/artifact/hash.",
+  "runtimeRecoveryImplementationCommit": "0d164bd4d8d95196077d75754825b99e29e20565",
+  "evidenceVerifierImplementationCommit": "d3cad0fe0c5962e01b6965e03b8ea011c8e589cd",
+  "currentAcceptanceMatrix": "production-current.json"
 }
