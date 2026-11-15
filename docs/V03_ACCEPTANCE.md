@@ -1,6 +1,6 @@
 # v0.3 implementation and release acceptance
 
-Latest follow-up (2026-11-15): [account suspension, native execution leases and trusted-edge login limits](V03_STABILIZATION.md), after [credential lifecycle/provisioning/memory reliability](V03_RELIABILITY.md). The original evidence snapshot below remains dated and reproducible; it is not the newest implementation SHA. All production gates remain Blocked.
+Latest follow-up (2026-11-15): [bounded export, native-client reconciliation and managed image recovery](V03_ENGINEERING.md) (PR #4, final verification in progress), after [execution policy/proxy stabilization](V03_STABILIZATION.md) and [credential/provisioning/memory reliability](V03_RELIABILITY.md). Historical evidence snapshots below remain reproducible. All production gates remain Blocked.
 
 Updated 2026-11-14. **Engineering candidate; MVP Ready: false.** No production account service, real DeepSeek execution, physical-phone notification, iPhone signing, TestFlight or npm publication is claimed. The default service origin is deliberately `null`; installing a development artifact alone does not provide a working hosted agent.
 

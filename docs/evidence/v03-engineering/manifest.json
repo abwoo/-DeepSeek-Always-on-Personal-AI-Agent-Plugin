@@ -1,0 +1,233 @@
+{
+  "date": "2026-11-15",
+  "pullRequest": 4,
+  "baseCommit": "7f18534bda7506162e0377321150c560c21244b9",
+  "productImplementationCommit": "b4b63e6aa32ce4db23f81fc59314b3a8d4c3b4fa",
+  "latestNativeTestImplementationCommit": "2597bacf9ca2e1de3f7532a5266f64786abb53fe",
+  "status": "Engineering verification in progress; final native checks pending",
+  "mvpReady": false,
+  "productionGateStatus": "T01\u2013T22 Blocked; no Level 4/5",
+  "versions": {
+    "harness": "0.2.2-rc.3",
+    "cordis": "4.1.0",
+    "expo": "58.0.25",
+    "reactNative": "0.88.1",
+    "caddy": "2.11.9"
+  },
+  "files": [
+    {
+      "path": "macos/initialize.json",
+      "sha256": "f1a419fd8ebc1800b10d41896c148693767a67bbb63b0a771ad85fa9643d8bec",
+      "runId": 43704865921,
+      "artifactId": 14157564061,
+      "zipSha256": "2da07810522e7ff487d7471448f4b5c05243689bc32b1b926cc63643dbc3a5e2",
+      "originalPath": "initialize.json",
+      "reportedSourceCommit": null,
+      "headCommit": "b4b63e6aa32ce4db23f81fc59314b3a8d4c3b4fa"
+    },
+    {
+      "path": "macos/plugin.json",
+      "sha256": "0fe87e1e8630ac40b489a14d51a682e031fd026a632ba40521c1678c7c4bcf34",
+      "runId": 43704865921,
+      "artifactId": 14157564061,
+      "zipSha256": "2da07810522e7ff487d7471448f4b5c05243689bc32b1b926cc63643dbc3a5e2",
+      "originalPath": "plugin.json",
+      "reportedSourceCommit": null,
+      "headCommit": "b4b63e6aa32ce4db23f81fc59314b3a8d4c3b4fa"
+    },
+    {
+      "path": "macos/plugins-ui.json",
+      "sha256": "8f10667101a9af2bc1d2fdfe93d504367552714678530993efb1020433d1f962",
+      "runId": 43704865921,
+      "artifactId": 14157564061,
+      "zipSha256": "2da07810522e7ff487d7471448f4b5c05243689bc32b1b926cc63643dbc3a5e2",
+      "originalPath": "plugins-ui.json",
+      "reportedSourceCommit": null,
+      "headCommit": "b4b63e6aa32ce4db23f81fc59314b3a8d4c3b4fa"
+    },
+    {
+      "path": "macos/runtime-versions.json",
+      "sha256": "6578cbc7db38f00ca72eac6ab0303b74147bbeb79f90e6c3020a94dd7530c302",
+      "runId": 43704865921,
+      "artifactId": 14157564061,
+      "zipSha256": "2da07810522e7ff487d7471448f4b5c05243689bc32b1b926cc63643dbc3a5e2",
+      "originalPath": "runtime-versions.json",
+      "reportedSourceCommit": null,
+      "headCommit": "b4b63e6aa32ce4db23f81fc59314b3a8d4c3b4fa"
+    },
+    {
+      "path": "windows/initialize.json",
+      "sha256": "42cee15f21fae7cb401b9b599b79b6fce439816aa517318be42fa8df8db747cb",
+      "runId": 43704865915,
+      "artifactId": 14158367304,
+      "zipSha256": "e129ee11e0d69243f8fc7fa2319c2676c3a729636b6b9f0371dced9194936777",
+      "originalPath": "initialize.json",
+      "reportedSourceCommit": null,
+      "headCommit": "b4b63e6aa32ce4db23f81fc59314b3a8d4c3b4fa"
+    },
+    {
+      "path": "windows/installer.json",
+      "sha256": "462b455559b61bfc29a476fe4c56e815c5d2a37fd0dac028e6d8b0e919aefa96",
+      "runId": 43704865915,
+      "artifactId": 14158367304,
+      "zipSha256": "e129ee11e0d69243f8fc7fa2319c2676c3a729636b6b9f0371dced9194936777",
+      "originalPath": "installer.json",
+      "reportedSourceCommit": null,
+      "headCommit": "b4b63e6aa32ce4db23f81fc59314b3a8d4c3b4fa"
+    },
+    {
+      "path": "windows/plugin.json",
+      "sha256": "92332221c08d57e2402e1c71f3ba431bd67d8330eed833f650d4bec28b296052",
+      "runId": 43704865915,
+      "artifactId": 14158367304,
+      "zipSha256": "e129ee11e0d69243f8fc7fa2319c2676c3a729636b6b9f0371dced9194936777",
+      "originalPath": "plugin.json",
+      "reportedSourceCommit": null,
+      "headCommit": "b4b63e6aa32ce4db23f81fc59314b3a8d4c3b4fa"
+    },
+    {
+      "path": "windows/plugins-ui.json",
+      "sha256": "1506d64972ae40bd1f6811a36b93f148572fe464f5f1c8d7c3ced4994d12c4b8",
+      "runId": 43704865915,
+      "artifactId": 14158367304,
+      "zipSha256": "e129ee11e0d69243f8fc7fa2319c2676c3a729636b6b9f0371dced9194936777",
+      "originalPath": "plugins-ui.json",
+      "reportedSourceCommit": null,
+      "headCommit": "b4b63e6aa32ce4db23f81fc59314b3a8d4c3b4fa"
+    },
+    {
+      "path": "windows/runtime-versions.json",
+      "sha256": "6578cbc7db38f00ca72eac6ab0303b74147bbeb79f90e6c3020a94dd7530c302",
+      "runId": 43704865915,
+      "artifactId": 14158367304,
+      "zipSha256": "e129ee11e0d69243f8fc7fa2319c2676c3a729636b6b9f0371dced9194936777",
+      "originalPath": "runtime-versions.json",
+      "reportedSourceCommit": null,
+      "headCommit": "b4b63e6aa32ce4db23f81fc59314b3a8d4c3b4fa"
+    },
+    {
+      "path": "runtime/managed-authority.json",
+      "sha256": "406909ea9ff71ff54ed2370c366ffc7c20244ef2ca10b3f7c74b00374aa2a57f",
+      "runId": 43704865916,
+      "artifactId": 14157454906,
+      "zipSha256": "979bc42713118dee62d83bfb55e9e26c93d535ad7729667cbc719325964ff0bc",
+      "originalPath": "managed-authority.json",
+      "reportedSourceCommit": null,
+      "headCommit": "b4b63e6aa32ce4db23f81fc59314b3a8d4c3b4fa"
+    },
+    {
+      "path": "runtime/real-deepseek.json",
+      "sha256": "352ebf111476d45a7be84894c9fad7eba1cbe053168579f99543c0ab8c8ee8d7",
+      "runId": 43704865916,
+      "artifactId": 14157454906,
+      "zipSha256": "979bc42713118dee62d83bfb55e9e26c93d535ad7729667cbc719325964ff0bc",
+      "originalPath": "real-deepseek.json",
+      "reportedSourceCommit": null,
+      "headCommit": "b4b63e6aa32ce4db23f81fc59314b3a8d4c3b4fa"
+    },
+    {
+      "path": "runtime/managed-container.json",
+      "sha256": "3bff05601e9a3747be232dff77fca67f4a658502eb226bb18920d98286b356ee",
+      "runId": 43704865916,
+      "artifactId": 14157454906,
+      "zipSha256": "979bc42713118dee62d83bfb55e9e26c93d535ad7729667cbc719325964ff0bc",
+      "originalPath": "managed-container.json",
+      "reportedSourceCommit": "b4b63e6aa32ce4db23f81fc59314b3a8d4c3b4fa",
+      "headCommit": "b4b63e6aa32ce4db23f81fc59314b3a8d4c3b4fa"
+    },
+    {
+      "path": "core/phase0-bridge.json",
+      "sha256": "0697da14f934e99ea862901072b539ea9d051ad930237bff3b33870db03b22bb",
+      "runId": 43705146437,
+      "artifactId": 14157672615,
+      "zipSha256": "9c27fef0d9bcc6d893c207314def94c9859d9ec34b8a7812028d452e61b98ea7",
+      "originalPath": "test-results/phase0-bridge.json",
+      "reportedSourceCommit": null,
+      "headCommit": "67ac405a36290ea5c4f1eae8cea617dddf15400c"
+    },
+    {
+      "path": "accounts/v03-accounts.json",
+      "sha256": "97e733e954111dc38fff7cacc8effc5a758f56cb39ab949a8e632db5ee1e0448",
+      "runId": 43705146491,
+      "artifactId": 14157918290,
+      "zipSha256": "935e10e97a0434532ce126947ccb20f0b6538f4a28515b279d991e4d3cce1345",
+      "originalPath": "v03-accounts.json",
+      "reportedSourceCommit": "73982e59d738c539c9eb72e06dadff5949f9df8c",
+      "headCommit": "67ac405a36290ea5c4f1eae8cea617dddf15400c"
+    },
+    {
+      "path": "accounts/v03-backup.json",
+      "sha256": "1f167b81c6862178ad82783e8c32fbb288048eefd70d701000b384c1d63d8915",
+      "runId": 43705146491,
+      "artifactId": 14157918290,
+      "zipSha256": "935e10e97a0434532ce126947ccb20f0b6538f4a28515b279d991e4d3cce1345",
+      "originalPath": "v03-backup.json",
+      "reportedSourceCommit": "73982e59d738c539c9eb72e06dadff5949f9df8c",
+      "headCommit": "67ac405a36290ea5c4f1eae8cea617dddf15400c"
+    },
+    {
+      "path": "accounts/v03-release-gate.json",
+      "sha256": "e3b39f32eb50680a283f82e1c56e9f8f61a3b9b51253730c28bad902cfed5d9d",
+      "runId": 43705146491,
+      "artifactId": 14157918290,
+      "zipSha256": "935e10e97a0434532ce126947ccb20f0b6538f4a28515b279d991e4d3cce1345",
+      "originalPath": "v03-release-gate.json",
+      "reportedSourceCommit": "73982e59d738c539c9eb72e06dadff5949f9df8c",
+      "headCommit": "67ac405a36290ea5c4f1eae8cea617dddf15400c"
+    },
+    {
+      "path": "accounts/control-proxy.json",
+      "sha256": "4acede91d84da3222bb55439f44d07d624b39b8bf6cec35fd0a70a900aabc97b",
+      "runId": 43705146491,
+      "artifactId": 14157918290,
+      "zipSha256": "935e10e97a0434532ce126947ccb20f0b6538f4a28515b279d991e4d3cce1345",
+      "originalPath": "control-proxy.json",
+      "reportedSourceCommit": "73982e59d738c539c9eb72e06dadff5949f9df8c",
+      "headCommit": "67ac405a36290ea5c4f1eae8cea617dddf15400c"
+    },
+    {
+      "path": "accounts/mobile-component-contract.json",
+      "sha256": "c748341329cf5f2b33485ca55d893d1e68e0cdabac5f88852c95e0205a27c748",
+      "runId": 43705146491,
+      "artifactId": 14157918290,
+      "zipSha256": "935e10e97a0434532ce126947ccb20f0b6538f4a28515b279d991e4d3cce1345",
+      "originalPath": "mobile-component-contract.json",
+      "reportedSourceCommit": "73982e59d738c539c9eb72e06dadff5949f9df8c",
+      "headCommit": "67ac405a36290ea5c4f1eae8cea617dddf15400c"
+    },
+    {
+      "path": "failed-ios/ios.json",
+      "sha256": "a3b61dc4de1d4e635690b10cf6df00f4f65e83ef78bce3e1c0e368173881d934",
+      "scope": "Retained initial simctl-command timeout, not Pass"
+    },
+    {
+      "path": "audit/root.json",
+      "sha256": "f6c9ec6be8974309f9ad3cd23fdc0f3929d1da548e22cc60efdec03560461fe3",
+      "scope": "Local complete root npm dependency graph"
+    },
+    {
+      "path": "audit/mobile.json",
+      "sha256": "c88bc6295d63699f4067d21a0f0f95a6d6836c8b18b0c0cdb85880193d279b5a",
+      "scope": "Local complete mobile npm dependency graph"
+    },
+    {
+      "path": "production-blockers.json",
+      "sha256": "5e8595ee6591f2fc94f8a09d64997069b8043563efe80ba4cc2940ce38e62573",
+      "scope": "Current T01\u2013T22 production gates: all Blocked"
+    }
+  ],
+  "failedObservations": [
+    {
+      "runId": 43704865954,
+      "headCommit": "b4b63e6aa32ce4db23f81fc59314b3a8d4c3b4fa",
+      "reason": "iOS simctl launch command timed out; retained actual screenshot shows account UI, subsequent verification requires independent native PID plus actual screenshot. No success inferred from timeout."
+    },
+    {
+      "runId": 43706818285,
+      "headCommit": "d86bd88ce337a885526bd6f078a4bde2b6986854",
+      "reason": "Android engineering-only network config missing required explicit includeSubdomains; native lint retained, fixed to false. Ordinary preview APK compiled before this test-only failure."
+    }
+  ],
+  "artifactRetention": "Actions binaries/screenshots 14 days; only small raw observations retained here. Download and verify needed binaries before expiry. Windows raw CRLF observations preserved byte-for-byte.",
+  "provenance": "PR observations explicitly record their tested merge checkout where present; headCommit is not silently substituted. Sources without a field are bound by their original run/artifact/hash."
+}

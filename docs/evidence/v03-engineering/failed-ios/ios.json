@@ -1,0 +1,15 @@
+{
+  "sourceCommit": "b4b63e6aa32ce4db23f81fc59314b3a8d4c3b4fa",
+  "nativeSimulatorAppBuilt": true,
+  "simulatorLaunch": false,
+  "secureStorageStartupPassed": false,
+  "installableOnPhysicalIPhone": false,
+  "appleSigningCredentialsPresent": false,
+  "realPhone": false,
+  "realDeepSeek": false,
+  "mvpReady": false,
+  "simulatorRuntime": "com.apple.CoreSimulator.SimRuntime.iOS-26-4",
+  "simulatorDevice": "iPhone 17 Pro",
+  "simulatorSigning": "Xcode Simulator ad-hoc signature and linked simulated entitlements; no physical-device provisioning profile",
+  "failure": "Command '['xcrun', 'simctl', 'launch', '2CC7A2C1-E1A7-4633-911A-DB60BDEB97F0', 'com.abwoo.deepseekalwayson']' timed out after 120 seconds"
+}
