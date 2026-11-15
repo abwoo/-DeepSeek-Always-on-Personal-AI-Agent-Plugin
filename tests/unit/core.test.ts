@@ -137,6 +137,44 @@ test('plugin shutdown pauses native schedules and retains data', async () => {
   assert.deepEqual(f.edits, [{ id: t.scheduleId, action: 'update', patch: { active: false } }]);
   f.store.close();
 });
+test('unload checks native receipts, attempts every pause and retains uncertain states', async () => {
+  const f = fixture();
+  try {
+    await f.c.create(input); await f.c.create(input);
+    const [failing, succeeding] = f.c.tasks();
+    const attempted: string[] = [];
+    f.scheduler.edit = async ({ id }) => {
+      attempted.push(id);
+      return id === failing!.scheduleId ? { id, code: 'schedule_conflict' } : { id, status: 'paused' };
+    };
+    await assert.rejects(f.c.shutdown(), /could not confirm all native schedule pauses/);
+    assert.deepEqual(attempted, [failing!.scheduleId, succeeding!.scheduleId]);
+    assert.equal(f.c.requireTask(failing!.id).state, 'error');
+    assert.equal(f.c.requireTask(failing!.id).suspendedForUnload, false);
+    assert.match(f.c.requireTask(failing!.id).error!, /unconfirmed/);
+    assert.equal(f.c.requireTask(succeeding!.id).suspendedForUnload, true);
+    assert.equal(f.c.enabled, false);
+  } finally { f.store.close(); }
+});
+test('catalog or transport failure cannot skip later unload pause attempts', async () => {
+  const f = fixture();
+  try {
+    await f.c.create(input); await f.c.create(input);
+    f.scheduler.catalog = async () => { throw Error('Catalog unavailable'); };
+    const [failing, succeeding] = f.c.tasks();
+    const attempted: string[] = [];
+    f.scheduler.edit = async ({ id }) => {
+      attempted.push(id);
+      if (id === failing!.scheduleId) throw Error('Unknown transport outcome');
+      return { id, status: 'paused' };
+    };
+    await assert.rejects(f.c.shutdown(), AggregateError);
+    assert.deepEqual(attempted, [failing!.scheduleId, succeeding!.scheduleId]);
+    assert.equal(f.c.requireTask(failing!.id).state, 'error');
+    assert.equal(f.c.requireTask(succeeding!.id).suspendedForUnload, true);
+    assert.equal(f.c.tasks().length, 2);
+  } finally { f.store.close(); }
+});
 test('memory proposal cannot be retrieved before human confirmation, deletion removes future retrieval', () => {
   const f = fixture();
   const p = f.memory.propose({

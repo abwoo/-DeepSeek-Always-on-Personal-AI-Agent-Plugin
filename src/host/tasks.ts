@@ -325,18 +325,39 @@ export class Coordinator {
   }
   async shutdown() {
     this.enabled = false;
-    const entries = await this.scheduler.catalog?.();
+    const failures: unknown[] = [];
+    let entries: Awaited<ReturnType<NonNullable<Scheduler['catalog']>>> | undefined;
+    try {
+      entries = await this.scheduler.catalog?.();
+    } catch (error) {
+      // A failed catalog must not prevent attempts to pause every tracked schedule.
+      failures.push(error);
+    }
     for (const task of this.tasks().filter((t) => t.state === 'active' && t.scheduleId)) {
       if (entries && !entries.some((e) => e.id === task.scheduleId && e.status === 'active'))
         continue;
       task.suspendedForUnload = true;
       this.store.put('tasks', task.id, task);
-      await this.scheduler.edit({
-        id: task.scheduleId!,
-        action: 'update',
-        patch: { active: false },
-      });
+      try {
+        const receipt = (await this.scheduler.edit({
+          id: task.scheduleId!,
+          action: 'update',
+          patch: { active: false },
+        })) as { id?: string; status?: string; code?: string };
+        if (receipt?.id !== task.scheduleId || receipt.code ||
+            !['paused', 'ended'].includes(receipt.status ?? ''))
+          throw new ScheduleNotConfirmed();
+      } catch (error) {
+        // Preserve uncertain outcomes and never resume them automatically on reload.
+        task.state = 'error';
+        task.suspendedForUnload = false;
+        task.error = 'Native schedule pause during plugin unload is unconfirmed; review before retrying.';
+        this.store.put('tasks', task.id, task);
+        failures.push(error);
+      }
     }
+    if (failures.length)
+      throw new AggregateError(failures, 'Plugin unload could not confirm all native schedule pauses');
   }
 }
 // Parse ONLY messages whose native source is schedule. Both framing variants are pinned by compatibility tests.

@@ -28,6 +28,11 @@ export function conversationRows(events: Array<{ type: string; seq: number; data
       }
     } else if (event.type === 'user/message' || event.type === 'assistant/message') {
       const message = event.type === 'user/message' ? event.data : event.data.message;
+      // Official Harness runtime snapshots contain internal paths/policy instructions,
+      // not conversation content. Keep the authoritative events unchanged; omit only
+      // this explicit native source from the normal Desktop/mobile chat projection.
+      // Never filter by text: a user's quoted system-reminder remains their message.
+      if (event.type === 'user/message' && message.source?.kind === 'runtime-context') continue;
       rows.set(message.id, {
         id: message.id,
         seq: event.seq,

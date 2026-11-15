@@ -124,3 +124,15 @@ All rows use source **`95793a60d3475be5b36a425562cb4065daba19f1`**, actual envir
 ## External blockers and next work
 
 No authorized cloud/Auth0/DeepSeek/Expo/Apple/npm credentials were found. [Handoff](V03_HANDOFF.md), [control deployment](../deploy/control/README.md) and [AWS candidate](../deploy/aws/README.md) give precise operator steps. End users never perform these operations. Once authorized, deploy the real service, register actual identities, rebuild clients with real public metadata and stable signing, then retain correlated IDs through the full physical chain. Until then release is blocked.
+
+
+## Post-merge engineering follow-up (2026-11-16 Asia/Shanghai)
+
+PR #4 was merged as `f574b613ef879f437776286cd29a0a3c2b1dcfa9`; its tree matched the tested PR head. Main regression remains independent evidence:
+
+- macOS run `43751768183` failed on the second real Desktop boot (`/api/always-on` stayed 404). First-boot mutations and the independent remote authority succeeded. Commit `b81fdc3` adds bounded, credential-filtered startup diagnostics without relaxing the 200/persisted-ID assertion. Real macOS run `43753411339` and Windows run `43753411350` passed. The intermittent 404 root cause remains unconfirmed; a passing repetition is not a root-cause fix.
+- Android run `43751768046` built the real APK, completed native task/Memory/Goal checks, then failed to navigate from the fixture reply back to the user message. Its retained accessibility tree shows the user text and a large official `runtime-context` snapshot in the normal chat. The shared presentation now excludes that explicitly typed internal source, preserving native Session events and user-quoted text. The native contract checks both rendered messages, retained runtime events and independent Session readback.
+- Plugin unload previously ignored negative native Schedule receipts and could stop processing remaining tasks after one rejection. Unload now attempts every tracked pause, validates each receipt, persists uncertain tasks as errors (no automatic reload resume), and reports aggregate failures. New fault tests exercise both native domain rejection and catalog/transport failure. This cannot guarantee a failed upstream pause took effect; uncertainty remains explicit.
+- `309f32c` captures the actual rendered Android file chooser after UI idle and verifies its visible JSONL filename. It does not infer physical delivery from a share Activity or push provider receipt.
+
+The current follow-up requires fresh CI/native regression; its production gates remain T01–T22 **Blocked**, no Level 4/5 or MVP Ready. Existing historical failures and successful observations remain separate. Authorized live cloud/identity/model/signing/push and physical-device work is still required, as are unaccepted iOS account-form and distributed-upgrade checks.

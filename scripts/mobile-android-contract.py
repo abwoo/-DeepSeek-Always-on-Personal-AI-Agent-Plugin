@@ -129,11 +129,14 @@ try:
  goal=wait(lambda:next((g for g in get()['goals'] if g['title']=='Native goal proof'),None));evidence['goalId']=goal['id'];assert goal['instruction']=='Deterministic bounded goal'
  tap('Pause goal');wait(lambda:next(g for g in get()['goals'] if g['id']==goal['id'])['state']=='paused');tap('Resume goal');wait(lambda:next(g for g in get()['goals'] if g['id']==goal['id'])['state']=='active');evidence['nativeGoalControls']=True;note('Native goal create, pause and resume read back')
  tab('Inbox');tap('Mark read');wait(lambda:any(n['runId']==run['id'] and n['read'] for n in get()['inbox']));tap('Open task result');find('Selected task execution · completed');find(run['id']);evidence['nativeInboxRunNavigation']=True
- tab('Chat');tap('New conversation');fill('Message your agent','Native model fixture hello');tap('Send');find('Fixture check complete.');find('Native model fixture hello')
+ tab('Chat');tap('New conversation');fill('Message your agent','Native model fixture hello');tap('Send');find('Fixture check complete.');top();find('Native model fixture hello');find('Fixture check complete.');top()
  ids=[n.attrib.get('text','') for n in tree().iter('node') if re.fullmatch(r'session-[0-9a-f-]{36}',n.attrib.get('text',''))]
  assert ids,'Native selected Session ID missing';sid=ids[-1]
  conversation=get('/engineering/conversation?id='+sid)
  assert conversation['sessionId']==sid and 'Native model fixture hello' in json.dumps(conversation) and 'Fixture check complete.' in json.dumps(conversation)
+ assert any(r.get('event',{}).get('type')=='user/message' and r['event'].get('data',{}).get('source',{}).get('kind')=='runtime-context' for r in conversation['events']['records']),'Native runtime history was unexpectedly removed'
+ assert '<system-reminder>' not in words(),'Internal native runtime snapshot leaked into normal chat'
+ capture('chat');evidence['nativeRuntimeContextHidden']=True
  evidence['chatSessionId']=sid;evidence['nativeSharedSessionChat']=True;note('Native chat and independent reader share Session and actual fixture result',sessionId=sid)
  tab('Devices');find('Native engineering device');tap('Check notification delivery');wait(lambda:'Push service not configured' in words());evidence['nativeDeviceReadAndHonestPushStatus']=True
  # Actual FileSystem and Android Sharing modules, not browser adapters. No OS
