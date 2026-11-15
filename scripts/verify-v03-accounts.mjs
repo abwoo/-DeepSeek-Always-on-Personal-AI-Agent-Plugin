@@ -196,7 +196,9 @@ try {
   await boot(slots);
   if(nativeFixture) {
     const nativeConnection=await login('alice','Native engineering device');
-    await serveNativeFixture({base,connection:nativeConnection,observer:client(nativeConnection)});
+    const observerConnection=await login('alice','Independent native QA observer');
+    const observer=new AccountManagedClient(observerConnection,async()=>{},undefined,transport);
+    await serveNativeFixture({base,connection:nativeConnection,observer});
   } else {
   const a = await login('alice'),
     phone = await login('alice'),

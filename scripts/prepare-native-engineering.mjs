@@ -15,7 +15,7 @@ execFileSync('chmod',['600',key]);
 const flavor=join(mobile,'android/app/src/engineering');
 await mkdir(join(flavor,'res/raw'),{recursive:true});await mkdir(join(flavor,'res/xml'),{recursive:true});
 await copyFile(cert,join(flavor,'res/raw/always_on_test_ca.pem'));
-await writeFile(join(flavor,'res/xml/always_on_engineering_network.xml'),`<?xml version="1.0" encoding="utf-8"?>\n<network-security-config><base-config cleartextTrafficPermitted="false"><trust-anchors><certificates src="system" /></trust-anchors></base-config><domain-config cleartextTrafficPermitted="false"><domain>127.0.0.1</domain><trust-anchors><certificates src="@raw/always_on_test_ca" /></trust-anchors></domain-config></network-security-config>\n`);
+await writeFile(join(flavor,'res/xml/always_on_engineering_network.xml'),`<?xml version="1.0" encoding="utf-8"?>\n<network-security-config><base-config cleartextTrafficPermitted="false"><trust-anchors><certificates src="system" /></trust-anchors></base-config><domain-config cleartextTrafficPermitted="false"><domain includeSubdomains="false">127.0.0.1</domain><trust-anchors><certificates src="@raw/always_on_test_ca" /></trust-anchors></domain-config></network-security-config>\n`);
 await writeFile(join(flavor,'AndroidManifest.xml'),`<manifest xmlns:android="http://schemas.android.com/apk/res/android"><application android:networkSecurityConfig="@xml/always_on_engineering_network" android:label="Always-on Engineering QA" xmlns:tools="http://schemas.android.com/tools" tools:replace="android:label" /></manifest>\n`);
 text=text.replace('android {',`android {\n    flavorDimensions "qa"\n    productFlavors { engineering { dimension "qa"; applicationIdSuffix ".engineering" } }`);
 await writeFile(gradle,text);
