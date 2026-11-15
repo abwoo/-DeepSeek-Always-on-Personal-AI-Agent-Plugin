@@ -1,0 +1,14 @@
+{
+  "nativeEmulatorLaunch": true,
+  "accountScreenVisible": true,
+  "realPhone": false,
+  "realDeepSeek": false,
+  "realNativePush": false,
+  "mvpReady": false,
+  "systemLauncherAnrDismissed": true,
+  "secureStorageStartupPassed": true,
+  "technicalConfigurationFieldsAbsent": true,
+  "unconfiguredSignInFeedback": true,
+  "nativeLanguageAndThemeInteraction": true,
+  "processRestart": true
+}

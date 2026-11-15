@@ -4,9 +4,9 @@
   "baseCommit": "7f18534bda7506162e0377321150c560c21244b9",
   "productImplementationCommit": "b4b63e6aa32ce4db23f81fc59314b3a8d4c3b4fa",
   "latestNativeTestImplementationCommit": "3083f4127aacbd5233ce98aa2d4cda0769939e72",
-  "status": "Engineering verification in progress; final native checks pending",
+  "status": "This stabilization pass passed engineering verification; production acceptance remains blocked",
   "mvpReady": false,
-  "productionGateStatus": "T01–T22 Blocked; no Level 4/5",
+  "productionGateStatus": "T01\u2013T22 Blocked; no Level 4/5",
   "versions": {
     "harness": "0.2.2-rc.3",
     "cordis": "4.1.0",
@@ -213,7 +213,7 @@
     {
       "path": "production-blockers.json",
       "sha256": "5e8595ee6591f2fc94f8a09d64997069b8043563efe80ba4cc2940ce38e62573",
-      "scope": "Current T01–T22 production gates: all Blocked"
+      "scope": "Current T01\u2013T22 production gates: all Blocked"
     },
     {
       "path": "cloud-accounts/v03-accounts.json",
@@ -225,7 +225,9 @@
       "originalPath": "v03-accounts.json",
       "reportedSourceCommit": "3083f4127aacbd5233ce98aa2d4cda0769939e72",
       "checkoutCommit": "3083f4127aacbd5233ce98aa2d4cda0769939e72",
-      "capture": "Exact bytes from source-controlled CI logger; SHA-256 calculated in CI and checked again from repository files. ZIP digest reported by GitHub, not independently downloaded in this capture."
+      "capture": "Downloaded artifact ZIP digest independently verified; exact raw file bytes compared with the repository copy. CI verifier recomputes file hashes.",
+      "zipSha256": "2e7b4a3b3bc91729b26cf22bf02ef7d527ce6dad80f538b7641fd6284b1b5677",
+      "zipIndependentlyVerified": true
     },
     {
       "path": "cloud-accounts/v03-backup.json",
@@ -237,7 +239,9 @@
       "originalPath": "v03-backup.json",
       "reportedSourceCommit": "3083f4127aacbd5233ce98aa2d4cda0769939e72",
       "checkoutCommit": "3083f4127aacbd5233ce98aa2d4cda0769939e72",
-      "capture": "Exact bytes from source-controlled CI logger; SHA-256 calculated in CI and checked again from repository files. ZIP digest reported by GitHub, not independently downloaded in this capture."
+      "capture": "Downloaded artifact ZIP digest independently verified; exact raw file bytes compared with the repository copy. CI verifier recomputes file hashes.",
+      "zipSha256": "2e7b4a3b3bc91729b26cf22bf02ef7d527ce6dad80f538b7641fd6284b1b5677",
+      "zipIndependentlyVerified": true
     },
     {
       "path": "cloud-accounts/control-proxy.json",
@@ -249,7 +253,9 @@
       "originalPath": "control-proxy.json",
       "reportedSourceCommit": "3083f4127aacbd5233ce98aa2d4cda0769939e72",
       "checkoutCommit": "3083f4127aacbd5233ce98aa2d4cda0769939e72",
-      "capture": "Exact bytes from source-controlled CI logger; SHA-256 calculated in CI and checked again from repository files. ZIP digest reported by GitHub, not independently downloaded in this capture."
+      "capture": "Downloaded artifact ZIP digest independently verified; exact raw file bytes compared with the repository copy. CI verifier recomputes file hashes.",
+      "zipSha256": "2e7b4a3b3bc91729b26cf22bf02ef7d527ce6dad80f538b7641fd6284b1b5677",
+      "zipIndependentlyVerified": true
     },
     {
       "path": "cloud-accounts/mobile-component-contract.json",
@@ -261,7 +267,9 @@
       "originalPath": "mobile-component-contract.json",
       "reportedSourceCommit": "3083f4127aacbd5233ce98aa2d4cda0769939e72",
       "checkoutCommit": "3083f4127aacbd5233ce98aa2d4cda0769939e72",
-      "capture": "Exact bytes from source-controlled CI logger; SHA-256 calculated in CI and checked again from repository files. ZIP digest reported by GitHub, not independently downloaded in this capture."
+      "capture": "Downloaded artifact ZIP digest independently verified; exact raw file bytes compared with the repository copy. CI verifier recomputes file hashes.",
+      "zipSha256": "2e7b4a3b3bc91729b26cf22bf02ef7d527ce6dad80f538b7641fd6284b1b5677",
+      "zipIndependentlyVerified": true
     },
     {
       "path": "cloud-accounts/v03-release-gate.json",
@@ -273,7 +281,9 @@
       "originalPath": "v03-release-gate.json",
       "reportedSourceCommit": "3083f4127aacbd5233ce98aa2d4cda0769939e72",
       "checkoutCommit": "3083f4127aacbd5233ce98aa2d4cda0769939e72",
-      "capture": "Exact bytes from source-controlled CI logger; SHA-256 calculated in CI and checked again from repository files. ZIP digest reported by GitHub, not independently downloaded in this capture."
+      "capture": "Downloaded artifact ZIP digest independently verified; exact raw file bytes compared with the repository copy. CI verifier recomputes file hashes.",
+      "zipSha256": "2e7b4a3b3bc91729b26cf22bf02ef7d527ce6dad80f538b7641fd6284b1b5677",
+      "zipIndependentlyVerified": true
     },
     {
       "path": "cloud-runtime/managed-authority.json",
@@ -285,7 +295,9 @@
       "originalPath": "managed-authority.json",
       "reportedSourceCommit": null,
       "checkoutCommit": "3083f4127aacbd5233ce98aa2d4cda0769939e72",
-      "capture": "Exact bytes from source-controlled CI logger; SHA-256 calculated in CI and checked again from repository files. ZIP digest reported by GitHub, not independently downloaded in this capture."
+      "capture": "Downloaded artifact ZIP digest independently verified; exact raw file bytes compared with the repository copy. CI verifier recomputes file hashes.",
+      "zipSha256": "54b4a7cd80a407d845a6cf208ff852d6c026c4e361c947f81c1fd89d596db27b",
+      "zipIndependentlyVerified": true
     },
     {
       "path": "cloud-runtime/managed-container.json",
@@ -297,7 +309,73 @@
       "originalPath": "managed-container.json",
       "reportedSourceCommit": "3083f4127aacbd5233ce98aa2d4cda0769939e72",
       "checkoutCommit": "3083f4127aacbd5233ce98aa2d4cda0769939e72",
-      "capture": "Exact bytes from source-controlled CI logger; SHA-256 calculated in CI and checked again from repository files. ZIP digest reported by GitHub, not independently downloaded in this capture."
+      "capture": "Downloaded artifact ZIP digest independently verified; exact raw file bytes compared with the repository copy. CI verifier recomputes file hashes.",
+      "zipSha256": "54b4a7cd80a407d845a6cf208ff852d6c026c4e361c947f81c1fd89d596db27b",
+      "zipIndependentlyVerified": true
+    },
+    {
+      "path": "native-mobile/native-contract.json",
+      "sha256": "3486e2c3780a4d4796f8d77c2d44aa981c15895a1e3dd172606107fe5f973daa",
+      "runId": 43711774754,
+      "originalPath": "mobile-evidence/native-contract.json",
+      "reportedSourceCommit": "3083f4127aacbd5233ce98aa2d4cda0769939e72",
+      "checkoutCommit": "3083f4127aacbd5233ce98aa2d4cda0769939e72",
+      "jobId": 132804678208,
+      "artifactId": 14161681912,
+      "zipSha256": "ecfad712de73223e37ed3c464bd0e8715084d1f67b1dc2f7727a2c753bb4bad4",
+      "zipIndependentlyVerified": true,
+      "capture": "Downloaded artifact ZIP digest independently verified; exact raw file bytes compared with the repository copy. CI verifier recomputes file hashes."
+    },
+    {
+      "path": "native-mobile/android.json",
+      "sha256": "02e21e132bd6ab56ab44ccbc65302a0a320413f6fb50cbb764b9fc96d238190c",
+      "runId": 43711774754,
+      "originalPath": "mobile-evidence/android.json",
+      "reportedSourceCommit": "3083f4127aacbd5233ce98aa2d4cda0769939e72",
+      "checkoutCommit": "3083f4127aacbd5233ce98aa2d4cda0769939e72",
+      "jobId": 132804678208,
+      "artifactId": 14161445556,
+      "zipSha256": "8286329f8601887de964ed2db1acebfc6eedad202257fc6dfad956b6090ddeda",
+      "zipIndependentlyVerified": true,
+      "capture": "Downloaded artifact ZIP digest independently verified; exact raw file bytes compared with the repository copy. CI verifier recomputes file hashes."
+    },
+    {
+      "path": "native-mobile/ios.json",
+      "sha256": "ed4a13d21d3a40652cdbdc385516ea2701fe8c158b5b5bf73eb7d71e04141d92",
+      "runId": 43711774754,
+      "originalPath": "ios.json",
+      "reportedSourceCommit": "3083f4127aacbd5233ce98aa2d4cda0769939e72",
+      "checkoutCommit": "3083f4127aacbd5233ce98aa2d4cda0769939e72",
+      "jobId": 132806188873,
+      "artifactId": 14160881965,
+      "zipSha256": "6c410612a2d0b53266ab78b530209bc05c9ad32182c064d8606d1a02cfd2f5e6",
+      "zipIndependentlyVerified": true,
+      "capture": "Downloaded artifact ZIP digest independently verified; exact raw file bytes compared with the repository copy. CI verifier recomputes file hashes."
+    },
+    {
+      "path": "native-mobile/android-emulator.json",
+      "sha256": "e6e1bf0a08e7aac43fb5ad45d063dff9467ada6e508c6948804ded04fa3960ba",
+      "runId": 43711774754,
+      "originalPath": "android-emulator.json",
+      "reportedSourceCommit": null,
+      "checkoutCommit": "3083f4127aacbd5233ce98aa2d4cda0769939e72",
+      "jobId": 132809491406,
+      "artifactId": 14161117653,
+      "zipSha256": "c570a688f28429b8f89b203c82f167b791226c70a28135598b1e8b8965ad09d7",
+      "zipIndependentlyVerified": true,
+      "capture": "Downloaded artifact ZIP digest independently verified; exact raw file bytes compared with the repository copy. CI verifier recomputes file hashes."
+    },
+    {
+      "path": "cloud-runtime/real-deepseek.json",
+      "sha256": "352ebf111476d45a7be84894c9fad7eba1cbe053168579f99543c0ab8c8ee8d7",
+      "runId": 43711774758,
+      "originalPath": "real-deepseek.json",
+      "reportedSourceCommit": null,
+      "checkoutCommit": "3083f4127aacbd5233ce98aa2d4cda0769939e72",
+      "artifactId": 14160539350,
+      "zipSha256": "54b4a7cd80a407d845a6cf208ff852d6c026c4e361c947f81c1fd89d596db27b",
+      "zipIndependentlyVerified": true,
+      "capture": "Downloaded artifact ZIP digest independently verified; exact raw file bytes compared with the repository copy. CI verifier recomputes file hashes."
     }
   ],
   "failedObservations": [
@@ -335,5 +413,81 @@
   "provenance": "PR observations explicitly record their tested merge checkout where present; headCommit is not silently substituted. Sources without a field are bound by their original run/artifact/hash.",
   "runtimeRecoveryImplementationCommit": "0d164bd4d8d95196077d75754825b99e29e20565",
   "evidenceVerifierImplementationCommit": "d3cad0fe0c5962e01b6965e03b8ea011c8e589cd",
-  "currentAcceptanceMatrix": "production-current.json"
+  "currentAcceptanceMatrix": "production-current.json",
+  "reportUpdatedAtLocal": "2026-11-16",
+  "reportTimezone": "Asia/Shanghai",
+  "completedEngineeringChecks": {
+    "unitTests": {
+      "passed": 72,
+      "failed": 0,
+      "skipped": 0
+    },
+    "macosOfficialDesktop": "Pass: actual signed app/Plugins GUI/native panel and downloaded records; fixture distribution and authority",
+    "windowsOfficialDesktop": "Action/API/persistence Pass; retained compositor capture warnings",
+    "androidNativeControls": "Pass: real native forms, offline task, native Session, memory/goals/Inbox, file chooser and reconnection against actual Harness; fixture identity/model",
+    "androidOrdinaryPreview": "Pass: actual secure storage/onboarding, honest unavailable sign-in feedback, language/theme and restart",
+    "iosSimulator": "Pass: actual native build, installed executable PID and screenshot OCR; no physical iPhone or signed distribution",
+    "runtimeCheckpoint": "Pass: actual image upgrade and whole-checkpoint rollback, original-container resume and wrong-image rejection"
+  },
+  "nativeCorrelations": {
+    "authorityId": "c805f5ec-4b4d-487f-a878-3867895334d7",
+    "taskId": "febaaadf-e2ff-4041-815a-5ccf57d6ef72",
+    "runId": "62a8c537-08e5-4fd4-8c62-2a7b2febd42f",
+    "sessionId": "session-b36e4364-1716-4d56-a04a-b748be6c32e8",
+    "observer": "Independent account-device API reader, not a simultaneously running native Desktop app",
+    "realDeepSeek": false,
+    "realPhone": false,
+    "nativePush": false
+  },
+  "nativeWorkflow": {
+    "id": 43711774754,
+    "sourceCommit": "3083f4127aacbd5233ce98aa2d4cda0769939e72",
+    "status": "Pass",
+    "jobs": {
+      "android": 132804678208,
+      "iosBuild": 132804677919,
+      "iosSmoke": 132806188873,
+      "androidOrdinarySmoke": 132809491406
+    },
+    "url": "https://github.com/abwoo/-DeepSeek-Always-on-Personal-AI-Agent-Plugin/actions/runs/43711774754"
+  },
+  "nativeBuildArtifacts": [
+    {
+      "id": 14161681912,
+      "name": "android-native-contract",
+      "sourceCommit": "3083f4127aacbd5233ce98aa2d4cda0769939e72",
+      "zipSha256": "ecfad712de73223e37ed3c464bd0e8715084d1f67b1dc2f7727a2c753bb4bad4",
+      "zipIndependentlyVerified": true,
+      "url": "https://github.com/abwoo/-DeepSeek-Always-on-Personal-AI-Agent-Plugin/actions/runs/43711774754/artifacts/14161681912",
+      "scope": "Engineering-only loopback bootstrap; not an end-user product"
+    },
+    {
+      "id": 14161445556,
+      "name": "android-native-preview",
+      "sourceCommit": "3083f4127aacbd5233ce98aa2d4cda0769939e72",
+      "zipSha256": "8286329f8601887de964ed2db1acebfc6eedad202257fc6dfad956b6090ddeda",
+      "zipIndependentlyVerified": true,
+      "url": "https://github.com/abwoo/-DeepSeek-Always-on-Personal-AI-Agent-Plugin/actions/runs/43711774754/artifacts/14161445556",
+      "scope": "Development signing/unconfigured preview, not a hosted product"
+    },
+    {
+      "id": 14160881965,
+      "name": "ios-simulator-native-preview",
+      "sourceCommit": "3083f4127aacbd5233ce98aa2d4cda0769939e72",
+      "zipSha256": "6c410612a2d0b53266ab78b530209bc05c9ad32182c064d8606d1a02cfd2f5e6",
+      "zipIndependentlyVerified": true,
+      "url": "https://github.com/abwoo/-DeepSeek-Always-on-Personal-AI-Agent-Plugin/actions/runs/43711774754/artifacts/14160881965",
+      "scope": "Simulator only, not iPhone provisioning"
+    },
+    {
+      "id": 14161117653,
+      "name": "android-emulator-evidence",
+      "sourceCommit": "3083f4127aacbd5233ce98aa2d4cda0769939e72",
+      "zipSha256": "c570a688f28429b8f89b203c82f167b791226c70a28135598b1e8b8965ad09d7",
+      "zipIndependentlyVerified": true,
+      "url": "https://github.com/abwoo/-DeepSeek-Always-on-Personal-AI-Agent-Plugin/actions/runs/43711774754/artifacts/14161117653",
+      "scope": "Development signing/unconfigured preview, not a hosted product"
+    }
+  ],
+  "evidenceIntegrity": "34 raw observations retained; every file SHA-256 is independently checked in cloud CI. New six artifact ZIP digests also independently downloaded and verified. Hashes do not certify production acceptance."
 }

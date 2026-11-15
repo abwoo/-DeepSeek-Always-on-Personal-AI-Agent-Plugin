@@ -1,0 +1,59 @@
+{
+  "sourceCommit": "3083f4127aacbd5233ce98aa2d4cda0769939e72",
+  "nativeAndroidControls": true,
+  "actualHarness": true,
+  "testOnlyCredentialBootstrap": true,
+  "realIdentityProvider": false,
+  "realDeepSeek": false,
+  "realPhone": false,
+  "nativePush": false,
+  "mvpReady": false,
+  "observations": [
+    {
+      "stage": "Verified TLS and actual native secure storage"
+    },
+    {
+      "stage": "Native task form and persisted values match",
+      "taskId": "febaaadf-e2ff-4041-815a-5ccf57d6ef72"
+    },
+    {
+      "stage": "Real Harness completed the task while native app process was absent",
+      "runId": "62a8c537-08e5-4fd4-8c62-2a7b2febd42f"
+    },
+    {
+      "stage": "Native memory consent, edit and deletion read back"
+    },
+    {
+      "stage": "Native goal create, pause and resume read back"
+    },
+    {
+      "stage": "Native chat and independent reader share Session and actual fixture result",
+      "sessionId": "session-b36e4364-1716-4d56-a04a-b748be6c32e8"
+    },
+    {
+      "stage": "Actual native file export opened the system share chooser"
+    },
+    {
+      "stage": "Native contract completed; production and physical gates remain blocked"
+    }
+  ],
+  "authorityId": "c805f5ec-4b4d-487f-a878-3867895334d7",
+  "engineeringApkSha256": "8b0c328f4605814343d8e309ec05f1568fc98ed89689e702d8a730decaba0df4",
+  "secureStoreRestoreAndVerifiedTls": true,
+  "taskId": "febaaadf-e2ff-4041-815a-5ccf57d6ef72",
+  "offlineRunId": "62a8c537-08e5-4fd4-8c62-2a7b2febd42f",
+  "offlineNativeScheduleCompleted": true,
+  "sameTaskAfterNativeProcessRestart": true,
+  "memoryId": "c5217f81-fc30-47ba-8664-0ef6181bcee0",
+  "nativeMemoryConsentEditDelete": true,
+  "goalId": "c36e8121-c76f-4608-a54c-d35333224ff4",
+  "nativeGoalControls": true,
+  "nativeInboxRunNavigation": true,
+  "chatSessionId": "session-b36e4364-1716-4d56-a04a-b748be6c32e8",
+  "nativeSharedSessionChat": true,
+  "nativeDeviceReadAndHonestPushStatus": true,
+  "nativeExportPagesReleased": true,
+  "nativeFileExportChooser": true,
+  "injectedTransportLossVisible": true,
+  "nativeReconnectRetainsId": true
+}

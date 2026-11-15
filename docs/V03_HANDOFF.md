@@ -9,6 +9,7 @@
 - Official Desktop plugin and independent Expo/RN app, account-first screens, shared Sessions/Tasks/Goals/Memory/Inbox/Activity/Devices, bilingual themes, live native event frames and honest error/unknown/history states.
 - Docker/Compose/Caddy service, AWS infrastructure candidate, migration/adoption, encrypted coordinated backup and explicit release gates.
 - Tested Desktop tarballs, development APK and iOS Simulator binaries in linked Actions. These unconfigured previews are for developers, not a working hosted product. APK uses a development key; Simulator binary cannot be installed on an iPhone.
+- Latest stabilization also passed actual Android native forms, offline native Harness execution with the App process stopped, Session readback, FileSystem/share chooser and reconnect checks. Identity/model remain fixtures; iOS acceptance is Simulator startup, not physical iPhone or account-backed native forms. See the latest engineering report for the exact source/run/artifact IDs.
 
 ## Required operator authorizations
 
