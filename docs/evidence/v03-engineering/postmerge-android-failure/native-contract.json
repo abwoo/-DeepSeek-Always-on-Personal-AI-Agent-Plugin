@@ -1,0 +1,42 @@
+{
+  "sourceCommit": "f574b613ef879f437776286cd29a0a3c2b1dcfa9",
+  "nativeAndroidControls": false,
+  "actualHarness": true,
+  "testOnlyCredentialBootstrap": true,
+  "realIdentityProvider": false,
+  "realDeepSeek": false,
+  "realPhone": false,
+  "nativePush": false,
+  "mvpReady": false,
+  "observations": [
+    {
+      "stage": "Verified TLS and actual native secure storage"
+    },
+    {
+      "stage": "Native task form and persisted values match",
+      "taskId": "adacf5c9-150d-4277-9436-46f576c6e58f"
+    },
+    {
+      "stage": "Real Harness completed the task while native app process was absent",
+      "runId": "fd14cc71-a45b-4f43-bb71-c16959da853f"
+    },
+    {
+      "stage": "Native memory consent, edit and deletion read back"
+    },
+    {
+      "stage": "Native goal create, pause and resume read back"
+    }
+  ],
+  "authorityId": "c1329e57-a983-4601-8776-7f77402c4b60",
+  "engineeringApkSha256": "317ab4e460985030b10116b509150d396f065e035fd0dca681f5a804232612a3",
+  "secureStoreRestoreAndVerifiedTls": true,
+  "taskId": "adacf5c9-150d-4277-9436-46f576c6e58f",
+  "offlineRunId": "fd14cc71-a45b-4f43-bb71-c16959da853f",
+  "offlineNativeScheduleCompleted": true,
+  "sameTaskAfterNativeProcessRestart": true,
+  "memoryId": "7886c0df-42d2-483e-aaf9-00c9ea2ac3e3",
+  "nativeMemoryConsentEditDelete": true,
+  "goalId": "a0aedd6f-b2e1-4618-aca8-0ff0f9a2bcd6",
+  "nativeGoalControls": true,
+  "nativeInboxRunNavigation": true
+}

@@ -4,7 +4,7 @@
   "baseCommit": "7f18534bda7506162e0377321150c560c21244b9",
   "productImplementationCommit": "b4b63e6aa32ce4db23f81fc59314b3a8d4c3b4fa",
   "latestNativeTestImplementationCommit": "3083f4127aacbd5233ce98aa2d4cda0769939e72",
-  "status": "This stabilization pass passed engineering verification; production acceptance remains blocked",
+  "status": "Historical engineering observations plus post-merge failures and follow-up checks; production remains blocked",
   "mvpReady": false,
   "productionGateStatus": "T01\u2013T22 Blocked; no Level 4/5",
   "versions": {
@@ -376,6 +376,176 @@
       "zipSha256": "54b4a7cd80a407d845a6cf208ff852d6c026c4e361c947f81c1fd89d596db27b",
       "zipIndependentlyVerified": true,
       "capture": "Downloaded artifact ZIP digest independently verified; exact raw file bytes compared with the repository copy. CI verifier recomputes file hashes."
+    },
+    {
+      "path": "postmerge-macos-failure/plugin.json",
+      "sha256": "0472a8d4c6ee93ee1876c75e155434705c2612e424f6e18484c97ebf02196687",
+      "runId": 43751768183,
+      "artifactId": 14175989095,
+      "zipSha256": "e2788ae1c28a2d7a1993081bdb7432214300645162b0e9d87467cc542409b375",
+      "originalPath": "plugin.json",
+      "reportedSourceCommit": null,
+      "headCommit": "f574b613ef879f437776286cd29a0a3c2b1dcfa9"
+    },
+    {
+      "path": "postmerge-android-failure/native-contract.json",
+      "sha256": "2e862b566e877b22f900f4491fa4e302a865030711a6fcc6b3820ab2540d6363",
+      "runId": 43751768046,
+      "artifactId": 14177162519,
+      "zipSha256": "def75c93f7e27011f937a60349912445fa47dc4d7b709d8a3150e66d57bdb9ec",
+      "originalPath": "mobile-evidence/native-contract.json",
+      "reportedSourceCommit": "f574b613ef879f437776286cd29a0a3c2b1dcfa9",
+      "headCommit": "f574b613ef879f437776286cd29a0a3c2b1dcfa9"
+    },
+    {
+      "path": "postmerge-macos/plugin.json",
+      "sha256": "2b2745533c4232e0e2afbc609083e46917e15054d966d2ea1de21cfe99d61044",
+      "runId": 43753411339,
+      "artifactId": 14177905860,
+      "zipSha256": "e748f5e8345ceb7787b01e9f1b2c0f52c06b849d1551023248987ad5ef2d1e37",
+      "originalPath": "plugin.json",
+      "reportedSourceCommit": null,
+      "headCommit": "b81fdc38dee6e09ac30ea43118124dfa31c7691f"
+    },
+    {
+      "path": "postmerge-macos/plugins-ui.json",
+      "sha256": "35cbf88d95ca6a7c20cf37c152fc46e5bd50bdcac8111f8fb3b817864aafef6c",
+      "runId": 43753411339,
+      "artifactId": 14177905860,
+      "zipSha256": "e748f5e8345ceb7787b01e9f1b2c0f52c06b849d1551023248987ad5ef2d1e37",
+      "originalPath": "plugins-ui.json",
+      "reportedSourceCommit": null,
+      "headCommit": "b81fdc38dee6e09ac30ea43118124dfa31c7691f"
+    },
+    {
+      "path": "postmerge-android-repeat-failure/native-contract.json",
+      "sha256": "0461981bf7e0acee5157d4c21cb18abe4d954ab788c0d447c25eeb02cf0149fc",
+      "runId": 43752448710,
+      "artifactId": null,
+      "originalPath": "mobile-evidence/native-contract.json",
+      "reportedSourceCommit": "309f32cd6937f578e8d68984d0fd05402d15c28e",
+      "headCommit": "309f32cd6937f578e8d68984d0fd05402d15c28e",
+      "extraction": "Raw base64 emitted by checked-in whitelist logger; ZIP not independently downloaded"
+    },
+    {
+      "path": "repair-macos/initialize.json",
+      "sha256": "55b88b1a8204ddc845ce55c6e378e15a6cfb771f2cdac66579e0feb5fd182f56",
+      "runId": 43754213092,
+      "artifactId": 14177089762,
+      "zipSha256": "2a1bdaf565cc2b102bce9a1e64009c93618b2c5e84b4c429b0f6a85973d92ea3",
+      "originalPath": "initialize.json",
+      "reportedSourceCommit": null,
+      "headCommit": "3f5cfe74ff32e62bb5ffde481eb2cd08eef39d76"
+    },
+    {
+      "path": "repair-macos/plugin.json",
+      "sha256": "44e8ab426a2584a9465bf2cad2fb35c806305a936e2adef73e5b7f310d0dbc2f",
+      "runId": 43754213092,
+      "artifactId": 14177089762,
+      "zipSha256": "2a1bdaf565cc2b102bce9a1e64009c93618b2c5e84b4c429b0f6a85973d92ea3",
+      "originalPath": "plugin.json",
+      "reportedSourceCommit": null,
+      "headCommit": "3f5cfe74ff32e62bb5ffde481eb2cd08eef39d76"
+    },
+    {
+      "path": "repair-macos/plugins-ui.json",
+      "sha256": "60fc3f91b9e171f197ae1c84a566bb651fdc7c23e0af5a1262517749c7fd122d",
+      "runId": 43754213092,
+      "artifactId": 14177089762,
+      "zipSha256": "2a1bdaf565cc2b102bce9a1e64009c93618b2c5e84b4c429b0f6a85973d92ea3",
+      "originalPath": "plugins-ui.json",
+      "reportedSourceCommit": null,
+      "headCommit": "3f5cfe74ff32e62bb5ffde481eb2cd08eef39d76"
+    },
+    {
+      "path": "repair-macos/runtime-versions.json",
+      "sha256": "6578cbc7db38f00ca72eac6ab0303b74147bbeb79f90e6c3020a94dd7530c302",
+      "runId": 43754213092,
+      "artifactId": 14177089762,
+      "zipSha256": "2a1bdaf565cc2b102bce9a1e64009c93618b2c5e84b4c429b0f6a85973d92ea3",
+      "originalPath": "runtime-versions.json",
+      "reportedSourceCommit": null,
+      "headCommit": "3f5cfe74ff32e62bb5ffde481eb2cd08eef39d76"
+    },
+    {
+      "path": "repair-accounts/v03-accounts.json",
+      "sha256": "976ce64f5ca2a5165e620dea145ff7e655bb4429a2a6bbe97866863736a021b6",
+      "runId": 43754213140,
+      "artifactId": 14177338701,
+      "zipSha256": "c7958d49eeaa02230640f7b264142f26fd1db9bf1e65feddf165424f015d43fd",
+      "originalPath": "v03-accounts.json",
+      "reportedSourceCommit": "3f5cfe74ff32e62bb5ffde481eb2cd08eef39d76",
+      "headCommit": "3f5cfe74ff32e62bb5ffde481eb2cd08eef39d76"
+    },
+    {
+      "path": "repair-accounts/control-proxy.json",
+      "sha256": "d901fdc9a8787f638534f051f7eb9e4ecff2c9eaf315797696ecbaa33715024d",
+      "runId": 43754213140,
+      "artifactId": 14177338701,
+      "zipSha256": "c7958d49eeaa02230640f7b264142f26fd1db9bf1e65feddf165424f015d43fd",
+      "originalPath": "control-proxy.json",
+      "reportedSourceCommit": "3f5cfe74ff32e62bb5ffde481eb2cd08eef39d76",
+      "headCommit": "3f5cfe74ff32e62bb5ffde481eb2cd08eef39d76"
+    },
+    {
+      "path": "repair-accounts/v03-backup.json",
+      "sha256": "0319d1a09b3659f5a79a1f338f09da29612143b60543cf416bb2b3bc0a8b1690",
+      "runId": 43754213140,
+      "artifactId": 14177338701,
+      "zipSha256": "c7958d49eeaa02230640f7b264142f26fd1db9bf1e65feddf165424f015d43fd",
+      "originalPath": "v03-backup.json",
+      "reportedSourceCommit": "3f5cfe74ff32e62bb5ffde481eb2cd08eef39d76",
+      "headCommit": "3f5cfe74ff32e62bb5ffde481eb2cd08eef39d76"
+    },
+    {
+      "path": "repair-accounts/v03-release-gate.json",
+      "sha256": "79e598f5a0e48a3e73a98ca847b90adf61ac04911885d9860c3b28871648f770",
+      "runId": 43754213140,
+      "artifactId": 14177338701,
+      "zipSha256": "c7958d49eeaa02230640f7b264142f26fd1db9bf1e65feddf165424f015d43fd",
+      "originalPath": "v03-release-gate.json",
+      "reportedSourceCommit": "3f5cfe74ff32e62bb5ffde481eb2cd08eef39d76",
+      "headCommit": "3f5cfe74ff32e62bb5ffde481eb2cd08eef39d76"
+    },
+    {
+      "path": "repair-accounts/mobile-component-contract.json",
+      "sha256": "5ad275b5b0e9270e003fbeb0b84b503042e03704e12771af0a3b03a563dc751b",
+      "runId": 43754213140,
+      "artifactId": 14177338701,
+      "zipSha256": "c7958d49eeaa02230640f7b264142f26fd1db9bf1e65feddf165424f015d43fd",
+      "originalPath": "mobile-component-contract.json",
+      "reportedSourceCommit": "3f5cfe74ff32e62bb5ffde481eb2cd08eef39d76",
+      "headCommit": "3f5cfe74ff32e62bb5ffde481eb2cd08eef39d76"
+    },
+    {
+      "path": "repair-runtime/managed-authority.json",
+      "sha256": "406909ea9ff71ff54ed2370c366ffc7c20244ef2ca10b3f7c74b00374aa2a57f",
+      "runId": 43754213136,
+      "artifactId": 14177436981,
+      "zipSha256": "841c653067ff0aa5f46973635ce85fdcf745b0289197dd4f46f4a777d169577d",
+      "originalPath": "managed-authority.json",
+      "reportedSourceCommit": null,
+      "headCommit": "3f5cfe74ff32e62bb5ffde481eb2cd08eef39d76"
+    },
+    {
+      "path": "repair-runtime/managed-container.json",
+      "sha256": "60d7277a023381dc76d2d28a6cbe123de2d827f8ad6b0bf43724c3a77b454471",
+      "runId": 43754213136,
+      "artifactId": 14177436981,
+      "zipSha256": "841c653067ff0aa5f46973635ce85fdcf745b0289197dd4f46f4a777d169577d",
+      "originalPath": "managed-container.json",
+      "reportedSourceCommit": "3f5cfe74ff32e62bb5ffde481eb2cd08eef39d76",
+      "headCommit": "3f5cfe74ff32e62bb5ffde481eb2cd08eef39d76"
+    },
+    {
+      "path": "repair-runtime/real-deepseek.json",
+      "sha256": "352ebf111476d45a7be84894c9fad7eba1cbe053168579f99543c0ab8c8ee8d7",
+      "runId": 43754213136,
+      "artifactId": 14177436981,
+      "zipSha256": "841c653067ff0aa5f46973635ce85fdcf745b0289197dd4f46f4a777d169577d",
+      "originalPath": "real-deepseek.json",
+      "reportedSourceCommit": null,
+      "headCommit": "3f5cfe74ff32e62bb5ffde481eb2cd08eef39d76"
     }
   ],
   "failedObservations": [
@@ -489,5 +659,6 @@
       "scope": "Development signing/unconfigured preview, not a hosted product"
     }
   ],
-  "evidenceIntegrity": "34 raw observations retained; every file SHA-256 is independently checked in cloud CI. New six artifact ZIP digests also independently downloaded and verified. Hashes do not certify production acceptance."
+  "evidenceIntegrity": "51 retained raw observations; hashes are verified independently of production acceptance. Historical failures are retained, not overwritten.",
+  "postMergeFollowUpCommit": "3f5cfe74ff32e62bb5ffde481eb2cd08eef39d76"
 }

@@ -1,0 +1,23 @@
+{
+  "timestamp": "2026-11-15T19:24:32.959Z",
+  "platform": "darwin",
+  "nativePlugin": true,
+  "restartPersistence": false,
+  "remoteDesktopSession": false,
+  "realDeepSeek": false,
+  "realPhone": false,
+  "mvpReady": false,
+  "remoteAuthority": "http://127.0.0.1:49374",
+  "remoteSessionId": "session-5fcd21a4-7a04-440a-a4e4-dbcf54c8de54",
+  "promptReceiptOnly": true,
+  "nativeDevicePairing": true,
+  "desktopSharedTaskId": "289ed593-9fe1-406a-bfc8-a80af836d647",
+  "desktopSessionId": "session-40753fd2-4b3d-4b43-83d8-31d9c2f6ccab",
+  "desktopSharedMemory": true,
+  "nativeDesktopRecordDownload": true,
+  "nativeDesktopAndMobileProtocolSameAuthority": true,
+  "nativeGoalUiPersistent": true,
+  "nativeDeviceManagementUi": true,
+  "remoteReadableWithDesktopStopped": true,
+  "blocker": "expect(received).toBe(expected) // Object.is equality\n\nExpected: 200\nReceived: 404\n\nCall Log:\n- Timeout 30000ms exceeded while waiting on the predicate"
+}

@@ -123,7 +123,7 @@ All rows use source **`95793a60d3475be5b36a425562cb4065daba19f1`**, actual envir
 
 ## External blockers and next work
 
-No authorized cloud/Auth0/DeepSeek/Expo/Apple/npm credentials were found. [Handoff](V03_HANDOFF.md), [control deployment](../deploy/control/README.md) and [AWS candidate](../deploy/aws/README.md) give precise operator steps. End users never perform these operations. Once authorized, deploy the real service, register actual identities, rebuild clients with real public metadata and stable signing, then retain correlated IDs through the full physical chain. Until then release is blocked.
+No usable production cloud/identity/model/signing/push configuration was available to these checks. This does not establish that the operator owns no such accounts; repository secret metadata could not be inspected through the connector. [Handoff](V03_HANDOFF.md), [control deployment](../deploy/control/README.md) and [AWS candidate](../deploy/aws/README.md) give precise operator steps. End users never perform these operations. Once authorized, deploy the real service, register actual identities, rebuild clients with real public metadata and stable signing, then retain correlated IDs through the full physical chain. Until then release is blocked.
 
 
 ## Post-merge engineering follow-up (2026-11-16 Asia/Shanghai)

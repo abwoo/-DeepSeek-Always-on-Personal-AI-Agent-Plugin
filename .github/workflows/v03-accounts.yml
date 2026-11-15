@@ -6,6 +6,8 @@ on:
       [
         src/**,
         tests/**,
+        docs/evidence/v03-engineering/**,
+        scripts/verify-engineering-evidence.mjs,
         scripts/verify-v03-accounts.mjs,
         scripts/verify-control-proxy.mjs,
         scripts/verify-mobile-contract.mjs,
