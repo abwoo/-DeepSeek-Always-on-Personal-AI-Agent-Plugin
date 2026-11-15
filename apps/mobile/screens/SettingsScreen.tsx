@@ -39,6 +39,11 @@ export function SettingsScreen() {
       </Text>
       {snapshot?.usage ? (
         <>
+          {snapshot.usage.usage_unknown ? (
+            <Text style={styles.error}>
+              Model usage is unconfirmed. Further model calls are blocked for this UTC day.
+            </Text>
+          ) : null}
           <Text>Daily model usage</Text>
           <Text>{snapshot.usage.steps} / 300</Text>
           <Text>{snapshot.usage.tokens} / 250000</Text>

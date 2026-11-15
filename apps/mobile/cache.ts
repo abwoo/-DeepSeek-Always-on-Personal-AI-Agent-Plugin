@@ -95,6 +95,10 @@ export async function clearOfflineSnapshot(c: AccountConnection) {
   await serial;
   const base = prefix(c),
     raw = await SecureStore.getItemAsync(base);
+  const pending = await SecureStore.getItemAsync(base + '.pending');
   if (raw) await removeGeneration(base, JSON.parse(raw));
+  if (pending) await removeGeneration(base, JSON.parse(pending));
+  // Metadata is retained until chunk cleanup succeeds so a failed logout can retry.
+  await SecureStore.deleteItemAsync(base + '.pending');
   await SecureStore.deleteItemAsync(base);
 }

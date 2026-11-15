@@ -104,7 +104,9 @@ test('snapshot capacity/oversized records fail explicitly; restart never retains
     f.core.delete('memory', 'large');
     f.exports.start('a');
     f.exports.start('b');
-    assert.throws(() => f.exports.start('c'), /export_busy/);
+    f.exports.start('c');
+    f.exports.start('d');
+    assert.throws(() => f.exports.start('e'), /export_busy/);
     const replacement = new RecordExports(join(f.dir, 'exports'), f.core, f.gateway);
     assert.deepEqual(readdirSync(join(f.dir, 'exports')), []);
     replacement.close();
@@ -173,4 +175,88 @@ test('controller cancels an oversized upstream response while streaming, includi
   assert.ok(pulls <= 5);
   assert.equal(await boundedText(new Response('研究'), 6), '研究');
   await assert.rejects(() => boundedText(new Response('研究'), 5), /agent_response_too_large/);
+});
+
+test('paged snapshots preserve full projections, coexist with exports and reject cursor scope mixing', async () => {
+  const f = fixture();
+  try {
+    f.core.put('memory', 'm', { id: 'm', content: 'Raw retained memory' });
+    const state = {
+      authorityId: f.gateway.authorityId,
+      ownerId: f.gateway.ownerId,
+      revision: 7,
+      serverTime: new Date().toISOString(),
+      online: true,
+      tasks: [],
+      runs: [],
+      inbox: [],
+      goals: [],
+      memories: Array.from({ length: 110 }, (_, i) => ({
+        id: 'view-' + i,
+        kind: 'fact',
+        content: 'Projected memory',
+        source: 'User',
+        consent: true,
+        updatedAt: new Date().toISOString(),
+      })),
+    };
+    const snapshot = f.exports.start('a', state),
+      exported = f.exports.start('a');
+    assert.ok(snapshot.next);
+    assert.ok(snapshot.snapshot);
+    assert.equal(exported.snapshot, undefined);
+    assert.throws(() => f.exports.read('a', snapshot.next!), /export_expired/);
+    assert.equal(f.exports.read('a', snapshot.next!, true).snapshot?.revision, 7);
+    let releases = 0;
+    const { ManagedClient } = await import('../../src/shared/managed-client.js');
+    const deviceId = randomUUID();
+    const client = new ManagedClient(
+      'https://fixture.test',
+      {
+        authorityId: f.gateway.authorityId,
+        ownerId: f.gateway.ownerId,
+        deviceId,
+        token: 'ao_' + deviceId + '.' + 'A'.repeat(43),
+        expiresAt: new Date(Date.now() + 100000).toISOString(),
+      },
+      undefined,
+      false,
+      async (input, init) => {
+        const u = new URL(String(input));
+        if (u.pathname.endsWith('/snapshot'))
+          return Response.json({ error: 'snapshot_pagination_required' }, { status: 413 });
+        if (u.pathname.endsWith('/exports/release')) {
+          releases++;
+          f.exports.release('a', JSON.parse(String(init?.body)).exportId);
+          return Response.json({ ok: true });
+        }
+        if (u.search)
+          return Response.json(f.exports.read('a', u.searchParams.get('cursor')!, true));
+        return Response.json(f.exports.start('a', state));
+      },
+    );
+    const read = await client.snapshot();
+    assert.equal(read.memories.length, 110);
+    assert.equal(read.revision, 7);
+    assert.equal(releases, 1);
+    assert.equal(read.memories.at(-1)?.id, 'view-109');
+  } finally {
+    f.close();
+  }
+});
+
+test('expensive export capture has a distinct device/account limit without invalidating a retained cursor', () => {
+  const f = fixture();
+  try {
+    for (let i = 0; i < 101; i++)
+      f.core.put('memory', 'm-' + i, { id: 'm-' + i, content: 'User record' });
+    f.exports.start('a');
+    f.exports.start('a');
+    const retained = f.exports.start('a');
+    assert.throws(() => f.exports.start('a'), /export_rate_limit/);
+    assert.ok(f.exports.read('a', retained.next!).items.length);
+    assert.ok(f.exports.start('b').exportId);
+  } finally {
+    f.close();
+  }
 });

@@ -28,7 +28,7 @@ export interface ControlConfig {
   trustedProxies?: string[];
 }
 const allowed =
-  /^\/(snapshot|export|exports(?:\?cursor=[A-Za-z0-9_.%+-]{1,160}|\/release)?|events(?:\?[^#]{1,1024})?|runs\/[0-9a-f-]+|inbox\/[0-9a-f-]+|sessions|session\/read|changes(?:\?after=\d+)?|mutate|operations\/[0-9a-f-]+|goals|devices(?:\/revoke)?|push\/(register|disable|ack|status))$/;
+  /^\/(snapshot|snapshots(?:\?cursor=[A-Za-z0-9_.%+-]{1,160})?|export|exports(?:\?cursor=[A-Za-z0-9_.%+-]{1,160}|\/release)?|events(?:\?[^#]{1,1024})?|runs\/[0-9a-f-]+|inbox\/[0-9a-f-]+|sessions|session\/read|changes(?:\?after=\d+)?|mutate|operations\/[0-9a-f-]+|goals|devices(?:\/revoke)?|push\/(register|disable|ack|status))$/;
 export function controlServer(
   store: ControlStore,
   pool: AgentPool,

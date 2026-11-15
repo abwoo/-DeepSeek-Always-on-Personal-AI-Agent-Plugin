@@ -47,13 +47,22 @@ export class MemoryService {
     return this.store.delete('memory', id) > 0;
   }
   search(query: string, limit = 5) {
-    const terms = query.toLowerCase().match(/[\p{L}\p{N}]+/gu) ?? [];
+    // Word segmentation supports Chinese/Japanese queries without a domain
+    // dictionary or vector runtime. Bound and deduplicate query terms.
+    const normalized = query.normalize('NFKC').toLowerCase().slice(0, 12000);
+    const terms = [
+      ...new Set(
+        [...new Intl.Segmenter(undefined, { granularity: 'word' }).segment(normalized)]
+          .filter((part) => part.isWordLike)
+          .map((part) => part.segment),
+      ),
+    ].slice(0, 64);
     return this.list()
       .filter((m) => m.consent)
-      .map((m) => ({
-        m,
-        score: terms.reduce((a, t) => a + (m.content.toLowerCase().includes(t) ? 1 : 0), 0),
-      }))
+      .map((m) => {
+        const content = m.content.normalize('NFKC').toLowerCase();
+        return { m, score: terms.reduce((a, t) => a + (content.includes(t) ? 1 : 0), 0) };
+      })
       .filter((x) => x.score > 0)
       .sort((a, b) => b.score - a.score)
       .slice(0, Math.min(5, Math.max(0, limit)))

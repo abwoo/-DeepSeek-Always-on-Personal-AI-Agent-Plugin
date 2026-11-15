@@ -1,3 +1,4 @@
+import { intervalSeconds } from '../forms';
 import React from 'react';
 import { View, Switch, Alert, Linking } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
@@ -25,9 +26,10 @@ export function GoalsScreen() {
     <>
       <View style={styles.card}>
         <Text style={styles.heading}>Ongoing goal</Text>
-        <Field label="Goal name" value={title} onChange={setTitle} />
+        <Field label="Goal name" maxLength={120} value={title} onChange={setTitle} />
         <Field
           label="What should the agent monitor?"
+          maxLength={12000}
           value={instruction}
           onChange={setInstruction}
           multiline
@@ -41,7 +43,7 @@ export function GoalsScreen() {
               await client!.createGoal(uuid(), {
                 title,
                 instruction,
-                everySeconds: Number(minutes) * 60,
+                everySeconds: intervalSeconds(minutes),
                 allowedTools: ['web_search', 'web_fetch'],
                 maxRuns: 30,
               });

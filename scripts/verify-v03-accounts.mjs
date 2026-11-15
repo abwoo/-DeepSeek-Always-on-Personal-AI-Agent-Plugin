@@ -1,3 +1,4 @@
+import { verifyMobileContract } from './verify-mobile-contract.mjs';
 // Level 2: two actual published Harness processes. Identity is an explicitly labeled local adapter fixture.
 // Never substitutes for a live Auth0 tenant, real model output or physical-device acceptance.
 import { spawn, execFile } from 'node:child_process';
@@ -120,11 +121,11 @@ const transport = async (input, init) => {
   return new Response(await r.text(), { status: r.status, headers: r.headers });
 };
 const api = new AccountApi('https://service-fixture.invalid', transport);
-async function login(subject) {
+async function login(subject, name = 'Real Harness protocol observer') {
   const verifier = secret(),
     start = await api.start({
       challenge: challenge(verifier),
-      name: 'Real Harness protocol observer',
+      name,
       platform: 'other',
     });
   const state = new URL(start.authorizeUrl).searchParams.get('state');
@@ -334,6 +335,7 @@ try {
     });
     largeIds.push(saved.result.result.id);
   }
+  assert.equal((await desktop.snapshot()).memories.length, 210);
   const exportStart = await desktop.request('/exports', {});
   assert.ok(exportStart.pages > 10);
   await assert.rejects(
@@ -467,6 +469,15 @@ try {
     ),
   );
   assert.equal((await client(b).snapshot()).authorityId, b.credentials.authorityId);
+  const uiConnection = await login('alice', 'Mobile component UI device');
+  const spare = await login('alice', 'Mobile component spare device');
+  await verifyMobileContract({
+    base,
+    connection: uiConnection,
+    observer: desktop,
+    spare,
+    otherAuthorityId: b.credentials.authorityId,
+  });
   const bobTask = await other.mutate(randomUUID(), {
     action: 'task.create',
     data: {

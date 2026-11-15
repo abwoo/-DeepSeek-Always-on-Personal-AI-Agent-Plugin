@@ -150,3 +150,34 @@ test('deleted legacy/proposed version-zero memory cannot be resurrected by a sta
     s.close();
   }
 });
+
+test('Chinese cross-session lookup uses word boundaries and consent; full-width terms normalize without a domain dictionary', () => {
+  const s = new Store(':memory:'),
+    m = new MemoryService(s);
+  try {
+    const saved = m.save({
+      kind: 'preference',
+      content: '用户喜欢喝乌龙茶。',
+      source: 'User consent',
+      consent: true,
+    });
+    m.propose({
+      kind: 'preference',
+      content: '用户喜欢喝咖啡。',
+      source: 'Unconfirmed suggestion',
+    });
+    assert.equal(m.search('我喜欢喝什么饮品？')[0]?.id, saved.id);
+    assert.equal(m.search('咖啡').length, 0);
+    const project = m.save({
+      kind: 'project',
+      content: 'EEG project context',
+      source: 'User consent',
+      consent: true,
+    });
+    assert.equal(m.search('ＥＥＧ')[0]?.id, project.id);
+    m.remove(saved.id);
+    assert.equal(m.search('乌龙茶').length, 0);
+  } finally {
+    s.close();
+  }
+});

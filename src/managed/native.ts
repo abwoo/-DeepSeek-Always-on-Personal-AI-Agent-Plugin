@@ -1,3 +1,4 @@
+import { GatewayError } from './store.js';
 import { Context } from '@deepseek-ai/cordis';
 import type {} from '@deepseek-ai/dsh-client-connection';
 import type {} from '@deepseek-ai/dsh-session';
@@ -36,6 +37,8 @@ export async function nativeClient(host: Context) {
         peer,
       );
       const data = await response.json();
+      if (data.code === 'schedule_not_confirmed')
+        throw new GatewayError(409, 'schedule_not_confirmed');
       if (!response.ok || data.ok === false) throw new Error('native_core_rejected');
       return data;
     },

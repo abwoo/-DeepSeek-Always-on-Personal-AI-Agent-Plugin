@@ -1,3 +1,4 @@
+import { taskTiming } from '../forms';
 import React from 'react';
 import { View, Switch, Alert, Linking } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
@@ -36,9 +37,10 @@ export function TasksScreen() {
     <>
       <View style={styles.card}>
         <Text style={styles.heading}>Create a task</Text>
-        <Field label="Task name" value={title} onChange={setTitle} />
+        <Field label="Task name" maxLength={120} value={title} onChange={setTitle} />
         <Field
           label="What should your agent do?"
+          maxLength={12000}
           value={instruction}
           onChange={setInstruction}
           multiline
@@ -73,25 +75,18 @@ export function TasksScreen() {
         )}
         <View style={styles.switchRow}>
           <Text style={styles.flexText}>Allow read-only web research</Text>
-          <Switch value={research} onValueChange={setResearch} />
+          <Switch
+            accessibilityLabel="Allow read-only web research"
+            value={research}
+            onValueChange={setResearch}
+          />
         </View>
         <Button
           title="Create task"
           disabled={disabled || !title.trim() || !instruction.trim()}
           onPress={() =>
             perform(async () => {
-              const timing =
-                schedule === 'every'
-                  ? { kind: 'every' as const, every_seconds: Number(minutes) * 60 }
-                  : schedule === 'once'
-                    ? { kind: 'at' as const, at: date.toISOString() }
-                    : {
-                        kind: 'daily' as const,
-                        daily: {
-                          time: `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`,
-                          time_zone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-                        },
-                      };
+              const timing = taskTiming(schedule, minutes, date);
               await mutate({
                 action: 'task.create',
                 data: {

@@ -6,14 +6,27 @@ import { useAgentState } from '../state';
 import { useUi } from '../theme';
 import { uuid } from '../hooks/useAgent';
 export function InboxScreen() {
-  const { snapshot, online, busy, title, notice, perform, mutate, openRun, disabled } =
-    useAgentState();
+  const {
+    snapshot,
+    online,
+    busy,
+    title,
+    notice,
+    setNotice,
+    client,
+    perform,
+    mutate,
+    openRun,
+    disabled,
+  } = useAgentState();
   const { styles } = useUi();
   return (
     <>
       {notice ? (
         <View style={styles.card}>
-          <Text style={styles.heading}>{notice.title}</Text>
+          <Text verbatim style={styles.heading}>
+            {notice.title}
+          </Text>
           <Text selectable verbatim>
             {notice.summary}
           </Text>
@@ -24,14 +37,21 @@ export function InboxScreen() {
           />
           <Button
             title="Mark read"
-            disabled={disabled}
-            onPress={() => perform(() => mutate({ action: 'inbox.read', data: { id: notice.id } }))}
+            disabled={disabled || notice.read}
+            onPress={() =>
+              perform(async () => {
+                const id = notice.id;
+                await mutate({ action: 'inbox.read', data: { id } });
+                const updated = await client!.request('/inbox/' + id);
+                setNotice((current: any) => (current?.id === id ? updated : current));
+              })
+            }
           />
         </View>
       ) : null}
       {snapshot?.inbox.map((n) => (
         <View key={n.id} style={styles.card}>
-          <Text style={styles.heading}>
+          <Text verbatim style={styles.heading}>
             {n.read ? '' : '● '}
             {n.title}
           </Text>

@@ -54,7 +54,10 @@ export class Notifications {
     this.store.delete('subscriptions', id);
   }
   create(runId: string, title: string, summary: string) {
-    const existing = this.list().find((n) => n.runId === runId);
+    const row = this.store.db
+      .prepare("SELECT data FROM inbox WHERE json_extract(data,'$.runId')=? LIMIT 1")
+      .get(runId);
+    const existing = row ? (JSON.parse(String(row.data)) as Notice) : undefined;
     if (existing) return existing;
     const n: Notice = {
       id: randomUUID(),
@@ -69,8 +72,8 @@ export class Notifications {
     this.store.put('inbox', n.id, n);
     return n;
   }
-  list() {
-    return this.store.all<Notice>('inbox');
+  list(limit?: number) {
+    return this.store.all<Notice>('inbox', limit);
   }
   read(id: string) {
     const n = this.store.get<Notice>('inbox', id);

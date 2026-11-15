@@ -108,6 +108,7 @@ export function useAgent() {
     [devices, setDevices] = useState<any[]>([]),
     [pairInfo, setPairInfo] = useState<any>(null),
     [pushStatus, setPushStatus] = useState<any>(null);
+  const [devicesLoading, setDevicesLoading] = useState(false);
   const [liveText, setLiveText] = useState(''),
     [liveTool, setLiveTool] = useState('');
   const eventCursor = useRef<{ after: number; epoch?: string; live?: number }>({ after: 0 });
@@ -117,6 +118,7 @@ export function useAgent() {
     refreshing = useRef(false),
     inFlight = useRef(false),
     currentDevice = useRef<string | undefined>(undefined);
+  const refreshRequested = useRef(false);
   const generation = useRef(0);
   const selectionVersion = useRef(0);
   function setConnection(next: AccountConnection | null) {
@@ -127,9 +129,12 @@ export function useAgent() {
     selectionVersion.current++;
     eventCursor.current = { after: 0 };
     refreshing.current = false;
+    refreshRequested.current = false;
     inFlight.current = false;
     setOnline(false);
+    setError('');
     setBusy(false);
+    setDevicesLoading(false);
     setSnapshot(null);
     setPending([]);
     setSessionId('');
@@ -200,13 +205,20 @@ export function useAgent() {
       if (e instanceof ApiError && e.status === 401) {
         if (connection) await clearOfflineSnapshot(connection).catch(() => {});
         await clearProductConnection(connection!.credentials.deviceId);
-        if (currentDevice.current === connection.credentials.deviceId) setConnection(null);
+        if (currentDevice.current === connection.credentials.deviceId) {
+          setConnection(null);
+          setError(friendly(e));
+        }
       }
     },
     [connection],
   );
   const refresh = useCallback(async () => {
-    if (!client || !active.current || refreshing.current) return;
+    if (!client || !active.current || currentDevice.current !== client.credentials.deviceId) return;
+    if (refreshing.current) {
+      refreshRequested.current = true;
+      return;
+    }
     refreshing.current = true;
     const epoch = generation.current;
     try {
@@ -240,7 +252,13 @@ export function useAgent() {
     } catch (e) {
       if (currentDevice.current === client.credentials.deviceId) await report(e);
     } finally {
-      if (epoch === generation.current) refreshing.current = false;
+      if (epoch === generation.current) {
+        refreshing.current = false;
+        if (refreshRequested.current) {
+          refreshRequested.current = false;
+          void refresh();
+        }
+      }
     }
   }, [client, report]);
   useEffect(() => {
@@ -510,10 +528,16 @@ export function useAgent() {
     .map((r: any) => r.event);
   const rows = conversationRows(records);
   async function loadDevices() {
-    await perform(async () => {
-      setDevices((await client!.request('/devices')).items);
-      setPage('Devices');
-    });
+    if (!client) return;
+    const epoch = generation.current;
+    setDevicesLoading(true);
+    try {
+      setDevices((await client.request('/devices')).items);
+    } catch (e) {
+      if (epoch === generation.current) await report(e);
+    } finally {
+      if (epoch === generation.current) setDevicesLoading(false);
+    }
   }
 
   return {
@@ -604,5 +628,6 @@ export function useAgent() {
     records,
     rows,
     loadDevices,
+    devicesLoading,
   };
 }

@@ -16,10 +16,12 @@ interface Job {
   created: string;
   pages: number;
   records: number;
+  snapshot?: Record<string, unknown>;
 }
 /** Short-lived private record snapshots, never credentials or native transcript files. */
 export class RecordExports {
   private jobs = new Map<string, Job>();
+  private starts = new Map<string, { until: number; count: number }>();
   private timer: ReturnType<typeof setInterval>;
   constructor(
     private dir: string,
@@ -44,10 +46,25 @@ export class RecordExports {
     const job = this.jobs.get(id);
     if (job?.device === device) this.remove(job);
   }
-  start(device: string) {
+  start(device: string, state?: Record<string, any>) {
     this.cleanup();
-    for (const job of this.jobs.values()) if (job.device === device) this.remove(job);
-    if (this.jobs.size >= 2) throw new GatewayError(429, 'export_busy');
+    const mode = state ? 'snapshot' : 'export';
+    for (const [key, value] of this.starts) if (value.until <= this.now()) this.starts.delete(key);
+    const entries = [
+      [mode + ':device:' + device, state ? 12 : 3],
+      [mode + ':account', state ? 60 : 10],
+    ] as const;
+    for (const [key, max] of entries)
+      if ((this.starts.get(key)?.count ?? 0) >= max)
+        throw new GatewayError(429, 'export_rate_limit');
+    for (const [key] of entries) {
+      const value = this.starts.get(key) ?? { until: this.now() + 60000, count: 0 };
+      value.count++;
+      this.starts.set(key, value);
+    }
+    for (const job of this.jobs.values())
+      if (job.device === device && !!job.snapshot === !!state) this.remove(job);
+    if (this.jobs.size >= 4) throw new GatewayError(429, 'export_busy');
     const job: Job = {
       id: randomUUID(),
       device,
@@ -57,6 +74,13 @@ export class RecordExports {
       pages: 0,
       records: 0,
     };
+    if (state) {
+      job.snapshot = Object.fromEntries(
+        Object.entries(state).filter(
+          ([key]) => !['tasks', 'runs', 'memories', 'inbox', 'goals'].includes(key),
+        ),
+      );
+    }
     const dir = join(this.dir, job.id);
     mkdirSync(dir, { mode: 0o700 });
     let items: ExportItem[] = [],
@@ -72,7 +96,13 @@ export class RecordExports {
       // one-writer-per-profile rule: no awaited mutation can interleave capture.
       for (const kind of ['tasks', 'runs', 'memory', 'inbox', 'goals'] as const) {
         const db = kind === 'goals' ? this.gateway.db : this.core.db;
-        for (const row of db.prepare(`SELECT id,data FROM ${kind} ORDER BY rowid`).iterate()) {
+        const rows = state
+          ? (state[kind === 'memory' ? 'memories' : kind] as any[]).map((data) => ({
+              id: data.id,
+              data: JSON.stringify(data),
+            }))
+          : db.prepare(`SELECT id,data FROM ${kind} ORDER BY rowid`).iterate();
+        for (const row of rows) {
           const item = { kind, id: String(row.id), data: JSON.parse(String(row.data)) };
           const size = Buffer.byteLength(JSON.stringify(item)) + 1;
           if (size > PAGE_BYTES) throw new GatewayError(422, 'export_record_too_large');
@@ -92,13 +122,14 @@ export class RecordExports {
       throw e;
     }
   }
-  read(device: string, cursor: string) {
+  read(device: string, cursor: string, snapshot = false) {
     this.cleanup();
     const match = /^([0-9a-f-]{36})\.([A-Za-z0-9_-]{43})\.(\d{1,4})$/.exec(cursor);
     if (!match) throw new GatewayError(400, 'invalid_export_cursor');
     const job = this.jobs.get(match[1]!);
     if (
       !job ||
+      !!job.snapshot !== snapshot ||
       job.device !== device ||
       !timingSafeEqual(Buffer.from(job.secret), Buffer.from(match[2]!))
     )
@@ -109,6 +140,7 @@ export class RecordExports {
   }
   private page(job: Job, index: number) {
     return exportPageSchema.parse({
+      ...(job.snapshot ? { snapshot: job.snapshot } : {}),
       format: 'always-on.records/v1',
       authorityId: this.gateway.authorityId,
       exportId: job.id,

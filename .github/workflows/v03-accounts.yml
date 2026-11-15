@@ -8,6 +8,7 @@ on:
         tests/**,
         scripts/verify-v03-accounts.mjs,
         scripts/verify-control-proxy.mjs,
+        scripts/verify-mobile-contract.mjs,
         scripts/control-admin.mjs,
         scripts/control-backup.mjs,
         scripts/verify-control-backup.mjs,
@@ -36,6 +37,7 @@ jobs:
       - name: Identity, encrypted state, device revocation, cursor and budget tests
         run: node --import tsx --test tests/unit/account-control.test.ts tests/unit/account-client-lifecycle.test.ts tests/unit/memory-revision.test.ts tests/unit/oidc-protocol.test.ts tests/unit/managed-auth.test.ts tests/unit/managed-feed-budget.test.ts tests/unit/account-execution.test.ts tests/unit/control-network.test.ts tests/unit/control-rate.test.ts tests/unit/control-admin.test.ts tests/unit/record-export.test.ts
       - run: node scripts/build-managed.mjs && npm pack --ignore-scripts && npm pack ./packages/managed --ignore-scripts
+      - run: npx playwright install --with-deps chromium
       - name: Two actual isolated Harness processes with account routing
         run: node scripts/verify-v03-accounts.mjs
       - name: Actual Caddy TLS proxy and independent client login limits
@@ -57,6 +59,8 @@ jobs:
             test-results/v03-release-gate.json
             test-results/v03-backup.json
             test-results/control-proxy.json
+            test-results/mobile-component-contract.json
+            test-results/mobile-component-failure.png
           retention-days: 14
           if-no-files-found: warn
 

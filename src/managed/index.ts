@@ -137,10 +137,7 @@ export async function apply(ctx: Context, config: Config = {}) {
       pushPublicKey: null,
       goals: store.goals().map((goal) => {
         const task = state.tasks.find((t: { id: string }) => t.id === goal.taskId);
-        const checkpoints = ctx.alwaysOn.coordinator
-          .runs()
-          .filter((r) => r.taskId === goal.taskId)
-          .slice(0, 20);
+        const checkpoints = ctx.alwaysOn.coordinator.taskRuns(goal.taskId, 20);
         return {
           ...goal,
           state: task?.state ?? 'unavailable',
@@ -335,6 +332,24 @@ export async function apply(ctx: Context, config: Config = {}) {
     const authorization = String(req.headers.authorization ?? '');
     if (!authorization.startsWith('Bearer ')) throw new GatewayError(401, 'device_unauthorized');
     const device = store.authenticate(authorization.slice(7));
+    if (req.method === 'POST' && path === '/snapshots') {
+      z.object({})
+        .strict()
+        .parse(await readBody(req));
+      if (url.search) throw new GatewayError(400, 'invalid_export_cursor');
+      return serialized(async () => {
+        store.authenticate(authorization.slice(7));
+        return json(exports.start(device.id, await snapshot()));
+      });
+    }
+    if (req.method === 'GET' && path === '/snapshots') {
+      if (
+        [...url.searchParams.keys()].some((k) => k !== 'cursor') ||
+        url.searchParams.getAll('cursor').length !== 1
+      )
+        throw new GatewayError(400, 'invalid_export_cursor');
+      return json(exports.read(device.id, url.searchParams.get('cursor')!, true));
+    }
     if (req.method === 'POST' && path === '/exports') {
       z.object({})
         .strict()
@@ -360,7 +375,16 @@ export async function apply(ctx: Context, config: Config = {}) {
       exports.release(device.id, input.exportId);
       return json({ ok: true });
     }
-    if (req.method === 'GET' && path === '/export')
+    if (req.method === 'GET' && path === '/export') {
+      let bytes = 0;
+      for (const table of ['tasks', 'runs', 'memory', 'inbox', 'goals']) {
+        const db = table === 'goals' ? store.db : ctx.alwaysOn.coordinator.store.db;
+        bytes += Number(
+          db.prepare(`SELECT COALESCE(SUM(length(CAST(data AS BLOB))),0) AS n FROM ${table}`).get()!
+            .n,
+        );
+      }
+      if (bytes > 1024 * 1024) throw new GatewayError(413, 'export_pagination_required');
       return json({
         authorityId: store.authorityId,
         exportedAt: new Date().toISOString(),
@@ -372,6 +396,7 @@ export async function apply(ctx: Context, config: Config = {}) {
         inbox: ctx.alwaysOn.notifications.list(),
         goals: store.goals(),
       });
+    }
     if (req.method === 'GET' && path === '/events') {
       if (
         [...url.searchParams.keys()].some(
@@ -407,7 +432,10 @@ export async function apply(ctx: Context, config: Config = {}) {
     if (req.method === 'GET' && path === '/snapshot')
       return serialized(async () => {
         store.authenticate(authorization.slice(7));
-        return json(await snapshot());
+        const state = await snapshot();
+        if (Buffer.byteLength(JSON.stringify(state)) > 1024 * 1024)
+          throw new GatewayError(413, 'snapshot_pagination_required');
+        return json(state);
       });
     if (req.method === 'GET' && path === '/changes') {
       const after = z.coerce
@@ -513,7 +541,7 @@ export async function apply(ctx: Context, config: Config = {}) {
     }
     if (req.method === 'GET' && path.startsWith('/runs/')) {
       const id = z.uuid().parse(path.slice('/runs/'.length));
-      const run = ctx.alwaysOn.coordinator.runs().find((r) => r.id === id);
+      const run = ctx.alwaysOn.coordinator.store.get<import('../host/tasks.js').Run>('runs', id);
       if (!run) throw new GatewayError(404, 'run_not_found');
       return json(run);
     }

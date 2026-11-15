@@ -135,7 +135,13 @@ export function ChatScreen() {
           ))}
           {!focusedRun ? (
             <>
-              <Field label="Message your agent" value={message} onChange={setMessage} multiline />
+              <Field
+                label="Message your agent"
+                maxLength={12000}
+                value={message}
+                onChange={setMessage}
+                multiline
+              />
               <Button
                 title="Send"
                 disabled={disabled || !message.trim()}
@@ -151,6 +157,18 @@ export function ChatScreen() {
                       setMessage('');
                       setSession(next);
                     }
+                  })
+                }
+              />
+              <Button
+                title="Cancel current turn"
+                disabled={disabled || !session?.state?.running}
+                onPress={() =>
+                  perform(async () => {
+                    const version = selectionVersion.current;
+                    await mutate({ action: 'session.cancel', data: { sessionId } });
+                    const next = await client!.readSession(sessionId);
+                    if (version === selectionVersion.current) setSession(next);
                   })
                 }
               />

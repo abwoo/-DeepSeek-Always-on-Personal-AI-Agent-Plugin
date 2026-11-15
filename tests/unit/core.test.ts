@@ -17,9 +17,9 @@ function fixture(path = ':memory:') {
     create: async () => ({ id: `schedule-${++count}`, target: { sessionId: `session-${count}` } }),
     edit: async (x) => {
       edits.push(x);
-      return {};
+      return { id: x.id, status: x.patch.active ? 'active' : 'paused' };
     },
-    run: async () => ({}),
+    run: async ({ id }) => ({ id, status: 'active' }),
   };
   return {
     store,
@@ -288,4 +288,63 @@ test('owner cancellation stops the active native Session and keeps an audit reco
   assert.equal(f.c.requireTask(t.id).state, 'cancelled');
   assert.equal(f.c.runs()[0]?.id, r.id);
   f.store.close();
+});
+
+test('native negative schedule receipts never become a successful task control or model completion', async () => {
+  const f = fixture();
+  try {
+    const task = await f.c.create(input);
+    f.scheduler.edit = async ({ id }) => ({ id, code: 'schedule_conflict' });
+    const api = createApi(f.c, f.memory, f.notices);
+    const response = await api(
+      new Request('https://host.test/api/always-on', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ action: 'task.control', data: { id: task.id, state: 'paused' } }),
+      }),
+    );
+    assert.equal(response.status, 400);
+    assert.equal((await response.json()).code, 'schedule_not_confirmed');
+    assert.equal(f.c.requireTask(task.id).state, 'error');
+    assert.equal(f.c.claim(task.id, 'must-not-run', 's', 1), undefined);
+    f.scheduler.edit = async ({ id }) => ({ id, status: 'active' });
+    await f.c.control(task.id, 'active');
+    assert.equal(f.c.requireTask(task.id).error, undefined);
+    f.scheduler.run = async ({ id }) => ({ id, code: 'schedule_execution_pending' });
+    await assert.rejects(() => f.c.runNow(task.id), /did not confirm/);
+    assert.equal(f.c.runs().length, 0);
+    f.scheduler.edit = async ({ id }) => ({ id, status: 'ended' });
+    await assert.rejects(() => f.c.control(task.id, 'active'), /did not confirm/);
+    assert.equal(f.c.requireTask(task.id).state, 'error');
+  } finally {
+    f.store.close();
+  }
+});
+test('recent snapshots and task projections retain the full ledger while returning bounded ordered views', async () => {
+  const f = fixture();
+  try {
+    const task = await f.c.create({ ...input, maxRuns: 1000 });
+    for (let i = 0; i < 305; i++)
+      f.store.run('history-' + i, task.id, 'occurrence-' + i, {
+        id: 'history-' + i,
+        taskId: task.id,
+        occurrence: 'occurrence-' + i,
+        sessionId: 'session-' + i,
+        status: 'completed',
+        attempt: 1,
+        startedAt: new Date().toISOString(),
+        steps: 1,
+      });
+    assert.equal(f.c.runs().length, 305);
+    assert.equal(f.c.taskRuns(task.id, 20).length, 20);
+    assert.equal(f.c.taskRuns(task.id, 20)[0]?.id, 'history-304');
+    const api = createApi(f.c, f.memory, f.notices);
+    const data = await (await api(new Request('https://host.test/api/always-on'))).json();
+    assert.equal(data.runs.length, 200);
+    assert.equal(data.runs[0].id, 'history-304');
+    assert.equal(data.runs.at(-1).id, 'history-105');
+    assert.equal(f.c.runs().length, 305);
+  } finally {
+    f.store.close();
+  }
 });

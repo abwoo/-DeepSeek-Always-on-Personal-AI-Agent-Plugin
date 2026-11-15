@@ -17,12 +17,29 @@ const errors: Record<string, string> = {
     'The outcome is unknown. Review the task or conversation before trying again.',
 };
 export const zh: Record<string, string> = {
+  'Your session expired or this device was revoked. Sign in again.':
+    '登录已过期或此设备的访问已被撤销，请重新登录。',
+  'Failed to fetch': '网络连接失败，请重试。',
+  'Network request failed': '网络连接失败，请重试。',
+  'The operation was aborted.': '请求超时或已取消，请重试。',
+  'Cancel edit': '取消编辑',
+  'Cancel current turn': '停止当前轮次',
+  'Model usage is unconfirmed. Further model calls are blocked for this UTC day.':
+    '部分模型用量尚未确认，本 UTC 日的后续模型调用已阻止。',
+  'Enter an interval from 1 minute to 365 days, in whole seconds.':
+    '请输入 1 分钟至 365 天之间的间隔，精确到整秒。',
+  'Choose a valid date and time.': '请选择有效的日期与时间。',
+  'Choose a future time for a one-time task.': '一次性任务请选择未来的时间。',
+  'Native schedule did not confirm the requested change. Refresh and review task state.':
+    '原生调度未确认此修改，请刷新并核实任务状态。',
+  'Loading devices…': '正在读取设备…',
+  'No devices found.': '暂无设备。',
   'Export cancelled': '导出已取消',
-  'Export personal agent records': '导出个人智能体记录',
   'File sharing is not available on this device.': '此设备暂不支持文件分享。',
   export_limit: '记录超出单次导出大小限制，请联系服务运营者。',
   export_expired: '导出已过期，请重新开始。',
   export_busy: '其他导出正在进行，请稍后重试。',
+  export_rate_limit: '记录读取过于频繁，请稍后重试。',
 
   'Your account is paused. Contact the service operator to resume.':
     '账号已暂停，请联系服务运营者恢复。',

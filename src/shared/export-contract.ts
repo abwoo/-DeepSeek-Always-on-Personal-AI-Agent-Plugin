@@ -9,6 +9,7 @@ export const exportItemSchema = z
 export type ExportItem = z.infer<typeof exportItemSchema>;
 export const exportPageSchema = z
   .object({
+    snapshot: z.record(z.string(), z.unknown()).optional(),
     format: z.literal('always-on.records/v1'),
     authorityId: z.uuid(),
     exportId: z.uuid(),
@@ -25,78 +26,91 @@ export const exportPageSchema = z
   })
   .strict();
 export type ExportPage = z.infer<typeof exportPageSchema>;
-/** Writes bounded JSONL chunks; the completion footer is emitted only after every page validates. */
-export async function writeRecordExport(
+/** Validates every page and always releases its device-bound temporary snapshot. */
+export async function* recordPages(
   request: (path: string, body?: unknown) => Promise<any>,
-  write: (text: string) => Promise<void>,
   current: () => boolean = () => true,
+  endpoint = '/exports',
 ) {
   let exportId: string | undefined,
     identity = '',
     records = 0,
-    pages = 0,
-    expected = 0;
+    expected = 0,
+    bytes = 0;
   const alive = () => {
     if (!current()) throw Error('Export cancelled');
   };
   try {
     alive();
-    let raw = await request('/exports', {});
+    let raw = await request(endpoint, {});
     for (;;) {
       alive();
       const p = exportPageSchema.parse(raw);
+      const signature = JSON.stringify([
+        p.format,
+        p.authorityId,
+        p.exportId,
+        p.createdAt,
+        p.expiresAt,
+        p.pages,
+        p.records,
+        p.snapshot,
+      ]);
       if (expected === 0) {
         exportId = p.exportId;
-        identity = JSON.stringify([
-          p.format,
-          p.authorityId,
-          p.exportId,
-          p.createdAt,
-          p.expiresAt,
-          p.pages,
-          p.records,
-        ]);
-        await write(
-          JSON.stringify({
-            format: p.format,
-            authorityId: p.authorityId,
-            exportId: p.exportId,
-            createdAt: p.createdAt,
-            scope:
-              'Personal agent records, including proposed memory. Native Session transcripts and credentials are excluded.',
-          }) + '\n',
-        );
+        identity = signature;
       }
       if (
         p.index !== expected ||
-        identity !==
-          JSON.stringify([
-            p.format,
-            p.authorityId,
-            p.exportId,
-            p.createdAt,
-            p.expiresAt,
-            p.pages,
-            p.records,
-          ]) ||
+        signature !== identity ||
         p.pages <= expected ||
         (p.next === null) !== (expected === p.pages - 1)
       )
         throw Error('Export page mismatch');
-      alive();
-      await write(p.items.map((x) => JSON.stringify(x) + '\n').join(''));
+      bytes += new TextEncoder().encode(JSON.stringify(p.items)).byteLength;
+      if (bytes > 64 * 1024 * 1024) throw Error('Export size limit');
       records += p.items.length;
-      pages++;
       expected++;
-      if (!p.next) {
-        if (records !== p.records) throw Error('Incomplete export');
-        alive();
-        await write(JSON.stringify({ complete: true, records, pages }) + '\n');
-        return { exportId: p.exportId, records, pages };
-      }
-      raw = await request('/exports?cursor=' + encodeURIComponent(p.next));
+      if (!p.next && records !== p.records) throw Error('Incomplete export');
+      yield p;
+      alive();
+      if (!p.next) return;
+      raw = await request(endpoint + '?cursor=' + encodeURIComponent(p.next));
     }
   } finally {
     if (exportId) await request('/exports/release', { exportId }).catch(() => {});
   }
+}
+/** Writes bounded JSONL chunks; completion is emitted only after every page validates. */
+export async function writeRecordExport(
+  request: (path: string, body?: unknown) => Promise<any>,
+  write: (text: string) => Promise<void>,
+  current: () => boolean = () => true,
+) {
+  let records = 0,
+    pages = 0,
+    exportId = '';
+  for await (const p of recordPages(request, current)) {
+    if (p.snapshot) throw Error('Export scope mismatch');
+    if (p.index === 0) {
+      exportId = p.exportId;
+      await write(
+        JSON.stringify({
+          format: p.format,
+          authorityId: p.authorityId,
+          exportId: p.exportId,
+          createdAt: p.createdAt,
+          scope:
+            'Personal agent records, including proposed memory. Native Session transcripts and credentials are excluded.',
+        }) + '\n',
+      );
+    }
+    if (!current()) throw Error('Export cancelled');
+    await write(p.items.map((x) => JSON.stringify(x) + '\n').join(''));
+    records += p.items.length;
+    pages++;
+  }
+  if (!current()) throw Error('Export cancelled');
+  await write(JSON.stringify({ complete: true, records, pages }) + '\n');
+  return { exportId, records, pages };
 }

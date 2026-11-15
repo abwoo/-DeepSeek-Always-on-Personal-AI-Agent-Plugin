@@ -34,11 +34,32 @@ export function MemoryScreen() {
             <Button key={k} title={k === kind ? '✓ ' + k : k} onPress={() => setKind(k)} />
           ))}
         </View>
-        <Field label="Information to remember" value={memory} onChange={setMemory} multiline />
+        <Field
+          label="Information to remember"
+          maxLength={4000}
+          value={memory}
+          onChange={setMemory}
+          multiline
+        />
         <View style={styles.switchRow}>
           <Text style={styles.flexText}>I allow this information to be used across sessions.</Text>
-          <Switch value={consent} onValueChange={setConsent} />
+          <Switch
+            accessibilityLabel="I allow this information to be used across sessions."
+            value={consent}
+            onValueChange={setConsent}
+          />
         </View>
+        {editing ? (
+          <Button
+            title="Cancel edit"
+            onPress={() => {
+              setEditing(undefined);
+              setEditingVersion(undefined);
+              setMemory('');
+              setConsent(false);
+            }}
+          />
+        ) : null}
         <Button
           title="Save with my consent"
           disabled={disabled || !consent || !memory.trim()}

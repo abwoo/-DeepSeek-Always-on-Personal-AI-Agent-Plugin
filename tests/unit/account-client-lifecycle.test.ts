@@ -108,7 +108,7 @@ test('secure-store failure never replays a rotated refresh handle; latest handle
     transport,
   );
   await assert.rejects(c.request('/devices'), /Secure storage unavailable/);
-  await assert.rejects(c.request('/devices'), /sign_in_required/);
+  await assert.rejects(c.request('/devices'), (e:any)=>e.status===401&&e.code==='sign_in_required');
   assert.equal(refreshes, 1);
   await c.logout();
   assert.equal(revoked, true);
@@ -129,7 +129,7 @@ test('ambiguous refresh is not replayed and failed logout stays retryable withou
   };
   const c = new AccountManagedClient(first, async () => {}, undefined, transport);
   await assert.rejects(c.request('/devices'), /Ambiguous refresh/);
-  await assert.rejects(c.request('/devices'), /sign_in_required/);
+  await assert.rejects(c.request('/devices'), (e:any)=>e.status===401&&e.code==='sign_in_required');
   await assert.rejects(c.logout(), /unavailable/);
   await assert.rejects(c.request('/devices'), /Sign-out is in progress/);
   await c.logout();
@@ -169,7 +169,7 @@ test('a late Desktop event authentication error cannot clear a replacement accou
   }
   const desktop = new Desktop(ctx as any, 'https://account.test');
   try {
-    const rejected = assert.rejects(desktop.events({ after: 0 }), /account_session_expired/);
+    const rejected = assert.rejects(desktop.events({ after: 0 }), (e:any)=>e.status===401&&e.code==='account_session_expired');
     await entered.promise;
     current = next;
     release.resolve();

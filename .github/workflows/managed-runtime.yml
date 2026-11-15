@@ -1,21 +1,37 @@
 name: Managed authority and device protocol
 on:
   push:
-    branches: [main, "v0.3/**"]
-    paths: [.dockerignore, src/**, packages/managed/**, packages/client/**, scripts/build-managed*, scripts/managed-admin.mjs, deploy/managed/**, tests/unit/managed-auth.test.ts, tests/unit/native-push.test.ts, scripts/verify-real-deepseek.mjs, scripts/verify-managed-container.mjs, .github/workflows/managed-runtime.yml]
+    branches: [main, 'v0.3/**']
+    paths:
+      [
+        .dockerignore,
+        src/**,
+        packages/managed/**,
+        packages/client/**,
+        scripts/build-managed*,
+        scripts/managed-admin.mjs,
+        deploy/managed/**,
+        tests/unit/managed-auth.test.ts,
+        tests/unit/native-push.test.ts,
+        scripts/verify-real-deepseek.mjs,
+        scripts/verify-managed-container.mjs,
+        scripts/control-backup.mjs,
+        .github/workflows/managed-runtime.yml,
+      ]
   workflow_dispatch:
 permissions:
   contents: read
 jobs:
   authority:
     runs-on: ubuntu-24.04
-    timeout-minutes: 15
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
       - uses: actions/setup-node@v4
-        with: {node-version: '24', cache: npm}
+        with: { node-version: '24', cache: npm }
       - uses: pnpm/action-setup@v4
-        with: {version: 11.28.5}
+        with: { version: 11.28.5 }
       - run: npm ci
       - run: npm run build
       - run: node --import tsx --test tests/unit/managed-auth.test.ts tests/unit/native-push.test.ts
@@ -29,10 +45,16 @@ jobs:
         env:
           DEEPSEEK_API_KEY: ${{ secrets.ALWAYS_ON_DEEPSEEK_API_KEY }}
           DEEPSEEK_MODEL: ${{ vars.ALWAYS_ON_DEEPSEEK_MODEL }}
+      - name: Build the immutable previous-main runtime for real upgrade/rollback verification
+        run: |
+          mkdir -p .artifacts/previous-runtime
+          git archive 7f18534bda7506162e0377321150c560c21244b9 | tar -x -C .artifacts/previous-runtime
+          docker build -f .artifacts/previous-runtime/deploy/managed/Dockerfile -t always-on-managed:previous .artifacts/previous-runtime
       - name: Build operator runtime container
         run: docker build -f deploy/managed/Dockerfile -t always-on-managed:test .
       - name: Start actual container and verify trusted-test TLS, narrow API and device auth
         run: node scripts/verify-managed-container.mjs
+        env: { ALWAYS_ON_UPGRADE_FROM: 7f18534bda7506162e0377321150c560c21244b9 }
       - uses: actions/upload-artifact@v4
         if: always()
         with:

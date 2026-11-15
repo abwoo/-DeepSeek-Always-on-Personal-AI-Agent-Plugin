@@ -46,12 +46,14 @@ export function Field({
   onChange,
   multiline = false,
   secret = false,
+  maxLength,
 }: {
   label: string;
   value: string;
   onChange: (s: string) => void;
   multiline?: boolean;
   secret?: boolean;
+  maxLength?: number;
 }) {
   const { styles, t } = useUi();
   return (
@@ -59,6 +61,7 @@ export function Field({
       <Text style={styles.label}>{t(label)}</Text>
       <TextInput
         accessibilityLabel={t(label)}
+        maxLength={maxLength}
         autoCapitalize="none"
         autoCorrect={false}
         secureTextEntry={secret}
