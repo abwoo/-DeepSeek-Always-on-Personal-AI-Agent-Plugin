@@ -30,7 +30,7 @@ jobs:
       - run: npm ci
       - run: npm run typecheck && npm run build
       - name: Identity, encrypted state, device revocation, cursor and budget tests
-        run: node --import tsx --test tests/unit/account-control.test.ts tests/unit/oidc-protocol.test.ts tests/unit/managed-auth.test.ts tests/unit/managed-feed-budget.test.ts
+        run: node --import tsx --test tests/unit/account-control.test.ts tests/unit/account-client-lifecycle.test.ts tests/unit/memory-revision.test.ts tests/unit/oidc-protocol.test.ts tests/unit/managed-auth.test.ts tests/unit/managed-feed-budget.test.ts
       - run: node scripts/build-managed.mjs && npm pack --ignore-scripts && npm pack ./packages/managed --ignore-scripts
       - name: Two actual isolated Harness processes with account routing
         run: node scripts/verify-v03-accounts.mjs

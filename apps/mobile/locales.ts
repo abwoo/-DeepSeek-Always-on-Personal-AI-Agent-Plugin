@@ -9,6 +9,7 @@ export function localize(raw: string, language: 'en' | 'zh') {
 }
 const errors:Record<string,string>={account_session_expired:'Your session expired. Sign in again.',sign_in_required:'Your session expired. Sign in again.',rate_limit:'Too many requests. Please wait a moment.',runtime_unavailable:'Your agent is temporarily unavailable. Reconnect to continue.',agent_unavailable:'Your agent is temporarily unavailable. Reconnect to continue.',operation_outcome_unknown:'The outcome is unknown. Review the task or conversation before trying again.'};
 export const zh: Record<string, string> = {
+ 'Sign-out is in progress. Retry signing out if it fails.':'正在退出登录；若失败，请重试退出。',
  "This execution has no verified historical conversation boundary. Review its recorded result in Tasks.":"此执行没有可验证的历史会话边界，请在任务中查看其已保存的执行结果。",
  'Preparing tool call':'正在准备工具调用',
  'Your session expired. Sign in again.':'登录已过期，请重新登录。',

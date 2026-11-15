@@ -104,6 +104,9 @@ export class AccountApi {
 export class AccountManagedClient extends ManagedClient {
   private refreshing: Promise<void> | null = null;
   private connection: AccountConnection;
+  private signingOut = false;
+  private refreshFailed = false;
+  private logoutPending: Promise<void> | null = null;
   constructor(
     record: AccountConnection,
     private save: (next: AccountConnection) => Promise<void>,
@@ -117,24 +120,54 @@ export class AccountManagedClient extends ManagedClient {
   }
   readonly accountApi: AccountApi;
   private async fresh() {
+    if (this.signingOut) throw new ApiError(409, 'sign_out_in_progress');
+    if (this.refreshFailed) throw new ApiError(401, 'sign_in_required');
     if (Date.parse(this.connection.credentials.expiresAt) > Date.now() + 60000) return;
     if (!this.refreshing)
       this.refreshing = (async () => {
         const next = await this.accountApi.refresh(this.connection);
-        await this.save(next);
+        // Retain the rotated handle in this instance even if secure persistence
+        // fails: never replay the old handle, and allow explicit revocation.
         this.connection = next;
+        try {
+          await this.save(next);
+        } catch (e) {
+          this.refreshFailed = true;
+          throw e;
+        }
         Object.assign(this.credentials, next.credentials);
-      })().finally(() => {
-        this.refreshing = null;
-      });
+      })()
+        .catch((e) => {
+          this.refreshFailed = true;
+          throw e;
+        })
+        .finally(() => {
+          this.refreshing = null;
+        });
     await this.refreshing;
+    if (this.signingOut) throw new ApiError(409, 'sign_out_in_progress');
   }
   override async request(path: string, body?: unknown) {
     await this.fresh();
+    if (this.signingOut) throw new ApiError(409, 'sign_out_in_progress');
     return super.request(path, body);
   }
   async logout() {
-    await this.accountApi.logout(this.connection);
+    if (!this.logoutPending) {
+      this.signingOut = true;
+      this.logoutPending = (async () => {
+        // A concurrent event/snapshot request may already be rotating credentials.
+        // Revoke the resulting handle, then prevent this instance from resuming.
+        await this.refreshing?.catch(() => {});
+        await this.accountApi.logout(this.connection);
+      })().catch((e) => {
+        // A failed revocation remains retryable, but this instance cannot send
+        // further work or refresh an uncertain credential in the meantime.
+        this.logoutPending = null;
+        throw e;
+      });
+    }
+    await this.logoutPending;
   }
 }
 

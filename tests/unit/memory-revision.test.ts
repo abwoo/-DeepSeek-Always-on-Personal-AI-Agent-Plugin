@@ -6,7 +6,15 @@ test('two devices cannot silently overwrite a consented memory revision; old JSO
   const store = new Store(':memory:'),
     memory = new MemoryService(store);
   try {
-    assert.throws(()=>memory.save({id:'',kind:'fact',content:'Invalid identity',source:'User',consent:true}));
+    assert.throws(() =>
+      memory.save({
+        id: '',
+        kind: 'fact',
+        content: 'Invalid identity',
+        source: 'User',
+        consent: true,
+      }),
+    );
     const first = memory.save({
       kind: 'project',
       content: 'Original confirmed context',
@@ -55,6 +63,60 @@ test('two devices cannot silently overwrite a consented memory revision; old JSO
     assert.equal(upgraded.version, 1);
     memory.remove(first.id);
     assert.equal(memory.search('Desktop edit').length, 0);
+  } finally {
+    store.close();
+  }
+});
+
+test('approved entries and proposals share the same quota, including explicit new IDs; deletion frees capacity', () => {
+  const store = new Store(':memory:'),
+    memory = new MemoryService(store);
+  const input = {
+    kind: 'fact',
+    content: 'User-owned fact',
+    source: 'Explicit consent',
+    consent: true,
+  };
+  try {
+    for (let n = 0; n < 499; n++)
+      store.put('memory', 'existing-' + n, {
+        ...input,
+        id: 'existing-' + n,
+        version: 1,
+        updatedAt: new Date().toISOString(),
+      });
+    const proposal = memory.propose({
+      kind: 'preference',
+      content: 'Needs confirmation',
+      source: 'Agent suggestion',
+    });
+    assert.equal(proposal.consent, false);
+    assert.equal(memory.list().length, 500);
+    assert.throws(
+      () => memory.propose({ kind: 'fact', content: 'Overflow', source: 'Suggestion' }),
+      /Memory limit/,
+    );
+    assert.throws(() => memory.save({ ...input, id: 'arbitrary-new-id' }), /Memory limit/);
+    assert.throws(() => memory.save(input), /Memory limit/);
+    const confirmed = memory.save({ ...input, id: proposal.id, expectedVersion: 0 });
+    assert.equal(confirmed.consent, true);
+    assert.equal(memory.list().length, 500);
+    memory.save({ ...input, id: 'existing-0', expectedVersion: 1 });
+    assert.equal(memory.remove('existing-1'), true);
+    memory.propose({ kind: 'fact', content: 'New suggestion within quota', source: 'Agent' });
+    assert.equal(memory.list().length, 500);
+  } finally {
+    store.close();
+  }
+});
+test('a model proposal cannot select an existing memory ID or consent/revision policy', () => {
+  const store = new Store(':memory:'),
+    memory = new MemoryService(store);
+  try {
+    const input = { kind: 'fact', content: 'Suggestion', source: 'Agent' };
+    for (const extra of [{ id: 'existing' }, { consent: true }, { expectedVersion: 1 }])
+      assert.throws(() => memory.propose({ ...input, ...extra }));
+    assert.equal(memory.list().length, 0);
   } finally {
     store.close();
   }

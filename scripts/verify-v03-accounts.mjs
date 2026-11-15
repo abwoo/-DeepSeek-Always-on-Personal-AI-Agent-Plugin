@@ -10,12 +10,14 @@ import assert from 'node:assert/strict';
 import { ControlStore, secret, challenge } from '../dist/control/store.js';
 import { AgentPool } from '../dist/control/pool.js';
 import { controlServer } from '../dist/control/server.js';
-import { AccountApi } from '../dist/shared/account-client.js';
+import { AccountApi, AccountManagedClient } from '../dist/shared/account-client.js';
 import { ManagedClient } from '../dist/shared/managed-client.js';
 const root = await mkdtemp(join(tmpdir(), 'always-on-v03-')),
   cli = resolve('node_modules/@deepseek-ai/dsh/lib/bin.js');
 const authorities = [];
 let controller, store, base;
+let unavailableRegistration = true;
+const registrationAttempts = [];
 const encryption = randomBytes(32).toString('base64');
 async function authority(index) {
   const provisioningKey = secret(),
@@ -79,7 +81,17 @@ const identity = {
 };
 async function boot(slots) {
   store = new ControlStore(join(root, 'accounts.sqlite'), encryption);
-  controller = controlServer(store, new AgentPool(store, slots, true), identity, {
+  const leafTransport = async (input, init) => {
+    if (String(input).endsWith('/operator/device')) {
+      registrationAttempts.push(JSON.parse(String(init.body)).id);
+      if (unavailableRegistration) {
+        unavailableRegistration = false;
+        return Response.json({ error: 'injected_temporary_unavailability' }, { status: 503 });
+      }
+    }
+    return fetch(input, init);
+  };
+  controller = controlServer(store, new AgentPool(store, slots, true, leafTransport), identity, {
     publicOrigin: 'https://service-fixture.invalid',
     mobileRedirect: 'deepseek-always-on://oauth/return',
     allowLoopback: true,
@@ -102,7 +114,11 @@ async function login(subject) {
   const state = new URL(start.authorizeUrl).searchParams.get('state');
   const r = await fetch(base + '/account/v1/callback?state=' + state + '&code=' + subject);
   assert.equal(r.status, 200);
-  const result = await api.complete(start.loginId, verifier);
+  let result = await api.complete(start.loginId, verifier);
+  if (result.state === 'provisioning') {
+    result = await api.complete(start.loginId, verifier);
+    assert.equal(registrationAttempts[0], registrationAttempts[1]);
+  }
   assert.equal(result.state, 'ready', JSON.stringify(result));
   return result.connection;
 }
@@ -250,6 +266,40 @@ try {
   assert.ok((await client(again).snapshot()).tasks.some((t) => t.id === task.id));
   const forbidden = await fetch(base + '/personal-agent/v1/operator/inspect');
   assert.equal(forbidden.status, 404);
+  // Rotate through the actual controller, pause local secure-save completion,
+  // then sign out while the background request is in flight.
+  let releaseSave, enteredSave;
+  const saving = new Promise((resolve) => {
+    enteredSave = resolve;
+  });
+  const release = new Promise((resolve) => {
+    releaseSave = resolve;
+  });
+  const expiring = {
+    ...again,
+    credentials: { ...again.credentials, expiresAt: new Date(0).toISOString() },
+  };
+  const managed = new AccountManagedClient(
+    expiring,
+    async () => {
+      enteredSave();
+      await release;
+    },
+    undefined,
+    transport,
+  );
+  const rejected = assert.rejects(managed.snapshot(), /Sign-out is in progress/);
+  await saving;
+  const signingOut = managed.logout();
+  releaseSave();
+  await Promise.all([signingOut, rejected]);
+  await assert.rejects(() => client(again).snapshot());
+  assert.ok(
+    !(await desktop.request('/devices')).items.some(
+      (d) => d.id === again.credentials.deviceId && !d.revoked,
+    ),
+  );
+  assert.equal((await client(b).snapshot()).authorityId, b.credentials.authorityId);
   await mkdir('test-results', { recursive: true });
   await writeFile(
     'test-results/v03-accounts.json',
@@ -260,6 +310,9 @@ try {
         identity: 'explicit local adapter fixture; not live Auth0',
         actualHarnessProcesses: 2,
         automaticIsolatedAllocation: true,
+        temporaryRegistrationFailureRetriedSameDevice:
+          registrationAttempts[0] === registrationAttempts[1],
+        rotationConcurrentLogoutRevokesLatestHandle: true,
         sameAccountTwoIndependentDevices: true,
         crossAccountSessionAndTaskDenied: true,
         sharedTask: true,
