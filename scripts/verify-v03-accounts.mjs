@@ -1,3 +1,4 @@
+import { serveNativeFixture } from './serve-native-fixture.mjs';
 import { verifyMobileContract } from './verify-mobile-contract.mjs';
 // Level 2: two actual published Harness processes. Identity is an explicitly labeled local adapter fixture.
 // Never substitutes for a live Auth0 tenant, real model output or physical-device acceptance.
@@ -13,6 +14,8 @@ import { AgentPool } from '../dist/control/pool.js';
 import { controlServer } from '../dist/control/server.js';
 import { AccountApi, AccountManagedClient } from '../dist/shared/account-client.js';
 import { ManagedClient } from '../dist/shared/managed-client.js';
+const nativeFixture = process.argv.includes('--native-fixture');
+const productOrigin = nativeFixture ? 'https://127.0.0.1:8443' : 'https://service-fixture.invalid';
 const root = await mkdtemp(join(tmpdir(), 'always-on-v03-')),
   cli = resolve('node_modules/@deepseek-ai/dsh/lib/bin.js');
 const authorities = [];
@@ -109,7 +112,7 @@ async function boot(slots) {
   currentSlots = slots;
   pool = new AgentPool(store, slots, true, leafTransport);
   controller = controlServer(store, pool, identity, {
-    publicOrigin: 'https://service-fixture.invalid',
+    publicOrigin: productOrigin,
     mobileRedirect: 'deepseek-always-on://oauth/return',
     allowLoopback: true,
   });
@@ -117,10 +120,10 @@ async function boot(slots) {
   base = 'http://127.0.0.1:' + controller.server.address().port;
 }
 const transport = async (input, init) => {
-  const r = await fetch(String(input).replace('https://service-fixture.invalid', base), init);
+  const r = await fetch(String(input).replace(productOrigin, base), init);
   return new Response(await r.text(), { status: r.status, headers: r.headers });
 };
-const api = new AccountApi('https://service-fixture.invalid', transport);
+const api = new AccountApi(productOrigin, transport);
 async function login(subject, name = 'Real Harness protocol observer') {
   const verifier = secret(),
     start = await api.start({
@@ -191,6 +194,10 @@ async function deniedInput(connection, label, index = 0) {
 try {
   const slots = [await authority(0), await authority(1)];
   await boot(slots);
+  if(nativeFixture) {
+    const nativeConnection=await login('alice','Native engineering device');
+    await serveNativeFixture({base,connection:nativeConnection,observer:client(nativeConnection)});
+  } else {
   const a = await login('alice'),
     phone = await login('alice'),
     b = await login('bob');
@@ -549,6 +556,7 @@ try {
   console.log(
     'Real two-Harness account isolation and shared state passed; live identity/provider/physical gates remain blocked.',
   );
+  }
 } finally {
   await controller?.close().catch(() => {});
   store?.close();

@@ -21,7 +21,19 @@ try:
  run(['xcrun','simctl','bootstatus',udid,'-b'],timeout=600)
  print('Installing actual compiled application',flush=True)
  run(['xcrun','simctl','install',udid,str(app)])
- run(['xcrun','simctl','launch',udid,bundle],timeout=120)
+ # simctl may retain its launch pipe even after SpringBoard has presented the app.
+ # A timeout alone is neither app success nor app failure: verify the independent
+ # launchd PID AND the actual screenshot below. Do not retry/relaunch a crashed app.
+ try:
+  run(['xcrun','simctl','launch',udid,bundle],timeout=120)
+  evidence['launchCommandReturned']=True
+ except subprocess.TimeoutExpired:
+  evidence['launchCommandReturned']=False
+  evidence['launchCommandTimedOut']=True
+ jobs=run(['xcrun','simctl','spawn',udid,'launchctl','list'],timeout=45)
+ matches=[line.split() for line in jobs.splitlines() if 'UIKitApplication:'+bundle+'[' in line]
+ if not any(parts[0].isdigit() and int(parts[0])>0 for parts in matches):raise RuntimeError('No running native application PID after launch')
+ evidence['nativeLaunchdPidConfirmed']=True
  evidence['simulatorLaunch']=True
  time.sleep(5)
  run(['xcrun','simctl','io',udid,'screenshot',str(out/'ios-pairing.png')])
