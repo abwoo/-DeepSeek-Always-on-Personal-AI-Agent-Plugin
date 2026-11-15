@@ -1,6 +1,6 @@
 # DeepSeek Always-on
 
-[Latest reliability fixes and validation](docs/V03_RELIABILITY.md) · **MVP Ready: false**
+[Latest execution policy and proxy stabilization](docs/V03_STABILIZATION.md) · **MVP Ready: false**
 
 **v0.3 development candidate:** account-first Desktop/mobile onboarding, isolated account-to-Harness allocation, native event updates and operator deployment/recovery tooling are implemented in this repository. [Implementation and release gates](docs/V03_ACCEPTANCE.md) · [Operator handoff and user flow](docs/V03_HANDOFF.md) · [Baseline audit](docs/V03_AUDIT.md). **No production sign-in service, physical iPhone release or MVP Ready claim.** v0.2 and the published v0.1 Web alpha records remain below.
 

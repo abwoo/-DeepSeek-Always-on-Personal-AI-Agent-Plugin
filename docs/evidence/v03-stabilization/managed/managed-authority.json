@@ -1,0 +1,18 @@
+{
+  "realHarness": true,
+  "devicePairing": true,
+  "twoDeviceSharedTask": true,
+  "mutationDeduplication": true,
+  "sharedSession": true,
+  "historicalSessionCursor": true,
+  "consentedMemoryCrud": true,
+  "goalsShareNativeTasks": true,
+  "goalDeduplication": true,
+  "sharedPause": true,
+  "pushFailsClosedWithoutProvisioning": true,
+  "hostRestart": true,
+  "revocation": true,
+  "realDeepSeek": false,
+  "realPhone": false,
+  "mvpReady": false
+}
