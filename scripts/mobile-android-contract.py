@@ -44,6 +44,7 @@ def find(label,field=False,scrolling=True):
  for attempt in range(13 if scrolling else 1):
   root=tree()
   nodes=[n for n in root.iter('node') if (n.attrib.get('content-desc')==label or n.attrib.get('text')==label) and (not field or n.attrib.get('class')=='android.widget.EditText')]
+  nodes.sort(key=lambda n:(n.attrib.get('clickable')!='true',n.attrib.get('content-desc')!=label))
   for n in nodes:
    b=bounds(n)
    if len(b)==4 and b[3]>b[1] and b[2]>b[0] and b[1]>0 and b[3]<height:return n
