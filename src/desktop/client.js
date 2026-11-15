@@ -476,7 +476,10 @@ window.__ModuleLoader__.load({
       React.useEffect(() => {
         if (!authorize) return;
         let active = true;
+        let polling = false;
         const timer = setInterval(async () => {
+          if (polling) return;
+          polling = true;
           try {
             const r = await fetch('/api/always-on-desktop/login-complete', { method: 'POST' });
             const value = await r.json();
@@ -490,6 +493,8 @@ window.__ModuleLoader__.load({
               setError(e.message);
               setAuthorize('');
             }
+          } finally {
+            polling = false;
           }
         }, 1500);
         return () => {

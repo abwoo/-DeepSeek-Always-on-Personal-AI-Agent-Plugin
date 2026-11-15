@@ -1,9 +1,7 @@
 // Runs only against an actual official installed macOS/Windows application in disposable CI.
 // Native integration and remote Session control only; never certifies model execution or MVP readiness.
+import { fetch } from './native-probe-http.mjs';
 import { chromium, expect } from '@playwright/test';
-// Use the pinned HTTP client: its best-effort QoS handling fixes macOS EINVAL
-// in Node 24's bundled fetch. This changes the probe, never the signed app.
-import { fetch, install } from 'undici';
 import { spawn, execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
@@ -12,9 +10,6 @@ import { createServer } from 'node:http';
 import { dirname, join, resolve } from 'node:path';
 import { ManagedClient } from '../dist/shared/managed-client.js';
 import { connectProbe } from '../dist/remote/probe-connection.js';
-// Imported public SDK helpers also use global fetch. Keep every request in this
-// Node-only probe on the same patched implementation; child Electron is untouched.
-install();
 const executable = process.env.ALWAYS_ON_DESKTOP_EXE;
 if (!['win32', 'darwin'].includes(process.platform) || !executable) throw new Error('Real installed native Desktop required');
 const output = process.platform === 'win32' ? '.artifacts/windows-desktop' : '.artifacts/macos-desktop';

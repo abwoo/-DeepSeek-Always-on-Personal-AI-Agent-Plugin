@@ -1,0 +1,1 @@
+28b8caf7b2739b8a420ac931ed47b84e251c9dc6f6ffc1fe917d9fcc3b76e15c  apps/mobile/android/app/build/outputs/apk/release/app-release.apk

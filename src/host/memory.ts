@@ -8,24 +8,30 @@ export interface Memory {
   source: string;
   updatedAt: string;
   consent: boolean;
-  version?:number;
+  version?: number;
 }
 export class MemoryService {
   constructor(private store: Store) {}
   save(input: unknown) {
-    if (this.list().length >= 500 && !(input as { id?: string })?.id)
-      throw new Error('Memory limit (500) reached');
     const data = memorySchema.parse(input);
     const id = data.id ?? randomUUID();
-    const prior=this.store.get<Memory>('memory',id);
-    if(data.expectedVersion!==undefined&&data.expectedVersion!==(prior?.version??0))throw new Error('Memory changed on another device; reload and review before saving.');
-    const {expectedVersion:_,...value}=data;
-    const entry = { ...value, id, version:(prior?.version??0)+1, updatedAt: new Date().toISOString() };
+    const prior = this.store.get<Memory>('memory', id);
+    if (!prior && this.list().length >= 500) throw new Error('Memory limit (500) reached');
+    if (data.expectedVersion !== undefined && data.expectedVersion !== (prior?.version ?? 0))
+      throw new Error('Memory changed on another device; reload and review before saving.');
+    const { expectedVersion: _, ...value } = data;
+    const entry = {
+      ...value,
+      id,
+      version: (prior?.version ?? 0) + 1,
+      updatedAt: new Date().toISOString(),
+    };
     this.store.put('memory', id, entry);
     return entry;
   }
   propose(input: unknown) {
-    const data = memorySchema.omit({ consent: true }).parse(input);
+    const data = memorySchema.omit({ consent: true, id: true, expectedVersion: true }).parse(input);
+    if (this.list().length >= 500) throw new Error('Memory limit (500) reached');
     const id = randomUUID();
     const entry = { ...data, id, consent: false, updatedAt: new Date().toISOString() };
     this.store.put('memory', id, entry);

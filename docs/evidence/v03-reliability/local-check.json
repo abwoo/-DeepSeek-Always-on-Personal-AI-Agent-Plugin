@@ -1,0 +1,16 @@
+{
+  "sourceCommit": "8323d4e12f7191a0734c7f83813d0226f98ffc41",
+  "date": "2026-11-15",
+  "command": "npm run check",
+  "pass": 48,
+  "fail": 0,
+  "skipped": 0,
+  "durationMs": 69561.099818,
+  "nativeMobileTypecheck": true,
+  "desktopBuild": true,
+  "realDeepSeek": false,
+  "realIdentityProvider": false,
+  "realPhone": false,
+  "mvpReady": false,
+  "environment": "Local isolated Linux, Node 24.22.1; deterministic Harness model fixture and explicit local identity fixture"
+}

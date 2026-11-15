@@ -173,6 +173,9 @@ export function controlServer(
       store.db
         .prepare("UPDATE logins SET status='authorized' WHERE id=? AND status='claiming'")
         .run(row.id);
+      // The proof-bound plan is durable. Temporary leaf unavailability is a
+      // provisioning state, not a reason to repeat OAuth or create another device.
+      if (e instanceof GatewayError && e.status === 503) return json({ state: 'provisioning' });
       throw e;
     }
   }

@@ -99,12 +99,13 @@ export class AccountDesktop extends PairedDesktop {
       const c = await this.record();
       if (c) {
         try {
-          await new AccountApi(c.origin).logout(c);
+          await (await this.client()).logout();
         } catch (e) {
           if (!(e instanceof ApiError && e.status === 401)) throw e;
         }
       }
       await this.accountCtx.credentials.unset(ref);
+      this.cached = undefined;
       this.pendingLogin = undefined;
       return this.status();
     });

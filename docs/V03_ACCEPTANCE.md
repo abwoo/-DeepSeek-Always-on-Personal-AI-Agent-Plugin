@@ -1,8 +1,10 @@
 # v0.3 implementation and release acceptance
 
+Latest follow-up (2026-11-15): [credential lifecycle, provisioning recovery and memory bounds](V03_RELIABILITY.md). The original evidence snapshot below remains dated and reproducible; it is not the newest implementation SHA. All production gates remain Blocked.
+
 Updated 2026-11-14. **Engineering candidate; MVP Ready: false.** No production account service, real DeepSeek execution, physical-phone notification, iPhone signing, TestFlight or npm publication is claimed. The default service origin is deliberately `null`; installing a development artifact alone does not provide a working hosted agent.
 
-Baseline main: `f83c996353a52724e9a522d3f583fb9f9ed0cd8a`. Work branch: `v0.3/zero-configuration-mvp`. [PR #1](https://github.com/abwoo/-DeepSeek-Always-on-Personal-AI-Agent-Plugin/pull/1). [Audit](V03_AUDIT.md). Final implementation: **`95793a60d3475be5b36a425562cb4065daba19f1`**. Later evidence/documentation commits do not change that implementation. Exact run/artifact provenance: [manifest](evidence/v03/manifest.json).
+Baseline main: `f83c996353a52724e9a522d3f583fb9f9ed0cd8a`. Work branch: `v0.3/zero-configuration-mvp`. [PR #1](https://github.com/abwoo/-DeepSeek-Always-on-Personal-AI-Agent-Plugin/pull/1). [Audit](V03_AUDIT.md). Original engineering implementation: **`95793a60d3475be5b36a425562cb4065daba19f1`**. Its original evidence/documentation commits preserve that implementation; subsequent product changes are recorded in the follow-up above. Exact run/artifact provenance: [manifest](evidence/v03/manifest.json).
 
 ## Evidence rules and baseline
 

@@ -17,6 +17,8 @@ test('account admission binds PKCE, isolates two identities, rotates credentials
     origin: `https://leaf-${i}.test`,
     provisioningKey: secret(),
   }));
+  const registrationIds: string[] = [];
+  let unavailable = true;
   const fakeLeaf: typeof fetch = async (input, init) => {
     const u = new URL(String(input)),
       index = Number(u.hostname.match(/leaf-(\d+)/)![1]),
@@ -24,7 +26,15 @@ test('account admission binds PKCE, isolates two identities, rotates credentials
     const b = init?.body ? JSON.parse(String(init.body)) : {};
     if (u.pathname.endsWith('/operator/bind'))
       return Response.json({ authorityId: s.authorityId, ownerId: s.ownerId });
-    if (u.pathname.endsWith('/operator/device')) return Response.json(s.installAccountDevice(b));
+    if (u.pathname.endsWith('/operator/device')) {
+      registrationIds.push(b.id);
+      if (unavailable) {
+        unavailable = false;
+        s.installAccountDevice(b); // The leaf committed, but its acknowledgement was lost.
+        return Response.json({}, { status: 503 });
+      }
+      return Response.json(s.installAccountDevice(b));
+    }
     if (u.pathname.endsWith('/operator/revoke')) {
       s.revoke(b.deviceId);
       return Response.json({ revoked: true });
@@ -82,7 +92,13 @@ test('account admission binds PKCE, isolates two identities, rotates credentials
     const state = new URL(start.authorizeUrl).searchParams.get('state');
     const callback = await fetch(base + '/account/v1/callback?state=' + state + '&code=' + subject);
     assert.equal(callback.status, 200);
-    const completed = await api.complete(start.loginId, verifier);
+    let completed = await api.complete(start.loginId, verifier);
+    if (subject === 'alice' && registrationIds.length === 1) {
+      assert.equal(completed.state, 'provisioning');
+      completed = await api.complete(start.loginId, verifier);
+      assert.equal(registrationIds[0], registrationIds[1]);
+      assert.equal(leaves[0]!.devices().length, 1);
+    }
     assert.equal(completed.state, 'ready');
     if (completed.state !== 'ready') throw Error('Expected ready');
     assert.deepEqual(await api.complete(start.loginId, verifier), completed);

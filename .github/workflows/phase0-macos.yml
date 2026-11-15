@@ -6,6 +6,7 @@ on:
     paths:
       - .github/workflows/phase0-macos.yml
       - scripts/probe-native-desktop.mjs
+      - scripts/native-probe-http.mjs
       - scripts/build-phase0-probe.mjs
       - src/**
       - packages/desktop/**

@@ -152,10 +152,18 @@ export class PairedDesktop {
       })
       .strict()
       .parse(input);
+    let deviceId: string | undefined;
     try {
-      return await (await this.client()).events(data, data.sessionId);
+      const client = await this.client();
+      deviceId = client.credentials.deviceId;
+      return await client.events(data, data.sessionId);
     } catch (e) {
-      await this.failure(e);
+      // Events do not hold the mutation queue while long-polling. An error from
+      // an old device must not clear a later successful login's credentials.
+      await this.queue(async () => {
+        if (!deviceId || (await this.record())?.credentials.deviceId === deviceId)
+          await this.failure(e);
+      });
       throw e;
     }
   }
