@@ -306,7 +306,7 @@ try {
   await mkdir('test-results', { recursive: true });
   await writeFile('test-results/managed-container-error.log', diagnostics);
   console.error(diagnostics.slice(-10000));
-  throw error;
+  throw new Error(String(error.message).replace(/ao_[a-f0-9-]+\.[A-Za-z0-9_-]+/g,'REDACTED_DEVICE_TOKEN').replace(/token=[^\s]+/g,'token=REDACTED'));
 } finally {
   try {
     dc(['down', '--volumes']);
