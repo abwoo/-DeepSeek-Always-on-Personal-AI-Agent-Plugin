@@ -370,5 +370,15 @@
       "status": "success",
       "url": "https://github.com/abwoo/-DeepSeek-Always-on-Personal-AI-Agent-Plugin/actions/runs/43675466047"
     }
+  ],
+  "failedObservations": [
+    {
+      "runId": 43684258485,
+      "sourceCommit": "3c6d9b5befef4d2ab87370644d9a61c08a776a37",
+      "status": "Fail",
+      "reason": "Integration test sampled denied gate before asynchronous native catalog pause; follow-up requires both states within original 20-second deadline",
+      "retainedAssertion": "native schedule paused AND execution denied",
+      "url": "https://github.com/abwoo/-DeepSeek-Always-on-Personal-AI-Agent-Plugin/actions/runs/43684258485"
+    }
   ]
 }

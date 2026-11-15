@@ -333,8 +333,20 @@ try {
     .prepare("UPDATE allocations SET status='suspended' WHERE account_id=?")
     .run(a.account.id);
   // Observe the production controller timer, not a direct test-only policy call.
-  await until(async () => !(await execution(a)).execution.enabled);
-  const stopped = await execution(a);
+  // Closing the model gate precedes asynchronous native Schedule edits. Inspect
+  // also reads the catalog before sampling the gate, so one observation may
+  // legitimately contain the old catalog plus the new denied policy. Require
+  // both independent conditions within the existing deadline; neither a denial
+  // flag nor an HTTP acknowledgement alone proves that the schedule paused.
+  let stopped;
+  await until(async () => {
+    stopped = await execution(a);
+    return (
+      !stopped.execution.enabled &&
+      stopped.schedules.find((s) => s.taskId === task.id)?.status === 'paused'
+    );
+  });
+  assert.equal(stopped.execution.enabled, false);
   assert.equal(stopped.schedules.find((s) => s.taskId === task.id).status, 'paused');
   await assert.rejects(
     () => desktop.snapshot(),
