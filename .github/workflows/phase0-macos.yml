@@ -21,6 +21,8 @@ jobs:
   actual-desktop:
     runs-on: macos-15
     timeout-minutes: 20
+    env:
+      ALWAYS_ON_DESKTOP_RESTART_PASSES: '4'
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4

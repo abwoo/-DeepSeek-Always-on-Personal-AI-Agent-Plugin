@@ -590,58 +590,69 @@ try {
       throw new Error('Independent authority lost the Session when actual Desktop exited');
     }
     evidence.remoteReadableWithDesktopStopped = true;
-    await boot(async (page) => {
-      await page.getByText('Always-on', { exact: true }).click();
-      const state = await page.evaluate(async () => (await fetch('/api/always-on')).json());
-      if (!state.tasks.some((t) => t.id === id))
-        throw new Error('Task lost after actual Desktop process restart');
-      evidence.restartPersistence = true;
-      evidence.taskId = id;
-      await page.getByText('Remote Session probe', { exact: true }).click();
-      await page.getByLabel('Remote Session ID').fill(remoteId);
-      await page.getByRole('button', { name: 'Read remote Session', exact: true }).click();
-      await expect(page.getByTestId('remote-events')).toContainText(
-        'Remote Desktop authority proof',
-      );
-      await expect(page.getByTestId('remote-authority')).toHaveText(evidence.remoteAuthority);
-      evidence.remoteDesktopSession = true;
-      await page.getByText('Personal Agent', { exact: true }).click();
-      await page.getByRole('button', { name: 'Tasks', exact: true }).click();
-      await expect(page.getByRole('heading', { name: 'Personal Agent shared task' })).toBeVisible();
-      const snapshot = await page.evaluate(async () =>
-        (await fetch('/api/always-on-desktop/state')).json(),
-      );
-      if (!snapshot.tasks.some((t) => t.id === sharedTaskId))
-        throw new Error('Desktop restart did not retain the same remote task ID');
-      evidence.phase1SharedState = true;
-      const credential = await page.evaluate(async () =>
-        (await fetch('/api/always-on-desktop/status')).json(),
-      );
-      await phoneClient.request('/devices/revoke', { deviceId: credential.deviceId });
-      const unauthorized = await page.evaluate(async () => {
-        const r = await fetch('/api/always-on-desktop/state');
-        return r.status;
+    const restartPasses = Number(process.env.ALWAYS_ON_DESKTOP_RESTART_PASSES ?? 1);
+    if (!Number.isSafeInteger(restartPasses) || restartPasses < 1 || restartPasses > 5)
+      throw Error('Native restart pass count must be an integer from one to five');
+    evidence.requestedRestartPasses = restartPasses;
+    evidence.confirmedRestartPasses = 0;
+    evidence.allRequestedRestartsPassed = false;
+    for (let pass = 0; pass < restartPasses; pass++) {
+      evidence.restartPersistence = false;
+      await boot(async (page) => {
+        await page.getByText('Always-on', { exact: true }).click();
+        const state = await page.evaluate(async () => (await fetch('/api/always-on')).json());
+        if (!state.tasks.some((t) => t.id === id))
+          throw new Error('Task lost after actual Desktop process restart');
+        evidence.restartPersistence = true;
+        evidence.taskId = id;
+        await page.getByText('Remote Session probe', { exact: true }).click();
+        await page.getByLabel('Remote Session ID').fill(remoteId);
+        await page.getByRole('button', { name: 'Read remote Session', exact: true }).click();
+        await expect(page.getByTestId('remote-events')).toContainText(
+          'Remote Desktop authority proof',
+        );
+        await expect(page.getByTestId('remote-authority')).toHaveText(evidence.remoteAuthority);
+        evidence.remoteDesktopSession = true;
+        await page.getByText('Personal Agent', { exact: true }).click();
+        await page.getByRole('button', { name: 'Tasks', exact: true }).click();
+        await expect(page.getByRole('heading', { name: 'Personal Agent shared task' })).toBeVisible();
+        const snapshot = await page.evaluate(async () =>
+          (await fetch('/api/always-on-desktop/state')).json(),
+        );
+        if (!snapshot.tasks.some((t) => t.id === sharedTaskId))
+          throw new Error('Desktop restart did not retain the same remote task ID');
+        evidence.phase1SharedState = true;
+        const credential = await page.evaluate(async () =>
+          (await fetch('/api/always-on-desktop/status')).json(),
+        );
+        await phoneClient.request('/devices/revoke', { deviceId: credential.deviceId });
+        const unauthorized = await page.evaluate(async () => {
+          const r = await fetch('/api/always-on-desktop/state');
+          return r.status;
+        });
+        if (unauthorized !== 503) throw Error('Revoked Desktop credential still accessed state');
+        await expect(page.getByRole('button', { name: 'Pair Desktop', exact: true })).toBeVisible({
+          timeout: 10000,
+        });
+        const rePair = await phoneClient.request('/devices/pair-code', {});
+        await page.getByLabel('HTTPS service address').fill(evidence.remoteAuthority);
+        await page.getByLabel('One-use pairing code').fill(rePair.code);
+        await page.getByLabel('Device name').fill('Repaired actual Desktop');
+        await page.getByRole('button', { name: 'Pair Desktop', exact: true }).click();
+        await expect(page.getByText('Connected', { exact: true })).toBeVisible({ timeout: 10000 });
+        const restored = await page.evaluate(async () =>
+          (await fetch('/api/always-on-desktop/state')).json(),
+        );
+        if (
+          !restored.tasks.some((t) => t.id === sharedTaskId) ||
+          restored.connection.deviceId === credential.deviceId
+        )
+          throw Error('Re-pair did not restore the same authority with a new device credential');
+        evidence.nativeRevocationAndRePair = true;
       });
-      if (unauthorized !== 503) throw Error('Revoked Desktop credential still accessed state');
-      await expect(page.getByRole('button', { name: 'Pair Desktop', exact: true })).toBeVisible({
-        timeout: 10000,
-      });
-      const rePair = await phoneClient.request('/devices/pair-code', {});
-      await page.getByLabel('HTTPS service address').fill(evidence.remoteAuthority);
-      await page.getByLabel('One-use pairing code').fill(rePair.code);
-      await page.getByLabel('Device name').fill('Repaired actual Desktop');
-      await page.getByRole('button', { name: 'Pair Desktop', exact: true }).click();
-      await expect(page.getByText('Connected', { exact: true })).toBeVisible({ timeout: 10000 });
-      const restored = await page.evaluate(async () =>
-        (await fetch('/api/always-on-desktop/state')).json(),
-      );
-      if (
-        !restored.tasks.some((t) => t.id === sharedTaskId) ||
-        restored.connection.deviceId === credential.deviceId
-      )
-        throw Error('Re-pair did not restore the same authority with a new device credential');
-      evidence.nativeRevocationAndRePair = true;
-    });
+      evidence.confirmedRestartPasses = pass + 1;
+    }
+    evidence.allRequestedRestartsPassed = true;
   }
 } catch (error) {
   evidence.blocker = error.message;
