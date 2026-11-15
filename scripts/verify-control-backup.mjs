@@ -8,7 +8,7 @@ import { randomBytes } from 'node:crypto';
 import assert from 'node:assert/strict';
 const dir = await mkdtemp(join(tmpdir(), 'ao-restore-')),
   project = 'ao-test-' + randomBytes(6).toString('hex'),
-  image = 'node:24.22.2-bookworm-slim';
+  image = 'node:24.22.2-bookworm-slim', changedImage = 'always-on-backup-identity:' + project;
 const names = [
   'control_data',
   'agent_a_data',
@@ -120,6 +120,19 @@ try {
       { ...env, ALWAYS_ON_DEPLOYED_SHA: '0'.repeat(40) },
     ),
   );
+  // A backup must not deploy a changed Compose image/configuration while resuming.
+  // A restore must validate actual target image bytes, not just an asserted SHA.
+  const originalId = (await dockerCompose(['ps', '-a', '-q', 'hold'])).stdout.trim();
+  await run('docker', ['commit', '--change', 'LABEL always-on.fixture=changed-image', originalId, changedImage]);
+  const definition = await readFile(compose, 'utf8');
+  await writeFile(compose, definition.replace('image: ' + image, 'image: ' + changedImage));
+  await run(process.execPath, ['scripts/control-backup.mjs', 'create', join(dir, 'changed-config.aobackup')], env);
+  assert.equal((await dockerCompose(['ps', '-a', '-q', 'hold'])).stdout.trim(), originalId);
+  assert.equal(JSON.parse((await run('docker', ['inspect', originalId])).stdout)[0].State.Running, true);
+  await assert.rejects(() => run(process.execPath, ['scripts/control-backup.mjs', 'restore', encrypted, '--replace-stopped-volumes'], env),
+    e => String(e.stderr).includes('Checkpoint image mismatch'));
+  assert.ok((await volumeScript(`console.log(require('node:fs').readFileSync('/v0/marker','utf8'))`)).includes('changed-0'));
+  await writeFile(compose, definition);
   await dockerCompose(['stop', 'hold']);
   await run(
     process.execPath,
@@ -176,6 +189,8 @@ try {
         missingVolumesAndExternalWritersRejected: true,
         mismatchedDeployedCommitRejected: true,
         stoppedServicesRemainStopped: true,
+        changedComposeDoesNotDeployDuringBackup: true,
+        mismatchedActualRuntimeImageRejectedBeforeRestore: true,
         productionData: false,
         actualHarnessExecution: false,
         mvpReady: false,
@@ -189,5 +204,6 @@ try {
   );
 } finally {
   await dockerCompose(['down', '--volumes']).catch(() => {});
+  await run('docker', ['image', 'rm', changedImage]).catch(() => {});
   await rm(dir, { recursive: true, force: true });
 }
