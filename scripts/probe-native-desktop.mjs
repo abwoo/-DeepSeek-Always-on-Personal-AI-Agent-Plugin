@@ -161,12 +161,36 @@ async function capture(page, name) {
   }
 }
 
+let bootAttempt = 0;
+function diagnosticLine(line) {
+  // CI fixtures still contain short-lived credentials. Never persist their log lines.
+  if (/token|secret|password|cookie|authorization|bearer|pairing|credential|api.?key/i.test(line))
+    return undefined;
+  if (!/error|exception|sqlite|schedule|always-on|plugin|EADDRINUSE|EACCES|ENOENT/i.test(line))
+    return undefined;
+  return line.replace(/https?:\/\/[^\s]+/g, '[URL omitted]').slice(0, 1200);
+}
 async function boot(action) {
+  const attempt = ++bootAttempt;
+  const diagnosticLines = [];
   const child = spawn(
     executable,
     ['--remote-debugging-port=16927', '--remote-debugging-address=127.0.0.1'],
-    { env: process.env, detached: process.platform === 'darwin', stdio: 'ignore' },
+    { env: process.env, detached: process.platform === 'darwin', stdio: ['ignore', 'pipe', 'pipe'] },
   );
+  for (const stream of [child.stdout, child.stderr]) {
+    let partial = '';
+    stream.on('data', (chunk) => {
+      partial += chunk.toString();
+      const lines = partial.split(/\r?\n/);
+      partial = lines.pop().slice(-4096);
+      for (const line of lines) {
+        const safe = diagnosticLine(line);
+        if (safe) diagnosticLines.push(safe);
+      }
+      if (diagnosticLines.length > 100) diagnosticLines.splice(0, diagnosticLines.length - 100);
+    });
+  }
   let browser;
   try {
     const deadline = Date.now() + 90000;
@@ -229,6 +253,25 @@ async function boot(action) {
         )
         .toBe(200);
     await action(page);
+  } catch (error) {
+    const pages = [];
+    for (const candidate of browser?.contexts().flatMap((c) => c.pages()) ?? []) {
+      if (!candidate.url().startsWith('dsh-app://')) continue;
+      pages.push(await candidate.evaluate(async () => {
+        const routes = {};
+        for (const path of ['/api/always-on', '/api/always-on-desktop/status']) {
+          try { routes[path] = (await fetch(path)).status; }
+          catch { routes[path] = 0; }
+        }
+        // No DOM text, query strings, headers, response bodies or credentials.
+        return { origin: location.origin, pathname: location.pathname, routes };
+      }).catch(() => ({ unavailable: true })));
+    }
+    await writeFile(join(output, `boot-${attempt}-failure.json`), JSON.stringify({
+      attempt, childExited: child.exitCode !== null, exitCode: child.exitCode,
+      pages, filteredDiagnostics: diagnosticLines,
+    }, null, 2));
+    throw error;
   } finally {
     await browser?.close().catch(() => {});
     // Only this newly spawned disposable CI app tree. No user machine is touched.
