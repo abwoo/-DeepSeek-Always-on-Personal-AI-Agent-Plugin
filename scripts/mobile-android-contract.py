@@ -36,9 +36,11 @@ def tap_node(n):
  adb('shell','input','tap',(b[0]+b[2])//2,(b[1]+b[3])//2)
 def words(r=None):return ' '.join(n.attrib.get('text','')+' '+n.attrib.get('content-desc','') for n in (r if r is not None else tree()).iter('node'))
 def capture(name):
- (out/('native-contract-'+name+'.png')).write_bytes(adb('exec-out','screencap','-p'))
+ # UIAutomator waits for accessibility idle. Capture pixels afterwards so a newly
+ # resumed system chooser cannot leave a screenshot of the previous app frame.
  adb('shell','uiautomator','dump','/sdcard/native-contract.xml')
  (out/('native-contract-'+name+'.xml')).write_bytes(adb('exec-out','cat','/sdcard/native-contract.xml'))
+ (out/('native-contract-'+name+'.png')).write_bytes(adb('exec-out','screencap','-p'))
 def scroll(up=False):adb('shell','input','swipe',width//2,int(height*(.43 if up else .82)),width//2,int(height*(.82 if up else .43)),300);time.sleep(.4)
 def find(label,field=False,scrolling=True):
  for attempt in range(13 if scrolling else 1):
@@ -138,6 +140,9 @@ try:
  # receipt is promoted to external delivery: assert the chooser and cancel it.
  tab('Settings');tap('Export personal agent records')
  wait(lambda:re.search(r'(?:mResumedActivity|topResumedActivity).*?(?:ChooserActivity|ResolverActivity)',adb('shell','dumpsys','activity','activities').decode()),30)
+ # A resumed Activity alone is not a rendered file-share interface.
+ wait(lambda:any(n.attrib.get('package')=='com.android.intentresolver' and n.attrib.get('text')=='personal-agent-records.jsonl' for n in tree().iter('node')),30)
+ evidence['nativeExportFilenameVisible']=True
  metrics=get('/engineering/metrics')
  assert metrics.get('POST /personal-agent/v1/exports',0)>0 and metrics.get('POST /personal-agent/v1/exports/release',0)>0,'Native export did not capture and finish the paged stream'
  evidence['nativeExportPagesReleased']=True
