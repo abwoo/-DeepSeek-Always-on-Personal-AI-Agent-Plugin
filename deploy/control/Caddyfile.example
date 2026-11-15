@@ -6,6 +6,7 @@
     }
     reverse_proxy control:4080 {
       header_up X-Forwarded-Proto https
+      header_up X-Always-On-Client-IP {http.request.remote.host}
     }
   }
   handle /personal-agent/v1/* {
@@ -14,6 +15,7 @@
     }
     reverse_proxy control:4080 {
       header_up X-Forwarded-Proto https
+      header_up X-Always-On-Client-IP {http.request.remote.host}
     }
   }
   handle {

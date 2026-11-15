@@ -1,6 +1,6 @@
 # DeepSeek Always-on
 
-[最新可靠性修复与验证](docs/V03_RELIABILITY.md) · **MVP Ready: false**
+[最新账号暂停、执行控制与代理限流验证](docs/V03_STABILIZATION.md) · **MVP Ready: false**
 
 **v0.3 开发候选版：** 已加入双端账号登录入口、账号独立 Harness 分配、原生事件更新和运营端部署／恢复工具。[实施与验收记录](docs/V03_ACCEPTANCE.md) · [运营者交接与用户流程](docs/V03_HANDOFF.md) · [基线审计](docs/V03_AUDIT.md)。**尚无已上线的登录服务，也未交付真实 iPhone 分发版或标记 MVP Ready。** 下文保留 v0.2 与已发布的 v0.1 Web alpha 记录。
 

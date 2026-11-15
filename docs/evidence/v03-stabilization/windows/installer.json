@@ -1,0 +1,7 @@
+{
+  "sha256": "786C9B26050C35B62C7BE6A01DEE2541DC1C2C5D9BD5F2DBE77BEEEB8D50704E",
+  "mvpReady": false,
+  "signer": "CN=\"Hangzhou DeepSeek Artificial Intelligence Co., Ltd.\", O=\"Hangzhou DeepSeek Artificial Intelligence Co., Ltd.\", L=Hangzhou, S=Zhejiang, C=CN, OID.1.3.6.1.4.1.311.60.2.1.1=Hangzhou, OID.1.3.6.1.4.1.311.60.2.1.2=Zhejiang, OID.1.3.6.1.4.1.311.60.2.1.3=CN, SERIALNUMBER=91330105MACPN4X08Y, OID.2.5.4.15=Private Organization",
+  "source": "https://download.deepseek.com/desktop/dsh-latest-windows-x64.exe",
+  "signature": "Valid"
+}

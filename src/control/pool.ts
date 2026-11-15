@@ -36,7 +36,11 @@ export class AgentPool {
     if (!s) throw new GatewayError(503, 'agent_slot_missing');
     return s;
   }
-  async operator(slot: Slot, path: 'inspect' | 'bind' | 'device' | 'revoke', body: unknown = {}) {
+  async operator(
+    slot: Slot,
+    path: 'inspect' | 'bind' | 'device' | 'revoke' | 'execution',
+    body: unknown = {},
+  ) {
     const r = await this.transport(slot.origin + '/personal-agent/v1/operator/' + path, {
       method: 'POST',
       headers: {
@@ -45,7 +49,7 @@ export class AgentPool {
       },
       body: JSON.stringify(body),
       redirect: 'error',
-      signal: AbortSignal.timeout(15000),
+      signal: AbortSignal.timeout(path === 'execution' ? 5000 : 15000),
     });
     if (!r.ok) throw new GatewayError(503, 'agent_provisioning_unavailable');
     return r.json();
@@ -63,6 +67,10 @@ export class AgentPool {
           .object({ authorityId: z.uuid(), ownerId: z.uuid() })
           .parse(await this.operator(slot, 'bind', { accountId }));
         this.store.allocationReady(accountId, identity.authorityId, identity.ownerId);
+        await this.syncExecution(accountId);
+        this.store.requireAccount(accountId);
+        if (this.store.allocation(accountId)?.status !== 'ready')
+          throw new GatewayError(503, 'agent_suspended');
         return { slot, ...identity };
       } catch (e) {
         this.store.db
@@ -91,6 +99,36 @@ export class AgentPool {
     )
       throw new GatewayError(409, 'authority_identity_changed');
     return { credentials: result, slotId: allocation.slot.id };
+  }
+  async syncExecution(accountId: string, ttlSeconds = 30) {
+    const snapshot = this.store.transaction(() => {
+      const row = this.store.executionAccount(accountId);
+      if (!row?.authority_id) return;
+      return { row, revision: this.store.nextExecutionRevision(accountId) };
+    });
+    if (!snapshot) return;
+    const { row, revision } = snapshot;
+    const enabled = !row.disabled && !row.account_suspended && row.status === 'ready';
+    const policy = { accountId, revision, enabled, ttlSeconds: enabled ? ttlSeconds : 0 };
+    const reply = await this.operator(this.slot(String(row.slot_id)), 'execution', policy);
+    if (
+      reply.authorityId !== row.authority_id ||
+      reply.ownerId !== row.owner_id ||
+      reply.accountId !== accountId ||
+      reply.revision !== revision ||
+      reply.enabled !== enabled
+    )
+      throw new GatewayError(503, 'execution_policy_unconfirmed');
+    return reply;
+  }
+  async reconcileExecution() {
+    const rows = this.store.db
+      .prepare('SELECT account_id FROM allocations WHERE authority_id IS NOT NULL')
+      .all();
+    const results = await Promise.allSettled(
+      rows.map((r) => this.syncExecution(String(r.account_id))),
+    );
+    return results.every((r) => r.status === 'fulfilled');
   }
   async forward(slotId: string, token: string, path: string, method: string, body?: string) {
     const s = this.slot(slotId);

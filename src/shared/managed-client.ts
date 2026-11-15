@@ -53,11 +53,15 @@ export class ApiError extends Error {
     readonly code: string,
   ) {
     super(
-      code === 'sign_out_in_progress'
-        ? 'Sign-out is in progress. Retry signing out if it fails.'
-        : code === 'memory_conflict'
-          ? 'This memory changed on another device. Refresh and review before saving.'
-          : code,
+      code === 'account_suspended'
+        ? 'Your account is paused. Contact the service operator to resume.'
+        : code === 'account_disabled'
+          ? 'Your account is disabled. Contact the service operator.'
+          : code === 'sign_out_in_progress'
+            ? 'Sign-out is in progress. Retry signing out if it fails.'
+            : code === 'memory_conflict'
+              ? 'This memory changed on another device. Refresh and review before saving.'
+              : code,
     );
   }
 }

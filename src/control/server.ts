@@ -1,3 +1,4 @@
+import { requestNetwork, normalizeAddress } from './network.js';
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http';
 import { randomUUID } from 'node:crypto';
 import { z } from 'zod';
@@ -37,6 +38,7 @@ export function controlServer(
     callback = origin + '/account/v1/callback';
   if (config.mobileRedirect !== 'deepseek-always-on://oauth/return')
     throw Error('Unapproved native redirect');
+  const trustedProxies = new Set((config.trustedProxies ?? []).map(normalizeAddress));
   const rates = new Map<string, { count: number; until: number }>();
   let queued = 0,
     serial: Promise<unknown> = Promise.resolve();
@@ -92,6 +94,7 @@ export function controlServer(
   async function complete(data: unknown) {
     const { loginId, verifier } = loginCompleteSchema.parse(data),
       row = loginFor(loginId, verifier);
+    limit('login-session:' + row.id, 90);
     if (row.status === 'pending' || row.status === 'exchanging') return json({ state: 'pending' });
     if (!row.account_id || !['authorized', 'ready'].includes(row.status))
       throw new GatewayError(409, 'login_outcome_unknown');
@@ -190,6 +193,8 @@ export function controlServer(
       )
       .get(input.deviceId, digest(input.refreshToken), Date.now()) as AccountDevice | undefined;
     if (!d) throw new GatewayError(401, 'sign_in_required');
+    limit('refresh:' + d.id, 30);
+    limit('account-refresh:' + d.account_id, 120);
     store.requireAccount(d.account_id);
     const allocation = store.allocation(d.account_id);
     if (allocation?.status !== 'ready') throw new GatewayError(503, 'agent_unavailable');
@@ -262,25 +267,14 @@ export function controlServer(
     return { revoked: true, upstreamRevoked: upstream, providerRevoked: provider };
   }
   async function route(req: IncomingMessage): Promise<Response> {
-    const remote = req.socket.remoteAddress ?? '',
-      tls = 'encrypted' in req.socket && req.socket.encrypted;
-    const local = ['127.0.0.1', '::1', '::ffff:127.0.0.1'].includes(remote);
-    if (
-      !tls &&
-      !(
-        (config.trustedProxies ?? []).includes(remote) &&
-        req.headers['x-forwarded-proto'] === 'https' &&
-        req.headers.host === new URL(origin).host
-      ) &&
-      !(config.allowLoopback && local)
-    )
-      throw new GatewayError(403, 'https_required');
+    const network = requestNetwork(req, origin, trustedProxies, config.allowLoopback);
     const url = new URL(req.url ?? '/', origin);
-    limit('ip:' + remote, 10000);
+    limit('peer:' + network.peer, 50000);
+    limit('ip:' + network.client, 10000);
     if (req.method === 'GET' && url.pathname === '/health')
       return json({ ready: true, runtime: 'deepseek-harness-control', mvpReady: false });
     if (req.method === 'POST' && url.pathname === '/account/v1/login/start') {
-      limit('login:' + remote, 20);
+      limit('login:' + network.client, 20);
       const input = loginStartSchema.parse(await body(req));
       store.db.prepare('DELETE FROM logins WHERE expires_at<?').run(Date.now());
       if (Number(store.db.prepare('SELECT count(*) AS n FROM logins').get()!.n) >= 4096)
@@ -336,6 +330,7 @@ export function controlServer(
         if (verified.issuer !== identity.issuer)
           throw new GatewayError(401, 'identity_issuer_changed');
         const accountId = store.account(verified.issuer, verified.subject);
+        limit('account-login:' + accountId, 20);
         store.db
           .prepare("UPDATE logins SET status='authorized',account_id=?,secret=? WHERE id=?")
           .run(accountId, store.seal({ identity: verified }, 'login'), login.id);
@@ -394,6 +389,7 @@ export function controlServer(
     if (!authorization.startsWith('Bearer ')) throw new GatewayError(401, 'sign_in_required');
     const d = store.authenticate(authorization.slice(7));
     limit('device:' + d.id, 900);
+    limit('account:' + d.account_id, 3600);
     if (req.method === 'POST' && path === '/devices/revoke') {
       const input = z
         .object({ deviceId: z.uuid() })
@@ -476,11 +472,26 @@ export function controlServer(
     }).catch(() => {});
   }, 15000);
   cleanupTimer.unref();
+  let executionSync: Promise<unknown> | undefined;
+  const syncExecution = () => {
+    if (stopping || executionSync) return;
+    executionSync = pool
+      .reconcileExecution()
+      .catch(() => false)
+      .finally(() => {
+        executionSync = undefined;
+      });
+  };
+  syncExecution();
+  const executionTimer = setInterval(syncExecution, 10000);
+  executionTimer.unref();
   return {
     server,
     close: async () => {
       stopping = true;
       clearInterval(cleanupTimer);
+      clearInterval(executionTimer);
+      await executionSync;
       await new Promise<void>((resolve) => server.close(() => resolve()));
       await serial;
       await cleanup;

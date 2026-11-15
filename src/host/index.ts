@@ -84,7 +84,13 @@ export async function apply(ctx: Context, config: Config = {}) {
       catalog: () => ctx.schedule.catalog(),
     };
     const c = new Coordinator(store, scheduler, notifications);
+    if (process.env.ALWAYS_ON_ACCOUNT_EXECUTION_REQUIRED === '1') c.executionAllowed = () => false;
     new AlwaysOnService(ctx, c, memory, notifications);
+    ctx.on('llm/stream', async function* (_options, next) {
+      if (c.executionAllowed?.() === false)
+        throw new Error('Managed account execution is suspended or awaiting renewal');
+      yield* next();
+    });
     c.cancelSession = (id) =>
       ctx.agents
         .get(id as Parameters<typeof ctx.agents.get>[0])
@@ -181,6 +187,8 @@ export async function apply(ctx: Context, config: Config = {}) {
       return undefined;
     });
     ctx.on('agent/pre-step', async ({ agent, messages, turn, step }, next) => {
+      if (c.executionAllowed?.() === false)
+        throw new Error('Managed account execution is suspended or awaiting renewal');
       let active = c.active(agent.session.id);
       const filtered: typeof messages = [];
       for (const message of messages) {

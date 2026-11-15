@@ -71,6 +71,9 @@ window.__ModuleLoader__.load({
         pushOff: 'Native notifications are not configured in this development preview.',
       },
       zh: {
+        'Your account is paused. Contact the service operator to resume.':
+          '账号已暂停，请联系服务运营者恢复。',
+        'Your account is disabled. Contact the service operator.': '账号已停用，请联系服务运营者。',
         advancedSession: '高级会话信息',
         history: '历史会话',
         selectedExecution: '当前任务执行',
@@ -175,7 +178,7 @@ window.__ModuleLoader__.load({
           }
           setError('');
         } catch (e) {
-          setError(e.message);
+          setError(t(e.message));
         }
       }
       React.useEffect(() => {
@@ -232,7 +235,7 @@ window.__ModuleLoader__.load({
               await new Promise((r) => setTimeout(r, 100));
             } catch (e) {
               if (!stopped) {
-                setError(e.message);
+                setError(t(e.message));
                 await new Promise((r) => setTimeout(r, 2000));
               }
             }
@@ -258,7 +261,7 @@ window.__ModuleLoader__.load({
             requestId.current = null;
           }
         } catch (e) {
-          setError(e.message);
+          setError(t(e.message));
         } finally {
           setBusy(false);
         }
@@ -490,7 +493,7 @@ window.__ModuleLoader__.load({
             }
           } catch (e) {
             if (active) {
-              setError(e.message);
+              setError(t(e.message));
               setAuthorize('');
             }
           } finally {
@@ -512,7 +515,7 @@ window.__ModuleLoader__.load({
           setAuthorize(value.authorizeUrl);
           window.open(value.authorizeUrl, '_blank', 'noopener,noreferrer');
         } catch (e) {
-          setError(e.message);
+          setError(t(e.message));
         } finally {
           setBusy(false);
         }
@@ -545,7 +548,7 @@ window.__ModuleLoader__.load({
         h('p', { className: 'muted' }, t('remoteOnly')),
       );
     }
-    function Pairing({ onPaired }) {
+    function Pairing({ t, onPaired }) {
       const [origin, setOrigin] = React.useState(''),
         [code, setCode] = React.useState(''),
         [name, setName] = React.useState('My Desktop'),
@@ -569,7 +572,7 @@ window.__ModuleLoader__.load({
               setCode('');
               onPaired(data);
             } catch (e) {
-              setError(e.message);
+              setError(t(e.message));
             } finally {
               setBusy(false);
             }
@@ -624,7 +627,7 @@ window.__ModuleLoader__.load({
           );
           setError('');
         } catch (e) {
-          setError(e.message);
+          setError(t(e.message));
         }
       }
       React.useEffect(() => {
@@ -639,7 +642,7 @@ window.__ModuleLoader__.load({
           if (body.action === 'devices.pair-code') setCode(result);
           await refresh();
         } catch (e) {
-          setError(e.message);
+          setError(t(e.message));
         } finally {
           setBusy(false);
         }
@@ -791,7 +794,12 @@ window.__ModuleLoader__.load({
           h(AccountWelcome, { t, onSignedIn: setStatus }),
         );
       if (status?.credentialMode === 'device-pairing' && !status.configured)
-        return h(React.Fragment, null, h('style', null, css), h(Pairing, { onPaired: setStatus }));
+        return h(
+          React.Fragment,
+          null,
+          h('style', null, css),
+          h(Pairing, { t, onPaired: setStatus }),
+        );
       async function control(action, body = {}) {
         try {
           const r = await fetch('/api/always-on-desktop/' + action, {

@@ -1,0 +1,13 @@
+{
+  "sourceCommit": "811f919da757c81dc6eed256997bcabf0b1affcb",
+  "actualCaddyVersion": "2.11.9",
+  "repositoryCaddyTemplateUsed": true,
+  "ownerAndPrivateHealthRoutesNotExposed": true,
+  "actualTlsWithVerifiedPrivateTestCA": true,
+  "actualDistinctTcpClientAddresses": true,
+  "edgeOverwritesAttackerHeaders": true,
+  "independentLoginLimits": true,
+  "realIdentityProvider": false,
+  "productionDeployment": false,
+  "mvpReady": false
+}

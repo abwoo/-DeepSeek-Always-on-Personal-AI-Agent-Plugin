@@ -43,7 +43,7 @@ export class ControlStore {
     if (path !== ':memory:') mkdirSync(dirname(path), { recursive: true, mode: 0o700 });
     this.db = new DatabaseSync(path);
     if (path !== ':memory:') chmodSync(path, 0o600);
-    if (Number(this.db.prepare('PRAGMA user_version').get()!.user_version) > 1) {
+    if (Number(this.db.prepare('PRAGMA user_version').get()!.user_version) > 2) {
       this.db.close();
       throw new Error('Newer account database; downgrade refused');
     }
@@ -58,10 +58,18 @@ export class ControlStore {
         CREATE TABLE IF NOT EXISTS devices(id TEXT PRIMARY KEY,account_id TEXT NOT NULL REFERENCES accounts(id),slot_id TEXT NOT NULL,token_hash TEXT UNIQUE NOT NULL,refresh_hash TEXT UNIQUE NOT NULL,secret TEXT NOT NULL,expires_at INTEGER NOT NULL,refresh_expires_at INTEGER NOT NULL,revoked INTEGER NOT NULL DEFAULT 0,status TEXT NOT NULL);
         CREATE TABLE IF NOT EXISTS audit(seq INTEGER PRIMARY KEY AUTOINCREMENT,account_id TEXT,kind TEXT NOT NULL,created_at INTEGER NOT NULL);
         CREATE TABLE IF NOT EXISTS revocations(device_id TEXT PRIMARY KEY REFERENCES devices(id),upstream_pending INTEGER NOT NULL DEFAULT 1,provider_pending INTEGER NOT NULL DEFAULT 1,attempts INTEGER NOT NULL DEFAULT 0,next_at INTEGER NOT NULL DEFAULT 0);
-        PRAGMA user_version=1;
+        CREATE TABLE IF NOT EXISTS execution_revisions(account_id TEXT PRIMARY KEY REFERENCES accounts(id),revision INTEGER NOT NULL);
         UPDATE logins SET status='unknown' WHERE status IN ('exchanging','claiming');
         UPDATE devices SET status='reauth' WHERE status='refreshing';
       `);
+      if (
+        !this.db
+          .prepare('PRAGMA table_info(accounts)')
+          .all()
+          .some((c) => c.name === 'suspended')
+      )
+        this.db.exec('ALTER TABLE accounts ADD COLUMN suspended INTEGER NOT NULL DEFAULT 0');
+      this.db.exec('PRAGMA user_version=2');
     });
     // A key mismatch is an operational failure, never an excuse to erase identities.
     const check = this.db.prepare('SELECT secret FROM devices LIMIT 1').get();
@@ -108,14 +116,16 @@ export class ControlStore {
       .prepare('INSERT OR IGNORE INTO accounts(id,issuer,subject,created_at) VALUES(?,?,?,?)')
       .run(id, issuer, subject, Date.now());
     const row = this.db
-      .prepare('SELECT id,disabled FROM accounts WHERE issuer=? AND subject=?')
+      .prepare('SELECT id,disabled,suspended FROM accounts WHERE issuer=? AND subject=?')
       .get(issuer, subject)!;
     if (row.disabled) throw new GatewayError(403, 'account_disabled');
+    if (row.suspended) throw new GatewayError(403, 'account_suspended');
     return String(row.id);
   }
   requireAccount(id: string) {
-    const row = this.db.prepare('SELECT * FROM accounts WHERE id=? AND disabled=0').get(id);
-    if (!row) throw new GatewayError(403, 'account_disabled');
+    const row = this.db.prepare('SELECT * FROM accounts WHERE id=?').get(id);
+    if (!row || row.disabled) throw new GatewayError(403, 'account_disabled');
+    if (row.suspended) throw new GatewayError(403, 'account_suspended');
     return row;
   }
   allocation(accountId: string) {
@@ -159,6 +169,22 @@ export class ControlStore {
     } catch {
       throw new GatewayError(409, 'authority_already_allocated');
     }
+  }
+  nextExecutionRevision(accountId: string): number {
+    return Number(
+      this.db
+        .prepare(
+          'INSERT INTO execution_revisions(account_id,revision) VALUES(?,1) ON CONFLICT(account_id) DO UPDATE SET revision=revision+1 RETURNING revision',
+        )
+        .get(accountId)!.revision,
+    );
+  }
+  executionAccount(accountId: string) {
+    return this.db
+      .prepare(
+        'SELECT allocations.*,accounts.disabled,accounts.suspended AS account_suspended FROM allocations JOIN accounts ON accounts.id=allocations.account_id WHERE account_id=?',
+      )
+      .get(accountId);
   }
   authenticate(token: string, now = Date.now()): AccountDevice {
     if (!/^ao_[a-f0-9-]{36}\.[A-Za-z0-9_-]{43}$/.test(token))
