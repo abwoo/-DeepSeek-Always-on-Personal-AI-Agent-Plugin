@@ -48,6 +48,11 @@ export interface Scheduler {
   run(input: { id: string }): Promise<unknown>;
   catalog?(): Promise<{ id: string; scheduledAt: string; status: string }[]>;
 }
+export class ScheduleNotConfirmed extends Error {
+  constructor() {
+    super('Native schedule did not confirm the requested change. Refresh and review task state.');
+  }
+}
 export const marker = '[ALWAYS_ON_TRIGGER]';
 export class Coordinator {
   enabled = true;
@@ -68,6 +73,30 @@ export class Coordinator {
   runs() {
     return this.store.all<Run>('runs');
   }
+  recentRuns(limit = 200) {
+    return this.store.all<Run>('runs', limit);
+  }
+  taskRuns(taskId: string, limit?: number) {
+    return this.store.taskRuns<Run>(taskId, limit);
+  }
+  async runNow(id: string) {
+    if (this.executionAllowed?.() === false)
+      throw new Error('Managed account execution is suspended or awaiting renewal');
+    const task = this.requireTask(id);
+    if (task.state !== 'active' || !task.scheduleId) throw new Error('Task is not active');
+    const receipt = (await this.scheduler.run({ id: task.scheduleId })) as {
+      id?: string;
+      status?: string;
+      code?: string;
+    };
+    if (
+      receipt?.id !== task.scheduleId ||
+      receipt.code ||
+      !['active', 'paused', 'ended'].includes(receipt.status ?? '')
+    )
+      throw new ScheduleNotConfirmed();
+    return receipt;
+  }
   async create(input: unknown) {
     if (this.executionAllowed && !this.executionAllowed())
       throw new Error('Managed account execution is suspended or awaiting renewal');
@@ -87,6 +116,7 @@ export class Coordinator {
         timing: task.timing,
         target: { kind: 'new_once' },
       });
+      if (!schedule?.id || typeof schedule.id !== 'string') throw new ScheduleNotConfirmed();
       task.scheduleId = schedule.id;
       task.sessionId = schedule.target?.sessionId;
       task.state = 'active';
@@ -104,22 +134,34 @@ export class Coordinator {
     if (!t.scheduleId) throw new Error('Task is not scheduled');
     if (
       state === 'active' &&
-      (t.state === 'cancelled' ||
-        t.state === 'exhausted' ||
-        this.runs().filter((r) => r.taskId === id).length >= t.maxRuns)
+      (t.state === 'cancelled' || t.state === 'exhausted' || this.taskRuns(id).length >= t.maxRuns)
     )
       throw new Error('Run budget exhausted');
-    if (state === 'active') {
-      await this.scheduler.edit({ id: t.scheduleId, action: 'update', patch: { active: true } });
-      t.state = state;
-      this.store.put('tasks', id, t);
-    } else {
+    if (state !== 'active') {
+      // Deny new coordinator claims before the asynchronous native edit.
       t.state = state;
       this.store.put('tasks', id, t);
       if (state === 'cancelled')
-        for (const run of this.runs().filter((r) => r.taskId === id && r.status === 'running'))
+        for (const run of this.taskRuns(id).filter((r) => r.status === 'running'))
           this.cancelSession?.(run.sessionId);
-      await this.scheduler.edit({ id: t.scheduleId, action: 'update', patch: { active: false } });
+    }
+    try {
+      const receipt = (await this.scheduler.edit({
+        id: t.scheduleId,
+        action: 'update',
+        patch: { active: state === 'active' },
+      })) as { id?: string; status?: string; code?: string };
+      const expected = state === 'active' ? ['active'] : ['paused', 'ended'];
+      if (receipt?.id !== t.scheduleId || receipt.code || !expected.includes(receipt.status ?? ''))
+        throw new ScheduleNotConfirmed();
+      t.state = state;
+      delete t.error;
+      this.store.put('tasks', id, t);
+    } catch (e) {
+      t.state = 'error';
+      t.error = 'Native schedule change is unconfirmed; review before retrying.';
+      this.store.put('tasks', id, t);
+      throw e;
     }
     return t;
   }
@@ -137,7 +179,7 @@ export class Coordinator {
     const task = this.requireTask(taskId);
     return this.store.transaction(() => {
       if (task.state !== 'active') return;
-      const prior = this.runs().filter((r) => r.taskId === taskId);
+      const prior = this.taskRuns(taskId);
       const existing = prior.find((r) => r.occurrence === occurrence);
       if (existing && existing.status !== 'queued') return;
       if (prior.some((r) => r.sessionId === sessionId && r.status === 'running')) return;
@@ -162,7 +204,7 @@ export class Coordinator {
     });
   }
   delivered(taskId: string, occurrence: string, sessionId: string) {
-    if (this.runs().some((r) => r.taskId === taskId && r.occurrence === occurrence)) return;
+    if (this.taskRuns(taskId).some((r) => r.occurrence === occurrence)) return;
     this.save({
       id: randomUUID(),
       taskId,
@@ -201,7 +243,12 @@ export class Coordinator {
     return 'Always-on unattended run: this tool is not authorized. External writes require a separate interactive session and native approval.';
   }
   active(sessionId: string) {
-    return this.runs().find((r) => r.sessionId === sessionId && r.status === 'running');
+    const row = this.store.db
+      .prepare(
+        "SELECT data FROM runs WHERE json_extract(data,'$.sessionId')=? AND json_extract(data,'$.status')='running' ORDER BY rowid DESC LIMIT 1",
+      )
+      .get(sessionId);
+    return row ? (JSON.parse(String(row.data)) as Run) : undefined;
   }
   report(sessionId: string, input: unknown) {
     const run = this.active(sessionId);
@@ -259,7 +306,13 @@ export class Coordinator {
     return run;
   }
   recover() {
-    for (const run of this.runs().filter((r) => r.status === 'running' || r.status === 'queued')) {
+    const pending = this.store.db
+      .prepare(
+        "SELECT data FROM runs WHERE json_extract(data,'$.status') IN ('running','queued') ORDER BY rowid DESC",
+      )
+      .all()
+      .map((row) => JSON.parse(String(row.data)) as Run);
+    for (const run of pending) {
       run.status = 'interrupted';
       run.finishedAt = new Date().toISOString();
       run.error =

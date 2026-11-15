@@ -8,6 +8,8 @@ import { uuid } from '../hooks/useAgent';
 export function DevicesScreen() {
   const {
     connection,
+    devicesLoading,
+    online,
     error,
     busy,
     title,
@@ -62,13 +64,25 @@ export function DevicesScreen() {
         <Button
           title="Disable this device's push"
           disabled={disabled}
-          onPress={() => perform(() => client!.request('/push/disable', {}))}
+          onPress={() =>
+            perform(async () => {
+              await client!.request('/push/disable', {});
+              setPushStatus(await client!.request('/push/status'));
+            })
+          }
         />
         <Button title="Sign out" danger disabled={busy} onPress={logout} />
       </View>
+      {devicesLoading ? (
+        <Text>Loading devices…</Text>
+      ) : !devices.length && online ? (
+        <Text>No devices found.</Text>
+      ) : null}
       {devices.map((d) => (
         <View key={d.id} style={styles.card}>
-          <Text style={styles.heading}>{d.name}</Text>
+          <Text verbatim style={styles.heading}>
+            {d.name}
+          </Text>
           <Text>
             {d.platform} · {d.revoked ? 'Revoked' : 'Active'}
           </Text>

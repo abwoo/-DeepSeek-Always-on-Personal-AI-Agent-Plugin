@@ -8,7 +8,10 @@ on:
         tests/**,
         scripts/verify-v03-accounts.mjs,
         scripts/verify-control-proxy.mjs,
+        scripts/verify-mobile-contract.mjs,
         scripts/control-admin.mjs,
+        scripts/control-backup.mjs,
+        scripts/verify-control-backup.mjs,
         scripts/build-managed*,
         package*.json,
         deploy/control/**,
@@ -31,9 +34,12 @@ jobs:
         with: { version: 11.28.5 }
       - run: npm ci
       - run: npm run typecheck && npm run build
+      - name: Verify retained raw engineering observation hashes
+        run: node scripts/verify-engineering-evidence.mjs
       - name: Identity, encrypted state, device revocation, cursor and budget tests
-        run: node --import tsx --test tests/unit/account-control.test.ts tests/unit/account-client-lifecycle.test.ts tests/unit/memory-revision.test.ts tests/unit/oidc-protocol.test.ts tests/unit/managed-auth.test.ts tests/unit/managed-feed-budget.test.ts tests/unit/account-execution.test.ts tests/unit/control-network.test.ts tests/unit/control-rate.test.ts tests/unit/control-admin.test.ts
+        run: node --import tsx --test tests/unit/account-control.test.ts tests/unit/account-client-lifecycle.test.ts tests/unit/memory-revision.test.ts tests/unit/oidc-protocol.test.ts tests/unit/managed-auth.test.ts tests/unit/managed-feed-budget.test.ts tests/unit/account-execution.test.ts tests/unit/control-network.test.ts tests/unit/control-rate.test.ts tests/unit/control-admin.test.ts tests/unit/record-export.test.ts
       - run: node scripts/build-managed.mjs && npm pack --ignore-scripts && npm pack ./packages/managed --ignore-scripts
+      - run: npx playwright install --with-deps chromium
       - name: Two actual isolated Harness processes with account routing
         run: node scripts/verify-v03-accounts.mjs
       - name: Actual Caddy TLS proxy and independent client login limits
@@ -46,6 +52,9 @@ jobs:
         run: node scripts/verify-control-backup.mjs
       - name: Record explicit production release gates
         run: node scripts/verify-v03-release.mjs
+      - name: Preserve small raw account observations and hashes
+        if: always()
+        run: node scripts/log-engineering-evidence.mjs accounts
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -55,6 +64,8 @@ jobs:
             test-results/v03-release-gate.json
             test-results/v03-backup.json
             test-results/control-proxy.json
+            test-results/mobile-component-contract.json
+            test-results/mobile-component-failure.png
           retention-days: 14
           if-no-files-found: warn
 

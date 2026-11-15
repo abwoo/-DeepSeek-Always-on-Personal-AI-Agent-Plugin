@@ -1,3 +1,4 @@
+import { boundedText } from './http.js';
 import { requestNetwork, normalizeAddress } from './network.js';
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http';
 import { randomUUID } from 'node:crypto';
@@ -27,7 +28,7 @@ export interface ControlConfig {
   trustedProxies?: string[];
 }
 const allowed =
-  /^\/(snapshot|export|events(?:\?[^#]{1,1024})?|runs\/[0-9a-f-]+|inbox\/[0-9a-f-]+|sessions|session\/read|changes(?:\?after=\d+)?|mutate|operations\/[0-9a-f-]+|goals|devices(?:\/revoke)?|push\/(register|disable|ack|status))$/;
+  /^\/(snapshot|snapshots(?:\?cursor=[A-Za-z0-9_.%+-]{1,160})?|export|exports(?:\?cursor=[A-Za-z0-9_.%+-]{1,160}|\/release)?|events(?:\?[^#]{1,1024})?|runs\/[0-9a-f-]+|inbox\/[0-9a-f-]+|sessions|session\/read|changes(?:\?after=\d+)?|mutate|operations\/[0-9a-f-]+|goals|devices(?:\/revoke)?|push\/(register|disable|ack|status))$/;
 export function controlServer(
   store: ControlStore,
   pool: AgentPool,
@@ -411,9 +412,7 @@ export function controlServer(
       payload,
     );
     // Bounded leaf API; neither arbitrary target paths nor upstream authentication headers escape.
-    const text = await response.text();
-    if (Buffer.byteLength(text) > 2 * 1024 * 1024)
-      throw new GatewayError(502, 'agent_response_too_large');
+    const text = await boundedText(response);
     return new Response(text, {
       status: response.status,
       headers: { 'content-type': 'application/json', 'cache-control': 'no-store' },

@@ -1,3 +1,5 @@
+import { serveNativeFixture } from './serve-native-fixture.mjs';
+import { verifyMobileContract } from './verify-mobile-contract.mjs';
 // Level 2: two actual published Harness processes. Identity is an explicitly labeled local adapter fixture.
 // Never substitutes for a live Auth0 tenant, real model output or physical-device acceptance.
 import { spawn, execFile } from 'node:child_process';
@@ -12,6 +14,8 @@ import { AgentPool } from '../dist/control/pool.js';
 import { controlServer } from '../dist/control/server.js';
 import { AccountApi, AccountManagedClient } from '../dist/shared/account-client.js';
 import { ManagedClient } from '../dist/shared/managed-client.js';
+const nativeFixture = process.argv.includes('--native-fixture');
+const productOrigin = nativeFixture ? 'https://127.0.0.1:8443' : 'https://service-fixture.invalid';
 const root = await mkdtemp(join(tmpdir(), 'always-on-v03-')),
   cli = resolve('node_modules/@deepseek-ai/dsh/lib/bin.js');
 const authorities = [];
@@ -108,7 +112,7 @@ async function boot(slots) {
   currentSlots = slots;
   pool = new AgentPool(store, slots, true, leafTransport);
   controller = controlServer(store, pool, identity, {
-    publicOrigin: 'https://service-fixture.invalid',
+    publicOrigin: productOrigin,
     mobileRedirect: 'deepseek-always-on://oauth/return',
     allowLoopback: true,
   });
@@ -116,15 +120,15 @@ async function boot(slots) {
   base = 'http://127.0.0.1:' + controller.server.address().port;
 }
 const transport = async (input, init) => {
-  const r = await fetch(String(input).replace('https://service-fixture.invalid', base), init);
+  const r = await fetch(String(input).replace(productOrigin, base), init);
   return new Response(await r.text(), { status: r.status, headers: r.headers });
 };
-const api = new AccountApi('https://service-fixture.invalid', transport);
-async function login(subject) {
+const api = new AccountApi(productOrigin, transport);
+async function login(subject, name = 'Real Harness protocol observer') {
   const verifier = secret(),
     start = await api.start({
       challenge: challenge(verifier),
-      name: 'Real Harness protocol observer',
+      name,
       platform: 'other',
     });
   const state = new URL(start.authorizeUrl).searchParams.get('state');
@@ -190,6 +194,12 @@ async function deniedInput(connection, label, index = 0) {
 try {
   const slots = [await authority(0), await authority(1)];
   await boot(slots);
+  if(nativeFixture) {
+    const nativeConnection=await login('alice','Native engineering device');
+    const observerConnection=await login('alice','Independent native QA observer');
+    const observer=new AccountManagedClient(observerConnection,async()=>{},undefined,transport);
+    await serveNativeFixture({base,connection:nativeConnection,observer});
+  } else {
   const a = await login('alice'),
     phone = await login('alice'),
     b = await login('bob');
@@ -319,6 +329,42 @@ try {
     data: { id: memory.result.result.id },
   });
   assert.equal((await mobile.snapshot()).memories.length, 0);
+  // Exercise the restricted account proxy with >2 MiB of real persisted UTF-8
+  // records. Each page remains bounded; a second device cannot reuse its cursor.
+  const largeIds = [];
+  for (let i = 0; i < 210; i++) {
+    const saved = await desktop.mutate(randomUUID(), {
+      action: 'memory.save',
+      data: {
+        kind: 'project',
+        content: '研究'.repeat(1800),
+        source: 'Explicit export integration fixture consent',
+        consent: true,
+      },
+    });
+    largeIds.push(saved.result.result.id);
+  }
+  assert.equal((await desktop.snapshot()).memories.length, 210);
+  const exportStart = await desktop.request('/exports', {});
+  assert.ok(exportStart.pages > 10);
+  await assert.rejects(
+    () => mobile.request('/exports?cursor=' + encodeURIComponent(exportStart.next)),
+    (e) => e.code === 'export_expired' && e.status === 410,
+  );
+  await desktop.request('/exports/release', { exportId: exportStart.exportId });
+  let exportBytes = 0,
+    exportRecords = 0;
+  await desktop.exportRecords(async (chunk) => {
+    exportBytes += Buffer.byteLength(chunk);
+    for (const line of chunk.trim().split('\n').filter(Boolean)) {
+      const item = JSON.parse(line);
+      if (item.kind === 'memory') exportRecords++;
+    }
+  });
+  assert.ok(exportBytes > 2 * 1024 * 1024);
+  assert.equal(exportRecords, 210);
+  for (const id of largeIds)
+    await desktop.mutate(randomUUID(), { action: 'memory.delete', data: { id } });
   // Execute through the native Schedule/Agent with a clearly labeled model fixture.
   await desktop.mutate(randomUUID(), { action: 'task.run', data: { id: task.id } });
   await until(async () =>
@@ -432,6 +478,15 @@ try {
     ),
   );
   assert.equal((await client(b).snapshot()).authorityId, b.credentials.authorityId);
+  const uiConnection = await login('alice', 'Mobile component UI device');
+  const spare = await login('alice', 'Mobile component spare device');
+  await verifyMobileContract({
+    base,
+    connection: uiConnection,
+    observer: desktop,
+    spare,
+    otherAuthorityId: b.credentials.authorityId,
+  });
   const bobTask = await other.mutate(randomUUID(), {
     action: 'task.create',
     data: {
@@ -473,6 +528,8 @@ try {
         expiredDirectInputCannotReachModelAdapter: true,
         explicitUserTaskPausePreservedOnAccountResume: true,
         activeNativeRequestCancellationObserved: true,
+        largeUtf8ExportThroughRestrictedAccountProxy: true,
+        exportCursorBoundToDevice: true,
         automaticIsolatedAllocation: true,
         temporaryRegistrationFailureRetriedSameDevice:
           registrationAttempts[0] === registrationAttempts[1],
@@ -501,6 +558,7 @@ try {
   console.log(
     'Real two-Harness account isolation and shared state passed; live identity/provider/physical gates remain blocked.',
   );
+  }
 } finally {
   await controller?.close().catch(() => {});
   store?.close();

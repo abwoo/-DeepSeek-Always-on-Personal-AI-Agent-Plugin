@@ -41,10 +41,24 @@ export class Store {
     const row = this.db.prepare(`SELECT data FROM ${table} WHERE id=?`).get(id);
     return row ? JSON.parse(String(row.data)) : undefined;
   }
-  all<T>(table: 'tasks' | 'runs' | 'memory' | 'inbox' | 'subscriptions'): T[] {
+  all<T>(table: 'tasks' | 'runs' | 'memory' | 'inbox' | 'subscriptions', limit?: number): T[] {
+    if (limit !== undefined && (!Number.isSafeInteger(limit) || limit < 0))
+      throw new Error('Invalid record limit');
     return this.db
-      .prepare(`SELECT data FROM ${table} ORDER BY rowid DESC`)
-      .all()
+      .prepare(
+        `SELECT data FROM ${table} ORDER BY rowid DESC${limit === undefined ? '' : ' LIMIT ?'}`,
+      )
+      .all(...(limit === undefined ? [] : [limit]))
+      .map((r) => JSON.parse(String(r.data)));
+  }
+  taskRuns<T>(taskId: string, limit?: number): T[] {
+    if (limit !== undefined && (!Number.isSafeInteger(limit) || limit < 0))
+      throw new Error('Invalid record limit');
+    return this.db
+      .prepare(
+        `SELECT data FROM runs WHERE task_id=? ORDER BY rowid DESC${limit === undefined ? '' : ' LIMIT ?'}`,
+      )
+      .all(taskId, ...(limit === undefined ? [] : [limit]))
       .map((r) => JSON.parse(String(r.data)));
   }
   put(table: 'tasks' | 'memory' | 'inbox' | 'subscriptions', id: string, value: unknown) {

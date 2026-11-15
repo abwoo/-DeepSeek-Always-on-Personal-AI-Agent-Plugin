@@ -138,12 +138,12 @@ test('account admission binds PKCE, isolates two identities, rotates credentials
     assert.equal(refreshCount, 1);
     assert.equal(next.credentials.authorityId, a.credentials.authorityId);
     assert.notEqual(next.refreshToken, a.refreshToken);
-    await assert.rejects(() => ca.request('/devices'), /account_session_expired/);
-    await assert.rejects(() => api.refresh(a), /sign_in_required/);
+    await assert.rejects(() => ca.request('/devices'), e=>e instanceof ApiError&&e.status===401&&e.code==='account_session_expired');
+    await assert.rejects(() => api.refresh(a), e=>e instanceof ApiError&&e.status===401&&e.code==='sign_in_required');
     await api.logout(a2);
     assert.equal(providerRevocations, 1);
     const ca2 = new ManagedClient(a2.origin, a2.credentials, undefined, false, transport);
-    await assert.rejects(() => ca2.request('/devices'), /account_session_expired/);
+    await assert.rejects(() => ca2.request('/devices'), e=>e instanceof ApiError&&e.status===401&&e.code==='account_session_expired');
     assert.ok((await cb.request('/devices')).items.length);
     const raw = JSON.stringify(store.db.prepare('SELECT * FROM devices').all());
     assert.ok(!raw.includes('server-private-refresh'));

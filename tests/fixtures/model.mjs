@@ -8,7 +8,8 @@ class Fixture extends LlmAdapter {
     return { provider, id: model, name: 'Deterministic test fixture', defaultMaxTokens: 4096 };
   }
   async *stream(options) {
-    if (process.env.ALWAYS_ON_FIXTURE_TRACE) appendFileSync(process.env.ALWAYS_ON_FIXTURE_TRACE, 'model-call\n');
+    if (process.env.ALWAYS_ON_FIXTURE_TRACE)
+      appendFileSync(process.env.ALWAYS_ON_FIXTURE_TRACE, 'model-call\n');
     const text = JSON.stringify(options.messages);
     if (text.includes('EXPECT_MEMORY') && !text.includes('FIXTURE_SAVED_MEMORY'))
       throw new Error('Confirmed memory missing from a native model request');
@@ -27,6 +28,31 @@ class Fixture extends LlmAdapter {
           once: true,
         });
       });
+      return;
+    }
+    if (text.includes('FIXTURE_PROPOSE_MEMORY') && !this.seen.has('memory-proposal')) {
+      this.seen.add('memory-proposal');
+      const args = JSON.stringify({
+          kind: 'preference',
+          content: 'Mobile proposal requires consent',
+          source: 'Deterministic fixture suggestion',
+        }),
+        id = 'fixture-memory-proposal';
+      yield { type: 'block-start', index: 0, blockType: 'tool-call' };
+      yield {
+        type: 'tool-call-delta',
+        index: 0,
+        id,
+        name: 'always_on_memory_propose',
+        argumentsDelta: args,
+      };
+      yield {
+        type: 'block-end',
+        index: 0,
+        block: { type: 'tool-call', id, name: 'always_on_memory_propose', arguments: args },
+      };
+      yield { type: 'usage', usage: { inputTokens: 10, outputTokens: 10 } };
+      yield { type: 'finish', reason: { kind: 'tool-calls' } };
       return;
     }
     const run = [...text.matchAll(/Run ([0-9a-f-]{36})\./g)].at(-1)?.[1];

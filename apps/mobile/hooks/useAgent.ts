@@ -77,7 +77,7 @@ export const friendly = (error: unknown) =>
   error instanceof Error ? error.message : 'Request failed';
 
 export function useAgent() {
-  const [connection, setConnection] = useState<AccountConnection | null>(null),
+  const [connection, storeConnection] = useState<AccountConnection | null>(null),
     [loading, setLoading] = useState(true),
     [storageReady, setStorageReady] = useState(false),
     [deviceName, setDeviceName] = useState(Device.modelName ?? 'My device');
@@ -108,7 +108,9 @@ export function useAgent() {
     [devices, setDevices] = useState<any[]>([]),
     [pairInfo, setPairInfo] = useState<any>(null),
     [pushStatus, setPushStatus] = useState<any>(null);
-  const [liveText, setLiveText] = useState(''),[liveTool,setLiveTool]=useState('');
+  const [devicesLoading, setDevicesLoading] = useState(false);
+  const [liveText, setLiveText] = useState(''),
+    [liveTool, setLiveTool] = useState('');
   const eventCursor = useRef<{ after: number; epoch?: string; live?: number }>({ after: 0 });
   const active = useRef(true),
     selected = useRef(''),
@@ -116,7 +118,61 @@ export function useAgent() {
     refreshing = useRef(false),
     inFlight = useRef(false),
     currentDevice = useRef<string | undefined>(undefined);
-  currentDevice.current = connection?.credentials.deviceId;
+  const refreshRequested = useRef(false);
+  const generation = useRef(0);
+  const selectionVersion = useRef(0);
+  function setConnection(next: AccountConnection | null) {
+    generation.current++;
+    currentDevice.current = next?.credentials.deviceId;
+    selected.current = '';
+    focused.current = null;
+    selectionVersion.current++;
+    eventCursor.current = { after: 0 };
+    refreshing.current = false;
+    refreshRequested.current = false;
+    inFlight.current = false;
+    setOnline(false);
+    setError('');
+    setBusy(false);
+    setDevicesLoading(false);
+    setSnapshot(null);
+    setPending([]);
+    setSessionId('');
+    setSession(null);
+    setSessions([]);
+    setFocusedRun(null);
+    setLiveText('');
+    setLiveTool('');
+    setNotice(null);
+    setDevices([]);
+    setPushStatus(null);
+    setPairInfo(null);
+    setTitle('');
+    setInstruction('');
+    setMinutes('1440');
+    setMessage('');
+    setMemory('');
+    setKind('fact');
+    setConsent(false);
+    setEditing(undefined);
+    setEditingVersion(undefined);
+    setSchedule('every');
+    setPicker(null);
+    setDate(new Date(Date.now() + 3600000));
+    setResearch(true);
+    setPage('Tasks');
+    storeConnection(next);
+  }
+  function selectConversation(id: string, run: any = null) {
+    selectionVersion.current++;
+    selected.current = id;
+    focused.current = run;
+    setSessionId(id);
+    setFocusedRun(run);
+    setSession(null);
+    setLiveText('');
+    setLiveTool('');
+  }
   selected.current = sessionId;
   focused.current = focusedRun;
   const storage = useMemo(
@@ -126,36 +182,45 @@ export function useAgent() {
   const client = useMemo(
     () =>
       connection
-        ? new AccountManagedClient(connection, saveProductConnection, storage, transport)
+        ? new AccountManagedClient(
+            connection,
+            (next) =>
+              saveProductConnection(
+                next,
+                () => currentDevice.current === connection.credentials.deviceId,
+              ),
+            storage,
+            transport,
+            false,
+            () => currentDevice.current === connection.credentials.deviceId,
+          )
         : null,
     [connection, storage],
   );
   const report = useCallback(
     async (e: unknown) => {
+      if (!connection || currentDevice.current !== connection.credentials.deviceId) return;
       setError(friendly(e));
       setOnline(false);
       if (e instanceof ApiError && e.status === 401) {
         if (connection) await clearOfflineSnapshot(connection).catch(() => {});
-        await clearProductConnection();
-        setConnection(null);
-        setSnapshot(null);
-        setSessionId('');
-        selected.current = '';
-        focused.current = null;
-        setFocusedRun(null);
-        setSession(null);
-        setSessions([]);
-        setPending([]);
-        setNotice(null);
-        setDevices([]);
-        setPushStatus(null);
+        await clearProductConnection(connection!.credentials.deviceId);
+        if (currentDevice.current === connection.credentials.deviceId) {
+          setConnection(null);
+          setError(friendly(e));
+        }
       }
     },
     [connection],
   );
   const refresh = useCallback(async () => {
-    if (!client || !active.current || refreshing.current) return;
+    if (!client || !active.current || currentDevice.current !== client.credentials.deviceId) return;
+    if (refreshing.current) {
+      refreshRequested.current = true;
+      return;
+    }
     refreshing.current = true;
+    const epoch = generation.current;
     try {
       const state = await client.snapshot();
       if (currentDevice.current !== client.credentials.deviceId) return;
@@ -171,31 +236,53 @@ export function useAgent() {
           focused.current = updated;
           setFocusedRun(updated);
         }
+        const selectedId = selected.current,
+          version = selectionVersion.current;
         const history = await client.readSession(
-          selected.current,
+          selectedId,
           updated ? resultBeforeSeq(updated) : undefined,
         );
-        if (history.sessionId === selected.current && focused.current?.id === updated?.id)
+        if (
+          version === selectionVersion.current &&
+          history.sessionId === selected.current &&
+          focused.current?.id === updated?.id
+        )
           setSession(history);
       }
     } catch (e) {
       if (currentDevice.current === client.credentials.deviceId) await report(e);
     } finally {
-      refreshing.current = false;
+      if (epoch === generation.current) {
+        refreshing.current = false;
+        if (refreshRequested.current) {
+          refreshRequested.current = false;
+          void refresh();
+        }
+      }
     }
   }, [client, report]);
   useEffect(() => {
+    let mounted = true;
     loadProductConnection()
       .then(async (record) => {
+        if (!mounted) return;
         setConnection(record);
         if (record) {
           const cached = await loadOfflineSnapshot(record).catch(() => null);
-          if (cached) setSnapshot(cached.snapshot);
+          if (cached && mounted && currentDevice.current === record.credentials.deviceId)
+            setSnapshot(cached.snapshot);
         }
         setStorageReady(true);
       })
       .catch((e) => setError(friendly(e)))
-      .finally(() => setLoading(false));
+      .finally(() => {
+        if (mounted) setLoading(false);
+      });
+    return () => {
+      mounted = false;
+      currentDevice.current = undefined;
+      generation.current++;
+    };
   }, []);
   useEffect(() => {
     active.current = AppState.currentState === 'active';
@@ -227,15 +314,19 @@ export function useAgent() {
           if (result.resetLive) setLiveText('');
           for (const frame of result.frames ?? []) {
             if (frame.sessionId !== selected.current || focused.current) continue;
-            if (frame.kind === 'start' || frame.kind === 'end'){setLiveText('');setLiveTool('');}
-            if(frame.kind==='tool-progress'&&frame.data.name)setLiveTool(String(frame.data.name));
+            if (frame.kind === 'start' || frame.kind === 'end') {
+              setLiveText('');
+              setLiveTool('');
+            }
+            if (frame.kind === 'tool-progress' && frame.data.name)
+              setLiveTool(String(frame.data.name));
             if (frame.kind === 'text-delta')
               setLiveText((text) => (text + String(frame.data.text)).slice(-24000));
           }
           if (result.items?.length || result.resetLive) await refresh();
           await new Promise((r) => setTimeout(r, 100));
         } catch (e) {
-          if (stopped) return;
+          if (stopped || currentDevice.current !== client.credentials.deviceId) return;
           if (e instanceof ApiError && e.status === 410) {
             eventCursor.current = { after: 0 };
             setLiveText('');
@@ -255,12 +346,14 @@ export function useAgent() {
   async function perform(work: () => Promise<unknown>) {
     if (inFlight.current) return;
     inFlight.current = true;
+    const epoch = generation.current;
     setBusy(true);
     setError('');
     try {
       await work();
-      await refresh();
+      if (epoch === generation.current) await refresh();
     } catch (e) {
+      if (epoch !== generation.current) return;
       setError(friendly(e));
       if (
         !(e instanceof ApiError && e.status < 500) &&
@@ -272,8 +365,10 @@ export function useAgent() {
           (await client.reconcile().catch(() => [])).filter((r) => r.status !== 'committed'),
         );
     } finally {
-      inFlight.current = false;
-      setBusy(false);
+      if (epoch === generation.current) {
+        inFlight.current = false;
+        setBusy(false);
+      }
     }
   }
   const mutate = (command: ManagedAction) => client!.mutate(uuid(), command);
@@ -338,28 +433,17 @@ export function useAgent() {
     await perform(async () => {
       await client.logout();
       if (connection) await clearOfflineSnapshot(connection);
-      await clearProductConnection();
+      await clearProductConnection(connection!.credentials.deviceId);
       setConnection(null);
-      setSnapshot(null);
-      setSession(null);
-      setSessionId('');
-      selected.current = '';
-      focused.current = null;
-      setFocusedRun(null);
-      setNotice(null);
-      setDevices([]);
-      setPushStatus(null);
-      setPending([]);
     });
   }
   async function openSession(id: string) {
     if (!client) return;
     await perform(async () => {
-      focused.current = null;
-      setFocusedRun(null);
+      selectConversation(id);
+      const version = selectionVersion.current;
       const value = await client.readSession(id);
-      selected.current = id;
-      setSessionId(id);
+      if (version !== selectionVersion.current) return;
       setSession(value);
       setPage('Chat');
     });
@@ -368,11 +452,10 @@ export function useAgent() {
     if (!client) return;
     await perform(async () => {
       const run = await client.request('/runs/' + id);
+      selectConversation(run.sessionId, run);
+      const version = selectionVersion.current;
       const value = await client.readSession(run.sessionId, resultBeforeSeq(run));
-      focused.current = run;
-      setFocusedRun(run);
-      selected.current = run.sessionId;
-      setSessionId(run.sessionId);
+      if (version !== selectionVersion.current) return;
       setSession(value);
       setPage('Chat');
     });
@@ -402,6 +485,7 @@ export function useAgent() {
   useEffect(() => {
     if (!client || !connection) return;
     const handle = async (notification: Notifications.Notification, opened: boolean) => {
+      if (currentDevice.current !== client.credentials.deviceId) return;
       const data = notification.request.content.data ?? {};
       if (
         data.authorityId !== connection.credentials.authorityId ||
@@ -416,12 +500,14 @@ export function useAgent() {
           })
           .catch(() => {});
         if (opened) {
+          const found = await client.request('/inbox/' + data.noticeId);
+          if (currentDevice.current !== client.credentials.deviceId) return;
           setPage('Inbox');
-          setNotice(await client.request('/inbox/' + data.noticeId));
+          setNotice(found);
         }
         await refresh();
       } catch (e) {
-        setError(friendly(e));
+        if (currentDevice.current === client.credentials.deviceId) setError(friendly(e));
       }
     };
     const received = Notifications.addNotificationReceivedListener((n) => handle(n, false));
@@ -442,16 +528,25 @@ export function useAgent() {
     .map((r: any) => r.event);
   const rows = conversationRows(records);
   async function loadDevices() {
-    await perform(async () => {
-      setDevices((await client!.request('/devices')).items);
-      setPage('Devices');
-    });
+    if (!client) return;
+    const epoch = generation.current;
+    setDevicesLoading(true);
+    try {
+      setDevices((await client.request('/devices')).items);
+    } catch (e) {
+      if (epoch === generation.current) await report(e);
+    } finally {
+      if (epoch === generation.current) setDevicesLoading(false);
+    }
   }
 
   return {
+    selectConversation,
+    selectionVersion,
     editingVersion,
     setEditingVersion,
-    liveText,liveTool,
+    liveText,
+    liveTool,
     connection,
     setConnection,
     loading,
@@ -533,5 +628,6 @@ export function useAgent() {
     records,
     rows,
     loadDevices,
+    devicesLoading,
   };
 }

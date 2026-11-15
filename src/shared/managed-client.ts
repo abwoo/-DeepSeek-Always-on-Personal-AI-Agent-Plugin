@@ -1,3 +1,6 @@
+import { recordPages, writeRecordExport } from './export-contract.js';
+export { writeRecordExport } from './export-contract.js';
+export type { ExportPage } from './export-contract.js';
 import {
   credentialsSchema,
   pairClaim,
@@ -53,15 +56,19 @@ export class ApiError extends Error {
     readonly code: string,
   ) {
     super(
-      code === 'account_suspended'
-        ? 'Your account is paused. Contact the service operator to resume.'
-        : code === 'account_disabled'
-          ? 'Your account is disabled. Contact the service operator.'
-          : code === 'sign_out_in_progress'
-            ? 'Sign-out is in progress. Retry signing out if it fails.'
-            : code === 'memory_conflict'
-              ? 'This memory changed on another device. Refresh and review before saving.'
-              : code,
+      ['device_unauthorized', 'account_session_expired', 'sign_in_required'].includes(code)
+        ? 'Your session expired or this device was revoked. Sign in again.'
+        : code === 'schedule_not_confirmed'
+          ? 'Native schedule did not confirm the requested change. Refresh and review task state.'
+          : code === 'account_suspended'
+            ? 'Your account is paused. Contact the service operator to resume.'
+            : code === 'account_disabled'
+              ? 'Your account is disabled. Contact the service operator.'
+              : code === 'sign_out_in_progress'
+                ? 'Sign-out is in progress. Retry signing out if it fails.'
+                : code === 'memory_conflict'
+                  ? 'This memory changed on another device. Refresh and review before saving.'
+                  : code,
     );
   }
 }
@@ -110,7 +117,7 @@ export class ManagedClient {
   }
   async request(path: string, body?: unknown) {
     if (
-      !/^\/(snapshot|export|events\?[^#]{1,1024}|runs\/[0-9a-f-]+|inbox\/[0-9a-f-]+|sessions|session\/read|changes(?:\?after=\d+)?|mutate|operations\/[0-9a-f-]+|goals|devices(?:\/revoke|\/pair-code)?|push\/(register|disable|ack|status))$/.test(
+      !/^\/(snapshot|snapshots(?:\?cursor=[A-Za-z0-9_.%+-]{1,160})?|export|exports(?:\?cursor=[A-Za-z0-9_.%+-]{1,160}|\/release)?|events\?[^#]{1,1024}|runs\/[0-9a-f-]+|inbox\/[0-9a-f-]+|sessions|session\/read|changes(?:\?after=\d+)?|mutate|operations\/[0-9a-f-]+|goals|devices(?:\/revoke|\/pair-code)?|push\/(register|disable|ack|status))$/.test(
         path,
       )
     )
@@ -127,8 +134,34 @@ export class ManagedClient {
       throw new ApiError(409, 'authority_mismatch');
     return data;
   }
+  exportRecords(write: (text: string) => Promise<void>, current?: () => boolean) {
+    return writeRecordExport((path, body) => this.request(path, body), write, current);
+  }
   async snapshot() {
-    return snapshotSchema.parse(await this.request('/snapshot'));
+    try {
+      return snapshotSchema.parse(await this.request('/snapshot'));
+    } catch (e) {
+      if (
+        !(e instanceof ApiError) ||
+        !['snapshot_pagination_required', 'agent_response_too_large'].includes(e.code)
+      )
+        throw e;
+    }
+    const state: Record<string, any> = { tasks: [], runs: [], memories: [], inbox: [], goals: [] };
+    for await (const p of recordPages(
+      (path, body) => this.request(path, body),
+      () => true,
+      '/snapshots',
+    )) {
+      if (!p.snapshot || p.snapshot.authorityId !== this.credentials.authorityId)
+        throw new ApiError(409, 'authority_mismatch');
+      if (p.index === 0) Object.assign(state, p.snapshot);
+      for (const item of p.items) {
+        if (item.data.id !== item.id) throw new ApiError(409, 'snapshot_record_mismatch');
+        state[item.kind === 'memory' ? 'memories' : item.kind].push(item.data);
+      }
+    }
+    return snapshotSchema.parse(state);
   }
   events(cursor: { after: number; epoch?: string; live?: number }, sessionId?: string) {
     const q = new URLSearchParams({ after: String(cursor.after), live: String(cursor.live ?? 0) });

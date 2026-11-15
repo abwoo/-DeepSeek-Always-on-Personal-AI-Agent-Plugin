@@ -1,23 +1,59 @@
 // Product copy only. User messages, memories and model results remain verbatim.
 export function localize(raw: string, language: 'en' | 'zh') {
-  raw=errors[raw]??raw;
+  raw = errors[raw] ?? raw;
   if (language === 'en') return raw;
   const clean = raw.replace(/\s+/g, ' ').trim(),
     tick = clean.startsWith('✓ ') ? '✓ ' : '';
   const translated = zh[clean.replace(/^✓ /, '')];
   return translated ? tick + translated : raw;
 }
-const errors:Record<string,string>={account_session_expired:'Your session expired. Sign in again.',sign_in_required:'Your session expired. Sign in again.',rate_limit:'Too many requests. Please wait a moment.',runtime_unavailable:'Your agent is temporarily unavailable. Reconnect to continue.',agent_unavailable:'Your agent is temporarily unavailable. Reconnect to continue.',operation_outcome_unknown:'The outcome is unknown. Review the task or conversation before trying again.'};
+const errors: Record<string, string> = {
+  account_session_expired: 'Your session expired. Sign in again.',
+  sign_in_required: 'Your session expired. Sign in again.',
+  rate_limit: 'Too many requests. Please wait a moment.',
+  runtime_unavailable: 'Your agent is temporarily unavailable. Reconnect to continue.',
+  agent_unavailable: 'Your agent is temporarily unavailable. Reconnect to continue.',
+  operation_outcome_unknown:
+    'The outcome is unknown. Review the task or conversation before trying again.',
+};
 export const zh: Record<string, string> = {
- 'Your account is paused. Contact the service operator to resume.':'账号已暂停，请联系服务运营者恢复。',
- 'Your account is disabled. Contact the service operator.':'账号已停用，请联系服务运营者。',
- 'Sign-out is in progress. Retry signing out if it fails.':'正在退出登录；若失败，请重试退出。',
- "This execution has no verified historical conversation boundary. Review its recorded result in Tasks.":"此执行没有可验证的历史会话边界，请在任务中查看其已保存的执行结果。",
- 'Preparing tool call':'正在准备工具调用',
- 'Your session expired. Sign in again.':'登录已过期，请重新登录。',
- 'Too many requests. Please wait a moment.':'请求过于频繁，请稍后再试。',
- 'Your agent is temporarily unavailable. Reconnect to continue.':'智能体暂时无法连接，请重新连接后继续。',
- 'The outcome is unknown. Review the task or conversation before trying again.':'操作结果尚未确认，请先核实任务或会话，再决定是否重新提交。',
+  'Your session expired or this device was revoked. Sign in again.':
+    '登录已过期或此设备的访问已被撤销，请重新登录。',
+  'Failed to fetch': '网络连接失败，请重试。',
+  'Network request failed': '网络连接失败，请重试。',
+  'The operation was aborted.': '请求超时或已取消，请重试。',
+  'Cancel edit': '取消编辑',
+  'Cancel current turn': '停止当前轮次',
+  'Model usage is unconfirmed. Further model calls are blocked for this UTC day.':
+    '部分模型用量尚未确认，本 UTC 日的后续模型调用已阻止。',
+  'Enter an interval from 1 minute to 365 days, in whole seconds.':
+    '请输入 1 分钟至 365 天之间的间隔，精确到整秒。',
+  'Choose a valid date and time.': '请选择有效的日期与时间。',
+  'Choose a future time for a one-time task.': '一次性任务请选择未来的时间。',
+  'Native schedule did not confirm the requested change. Refresh and review task state.':
+    '原生调度未确认此修改，请刷新并核实任务状态。',
+  'Loading devices…': '正在读取设备…',
+  'No devices found.': '暂无设备。',
+  'Export cancelled': '导出已取消',
+  'File sharing is not available on this device.': '此设备暂不支持文件分享。',
+  export_limit: '记录超出单次导出大小限制，请联系服务运营者。',
+  export_expired: '导出已过期，请重新开始。',
+  export_busy: '其他导出正在进行，请稍后重试。',
+  export_rate_limit: '记录读取过于频繁，请稍后重试。',
+
+  'Your account is paused. Contact the service operator to resume.':
+    '账号已暂停，请联系服务运营者恢复。',
+  'Your account is disabled. Contact the service operator.': '账号已停用，请联系服务运营者。',
+  'Sign-out is in progress. Retry signing out if it fails.': '正在退出登录；若失败，请重试退出。',
+  'This execution has no verified historical conversation boundary. Review its recorded result in Tasks.':
+    '此执行没有可验证的历史会话边界，请在任务中查看其已保存的执行结果。',
+  'Preparing tool call': '正在准备工具调用',
+  'Your session expired. Sign in again.': '登录已过期，请重新登录。',
+  'Too many requests. Please wait a moment.': '请求过于频繁，请稍后再试。',
+  'Your agent is temporarily unavailable. Reconnect to continue.':
+    '智能体暂时无法连接，请重新连接后继续。',
+  'The outcome is unknown. Review the task or conversation before trying again.':
+    '操作结果尚未确认，请先核实任务或会话，再决定是否重新提交。',
 
   'This memory changed on another device. Refresh and review before saving.':
     '这条记忆已在其他设备上修改，请刷新并核实后再保存。',

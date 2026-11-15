@@ -1,0 +1,208 @@
+{
+  "status": "Blocked",
+  "mvpReady": false,
+  "sourceCommit": "3083f4127aacbd5233ce98aa2d4cda0769939e72",
+  "updatedAt": "2026-11-15",
+  "environment": "No configured production account service/real provider/physical-phone authorization or production test attempt. Actual engineering environments are indexed separately.",
+  "tests": {
+    "T01": {
+      "status": "Blocked",
+      "level": null,
+      "sourceCommit": "3083f4127aacbd5233ce98aa2d4cda0769939e72",
+      "environment": "No configured production account service/real provider/physical-phone authorization or production test attempt. Actual engineering environments are indexed separately.",
+      "evidence": "V03_ENGINEERING.md and evidence/v03-engineering/manifest.json (engineering observations only)",
+      "reason": "Published supported Desktop distribution and usable configured service; real version upgrade not verified.",
+      "unresolvedBlockers": "Published supported Desktop distribution and usable configured service; real version upgrade not verified."
+    },
+    "T02": {
+      "status": "Blocked",
+      "level": null,
+      "sourceCommit": "3083f4127aacbd5233ce98aa2d4cda0769939e72",
+      "environment": "No configured production account service/real provider/physical-phone authorization or production test attempt. Actual engineering environments are indexed separately.",
+      "evidence": "V03_ENGINEERING.md and evidence/v03-engineering/manifest.json (engineering observations only)",
+      "reason": "Actual Auth0 tenant/application, HTTPS callback and Desktop login are not authorized/configured.",
+      "unresolvedBlockers": "Actual Auth0 tenant/application, HTTPS callback and Desktop login are not authorized/configured."
+    },
+    "T03": {
+      "status": "Blocked",
+      "level": null,
+      "sourceCommit": "3083f4127aacbd5233ce98aa2d4cda0769939e72",
+      "environment": "No configured production account service/real provider/physical-phone authorization or production test attempt. Actual engineering environments are indexed separately.",
+      "evidence": "V03_ENGINEERING.md and evidence/v03-engineering/manifest.json (engineering observations only)",
+      "reason": "Physical iPhone/Android, stable Android key, Apple signing/provisioning and TestFlight unavailable.",
+      "unresolvedBlockers": "Physical iPhone/Android, stable Android key, Apple signing/provisioning and TestFlight unavailable."
+    },
+    "T04": {
+      "status": "Blocked",
+      "level": null,
+      "sourceCommit": "3083f4127aacbd5233ce98aa2d4cda0769939e72",
+      "environment": "No configured production account service/real provider/physical-phone authorization or production test attempt. Actual engineering environments are indexed separately.",
+      "evidence": "V03_ENGINEERING.md and evidence/v03-engineering/manifest.json (engineering observations only)",
+      "reason": "Actual mobile account login/callback/recovery against live identity service not performed.",
+      "unresolvedBlockers": "Actual mobile account login/callback/recovery against live identity service not performed."
+    },
+    "T05": {
+      "status": "Blocked",
+      "level": null,
+      "sourceCommit": "3083f4127aacbd5233ce98aa2d4cda0769939e72",
+      "environment": "No configured production account service/real provider/physical-phone authorization or production test attempt. Actual engineering environments are indexed separately.",
+      "evidence": "V03_ENGINEERING.md and evidence/v03-engineering/manifest.json (engineering observations only)",
+      "reason": "New real identity automatic allocation against deployed isolated pool not performed.",
+      "unresolvedBlockers": "New real identity automatic allocation against deployed isolated pool not performed."
+    },
+    "T06": {
+      "status": "Blocked",
+      "level": null,
+      "sourceCommit": "3083f4127aacbd5233ce98aa2d4cda0769939e72",
+      "environment": "No configured production account service/real provider/physical-phone authorization or production test attempt. Actual engineering environments are indexed separately.",
+      "evidence": "V03_ENGINEERING.md and evidence/v03-engineering/manifest.json (engineering observations only)",
+      "reason": "Actual account-backed Desktop and physical phone authority/agent IDs not correlated.",
+      "unresolvedBlockers": "Actual account-backed Desktop and physical phone authority/agent IDs not correlated."
+    },
+    "T07": {
+      "status": "Blocked",
+      "level": null,
+      "sourceCommit": "3083f4127aacbd5233ce98aa2d4cda0769939e72",
+      "environment": "No configured production account service/real provider/physical-phone authorization or production test attempt. Actual engineering environments are indexed separately.",
+      "evidence": "V03_ENGINEERING.md and evidence/v03-engineering/manifest.json (engineering observations only)",
+      "reason": "Real DeepSeek result in same native Session observed from both actual account clients missing.",
+      "unresolvedBlockers": "Real DeepSeek result in same native Session observed from both actual account clients missing."
+    },
+    "T08": {
+      "status": "Blocked",
+      "level": null,
+      "sourceCommit": "3083f4127aacbd5233ce98aa2d4cda0769939e72",
+      "environment": "No configured production account service/real provider/physical-phone authorization or production test attempt. Actual engineering environments are indexed separately.",
+      "evidence": "V03_ENGINEERING.md and evidence/v03-engineering/manifest.json (engineering observations only)",
+      "reason": "Physical phone task UI creation and independent account Desktop readback missing.",
+      "unresolvedBlockers": "Physical phone task UI creation and independent account Desktop readback missing."
+    },
+    "T09": {
+      "status": "Blocked",
+      "level": null,
+      "sourceCommit": "3083f4127aacbd5233ce98aa2d4cda0769939e72",
+      "environment": "No configured production account service/real provider/physical-phone authorization or production test attempt. Actual engineering environments are indexed separately.",
+      "evidence": "V03_ENGINEERING.md and evidence/v03-engineering/manifest.json (engineering observations only)",
+      "reason": "Both native account UI consent/edit/conflict/delete readback missing.",
+      "unresolvedBlockers": "Both native account UI consent/edit/conflict/delete readback missing."
+    },
+    "T10": {
+      "status": "Blocked",
+      "level": null,
+      "sourceCommit": "3083f4127aacbd5233ce98aa2d4cda0769939e72",
+      "environment": "No configured production account service/real provider/physical-phone authorization or production test attempt. Actual engineering environments are indexed separately.",
+      "evidence": "V03_ENGINEERING.md and evidence/v03-engineering/manifest.json (engineering observations only)",
+      "reason": "Both native account UI controlled Goal lifecycle and shared readback missing.",
+      "unresolvedBlockers": "Both native account UI controlled Goal lifecycle and shared readback missing."
+    },
+    "T11": {
+      "status": "Blocked",
+      "level": null,
+      "sourceCommit": "3083f4127aacbd5233ce98aa2d4cda0769939e72",
+      "environment": "No configured production account service/real provider/physical-phone authorization or production test attempt. Actual engineering environments are indexed separately.",
+      "evidence": "V03_ENGINEERING.md and evidence/v03-engineering/manifest.json (engineering observations only)",
+      "reason": "Live account/device revocation and confirmed upstream push cleanup missing.",
+      "unresolvedBlockers": "Live account/device revocation and confirmed upstream push cleanup missing."
+    },
+    "T12": {
+      "status": "Blocked",
+      "level": null,
+      "sourceCommit": "3083f4127aacbd5233ce98aa2d4cda0769939e72",
+      "environment": "No configured production account service/real provider/physical-phone authorization or production test attempt. Actual engineering environments are indexed separately.",
+      "evidence": "V03_ENGINEERING.md and evidence/v03-engineering/manifest.json (engineering observations only)",
+      "reason": "Actual deployed runtime, server provider key, funded account and verified model ID unavailable.",
+      "unresolvedBlockers": "Actual deployed runtime, server provider key, funded account and verified model ID unavailable."
+    },
+    "T13": {
+      "status": "Blocked",
+      "level": null,
+      "sourceCommit": "3083f4127aacbd5233ce98aa2d4cda0769939e72",
+      "environment": "No configured production account service/real provider/physical-phone authorization or production test attempt. Actual engineering environments are indexed separately.",
+      "evidence": "V03_ENGINEERING.md and evidence/v03-engineering/manifest.json (engineering observations only)",
+      "reason": "Actual continuous hosted execution with witnessed Mac powered off missing.",
+      "unresolvedBlockers": "Actual continuous hosted execution with witnessed Mac powered off missing."
+    },
+    "T14": {
+      "status": "Blocked",
+      "level": null,
+      "sourceCommit": "3083f4127aacbd5233ce98aa2d4cda0769939e72",
+      "environment": "No configured production account service/real provider/physical-phone authorization or production test attempt. Actual engineering environments are indexed separately.",
+      "evidence": "V03_ENGINEERING.md and evidence/v03-engineering/manifest.json (engineering observations only)",
+      "reason": "Actual Expo project/APNs/FCM/server authorization and physical phone notification receipt unavailable.",
+      "unresolvedBlockers": "Actual Expo project/APNs/FCM/server authorization and physical phone notification receipt unavailable."
+    },
+    "T15": {
+      "status": "Blocked",
+      "level": null,
+      "sourceCommit": "3083f4127aacbd5233ce98aa2d4cda0769939e72",
+      "environment": "No configured production account service/real provider/physical-phone authorization or production test attempt. Actual engineering environments are indexed separately.",
+      "evidence": "V03_ENGINEERING.md and evidence/v03-engineering/manifest.json (engineering observations only)",
+      "reason": "Physical notification tap to correlated historical Inbox/Run/Session missing.",
+      "unresolvedBlockers": "Physical notification tap to correlated historical Inbox/Run/Session missing."
+    },
+    "T16": {
+      "status": "Blocked",
+      "level": null,
+      "sourceCommit": "3083f4127aacbd5233ce98aa2d4cda0769939e72",
+      "environment": "No configured production account service/real provider/physical-phone authorization or production test attempt. Actual engineering environments are indexed separately.",
+      "evidence": "V03_ENGINEERING.md and evidence/v03-engineering/manifest.json (engineering observations only)",
+      "reason": "Real-provider repeated/new research and actual native notification observations missing.",
+      "unresolvedBlockers": "Real-provider repeated/new research and actual native notification observations missing."
+    },
+    "T17": {
+      "status": "Blocked",
+      "level": null,
+      "sourceCommit": "3083f4127aacbd5233ce98aa2d4cda0769939e72",
+      "environment": "No configured production account service/real provider/physical-phone authorization or production test attempt. Actual engineering environments are indexed separately.",
+      "evidence": "V03_ENGINEERING.md and evidence/v03-engineering/manifest.json (engineering observations only)",
+      "reason": "Actual deployed service and signed physical-device restart matrix missing.",
+      "unresolvedBlockers": "Actual deployed service and signed physical-device restart matrix missing."
+    },
+    "T18": {
+      "status": "Blocked",
+      "level": null,
+      "sourceCommit": "3083f4127aacbd5233ce98aa2d4cda0769939e72",
+      "environment": "No configured production account service/real provider/physical-phone authorization or production test attempt. Actual engineering environments are indexed separately.",
+      "evidence": "V03_ENGINEERING.md and evidence/v03-engineering/manifest.json (engineering observations only)",
+      "reason": "Hosted fault injection with actual account clients and provider missing.",
+      "unresolvedBlockers": "Hosted fault injection with actual account clients and provider missing."
+    },
+    "T19": {
+      "status": "Blocked",
+      "level": null,
+      "sourceCommit": "3083f4127aacbd5233ce98aa2d4cda0769939e72",
+      "environment": "No configured production account service/real provider/physical-phone authorization or production test attempt. Actual engineering environments are indexed separately.",
+      "evidence": "V03_ENGINEERING.md and evidence/v03-engineering/manifest.json (engineering observations only)",
+      "reason": "Two live Auth0 accounts, every resource scope and actual native IDOR verification missing.",
+      "unresolvedBlockers": "Two live Auth0 accounts, every resource scope and actual native IDOR verification missing."
+    },
+    "T20": {
+      "status": "Blocked",
+      "level": null,
+      "sourceCommit": "3083f4127aacbd5233ce98aa2d4cda0769939e72",
+      "environment": "No configured production account service/real provider/physical-phone authorization or production test attempt. Actual engineering environments are indexed separately.",
+      "evidence": "V03_ENGINEERING.md and evidence/v03-engineering/manifest.json (engineering observations only)",
+      "reason": "Configured published install-sign-in-ready chain cannot run with serviceOrigin null.",
+      "unresolvedBlockers": "Configured published install-sign-in-ready chain cannot run with serviceOrigin null."
+    },
+    "T21": {
+      "status": "Blocked",
+      "level": null,
+      "sourceCommit": "3083f4127aacbd5233ce98aa2d4cda0769939e72",
+      "environment": "No configured production account service/real provider/physical-phone authorization or production test attempt. Actual engineering environments are indexed separately.",
+      "evidence": "V03_ENGINEERING.md and evidence/v03-engineering/manifest.json (engineering observations only)",
+      "reason": "Signed distributed version upgrade and production checkpoint rollback not exercised.",
+      "unresolvedBlockers": "Signed distributed version upgrade and production checkpoint rollback not exercised."
+    },
+    "T22": {
+      "status": "Blocked",
+      "level": null,
+      "sourceCommit": "3083f4127aacbd5233ce98aa2d4cda0769939e72",
+      "environment": "No configured production account service/real provider/physical-phone authorization or production test attempt. Actual engineering environments are indexed separately.",
+      "evidence": "V03_ENGINEERING.md and evidence/v03-engineering/manifest.json (engineering observations only)",
+      "reason": "Live provider spending limits, alerting, security/retention operations and signed vendor dependency review outstanding.",
+      "unresolvedBlockers": "Live provider spending limits, alerting, security/retention operations and signed vendor dependency review outstanding."
+    }
+  },
+  "evidenceKind": "Derived current acceptance matrix, not a production test event; earlier raw snapshots remain retained."
+}

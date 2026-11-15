@@ -1,0 +1,30 @@
+{
+  "timestamp": "2026-11-15T10:41:27.820Z",
+  "platform": "win32",
+  "nativePlugin": true,
+  "restartPersistence": true,
+  "remoteDesktopSession": true,
+  "realDeepSeek": false,
+  "realPhone": false,
+  "mvpReady": false,
+  "remoteAuthority": "http://127.0.0.1:63190",
+  "visualCaptureWarnings": [
+    "native-plugin.png",
+    "native-remote-session.png",
+    "personal-agent.png"
+  ],
+  "remoteSessionId": "session-90246690-dc92-40da-8085-ae8bc25b47fc",
+  "promptReceiptOnly": true,
+  "nativeDevicePairing": true,
+  "desktopSharedTaskId": "7ab9b2a8-2b4b-4c40-888c-7fd14f7e961d",
+  "desktopSessionId": "session-0d0598f3-c987-4f2a-b214-173c169ba981",
+  "desktopSharedMemory": true,
+  "nativeDesktopRecordDownload": true,
+  "nativeDesktopAndMobileProtocolSameAuthority": true,
+  "nativeGoalUiPersistent": true,
+  "nativeDeviceManagementUi": true,
+  "remoteReadableWithDesktopStopped": true,
+  "taskId": "336cf7fa-4bd1-4203-b0bf-ba6c0fd5379e",
+  "phase1SharedState": true,
+  "nativeRevocationAndRePair": true
+}

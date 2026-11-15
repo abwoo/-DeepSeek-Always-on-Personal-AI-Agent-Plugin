@@ -1,0 +1,18 @@
+{
+  "sourceCommit": "3083f4127aacbd5233ce98aa2d4cda0769939e72",
+  "actualDockerVolumes": 7,
+  "coordinatedQuiescedCheckpoint": true,
+  "encryptedArchive": true,
+  "wrongKeyRejectedBeforeVolumeChanges": true,
+  "allFixtureFilesAndSqliteIdsRestored": true,
+  "realPluginSqliteSchemasAndMigrations": true,
+  "originalAccountAuthorityAndMemoryIdsRetained": true,
+  "missingVolumesAndExternalWritersRejected": true,
+  "mismatchedDeployedCommitRejected": true,
+  "stoppedServicesRemainStopped": true,
+  "changedComposeDoesNotDeployDuringBackup": true,
+  "mismatchedActualRuntimeImageRejectedBeforeRestore": true,
+  "productionData": false,
+  "actualHarnessExecution": false,
+  "mvpReady": false
+}

@@ -10,6 +10,12 @@ on:
         src/shared/**,
         scripts/build-managed-client.mjs,
         scripts/mobile-android-smoke.py,
+        scripts/mobile-android-contract.py,
+        scripts/prepare-native-engineering.mjs,
+        scripts/serve-native-fixture.mjs,
+        scripts/log-engineering-evidence.mjs,
+        scripts/verify-v03-accounts.mjs,
+        tests/fixtures/native-mobile/**,
         scripts/check-ios-screen.swift,
         scripts/verify-ios-simulator.py,
         .github/workflows/mobile-native.yml,
@@ -20,12 +26,19 @@ permissions:
 jobs:
   android:
     runs-on: ubuntu-24.04
-    timeout-minutes: 45
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           { node-version: '24', cache: npm, cache-dependency-path: apps/mobile/package-lock.json }
+      - uses: pnpm/action-setup@v4
+        with: { version: 11.28.5 }
+      - name: Validate native probes before expensive builds
+        run: |
+          python3 -m py_compile scripts/mobile-android-contract.py scripts/verify-ios-simulator.py
+          node --check scripts/serve-native-fixture.mjs
+          node --check scripts/log-engineering-evidence.mjs
       - uses: actions/setup-java@v4
         with: { distribution: temurin, java-version: '21' }
       - uses: android-actions/setup-android@v3
@@ -58,6 +71,45 @@ jobs:
           path: |
             apps/mobile/android/app/build/outputs/apk/release/*.apk
             mobile-evidence/
+          retention-days: 14
+      - name: Prepare separate authenticated native engineering flavor
+        run: node scripts/prepare-native-engineering.mjs
+      - name: Typecheck the actual engineering entry and unchanged product screens
+        run: npm run typecheck
+        working-directory: apps/mobile
+      - name: Build actual engineering APK with test-only bootstrap and scoped loopback trust
+        run: ./gradlew :app:assembleEngineeringRelease --no-daemon
+        working-directory: apps/mobile/android
+        env: { NODE_ENV: production, GRADLE_OPTS: '-Dorg.gradle.jvmargs=-Xmx4096m' }
+      - name: Prepare real Harness packages for native interaction backend
+        run: |
+          node scripts/build-managed.mjs
+          npm pack --ignore-scripts
+          npm pack ./packages/managed --ignore-scripts
+      - name: Enable emulator hardware acceleration
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - name: Actual native controls with independent real Harness state verification
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 35
+          target: google_apis
+          arch: x86_64
+          profile: pixel_7_pro
+          disable-animations: true
+          script: python3 scripts/mobile-android-contract.py
+      - name: Preserve small raw native observations and hashes
+        if: always()
+        run: node scripts/log-engineering-evidence.mjs mobile
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: android-native-contract
+          path: |
+            mobile-evidence/native-contract*
+            apps/mobile/android/app/build/outputs/apk/engineering/release/*.apk
           retention-days: 14
   ios-simulator:
     runs-on: macos-26
@@ -114,6 +166,9 @@ jobs:
           tar -xzf "$archive" -C ios-native-build
       - name: Verify real Simulator launch and secure-storage startup
         run: python3 scripts/verify-ios-simulator.py
+      - name: Preserve small raw Simulator observation and hash
+        if: always()
+        run: node scripts/log-engineering-evidence.mjs mobile
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -123,6 +178,7 @@ jobs:
 
   android-emulator:
     needs: android
+    if: always() && needs.android.result != 'cancelled'
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:
@@ -144,6 +200,9 @@ jobs:
           profile: pixel_7_pro
           disable-animations: true
           script: python3 scripts/mobile-android-smoke.py
+      - name: Preserve ordinary preview startup observation
+        if: always()
+        run: node scripts/log-engineering-evidence.mjs mobile
       - uses: actions/upload-artifact@v4
         if: always()
         with:

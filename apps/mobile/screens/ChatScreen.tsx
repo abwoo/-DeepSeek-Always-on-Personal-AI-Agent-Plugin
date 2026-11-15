@@ -7,7 +7,10 @@ import { useUi } from '../theme';
 import { uuid, friendly } from '../hooks/useAgent';
 export function ChatScreen() {
   const {
-    liveText,liveTool,
+    liveText,
+    liveTool,
+    selectConversation,
+    selectionVersion,
     online,
     error,
     setError,
@@ -44,10 +47,7 @@ export function ChatScreen() {
               data: { creationId: 'session-' + uuid() },
             });
             const value = await client!.readSession(result.result.sessionId);
-            focused.current = null;
-            setFocusedRun(null);
-            selected.current = result.result.sessionId;
-            setSessionId(result.result.sessionId);
+            selectConversation(result.result.sessionId);
             setSession(value);
           })
         }
@@ -103,7 +103,12 @@ export function ChatScreen() {
               />
             </View>
           ) : null}
-          {liveTool&&!focusedRun?<View style={styles.card}><Text>Preparing tool call</Text><Text verbatim>{liveTool}</Text></View>:null}
+          {liveTool && !focusedRun ? (
+            <View style={styles.card}>
+              <Text>Preparing tool call</Text>
+              <Text verbatim>{liveTool}</Text>
+            </View>
+          ) : null}
           {liveText && !focusedRun ? (
             <View style={styles.card}>
               <Text>Live partial reply</Text>
@@ -130,18 +135,40 @@ export function ChatScreen() {
           ))}
           {!focusedRun ? (
             <>
-              <Field label="Message your agent" value={message} onChange={setMessage} multiline />
+              <Field
+                label="Message your agent"
+                maxLength={12000}
+                value={message}
+                onChange={setMessage}
+                multiline
+              />
               <Button
                 title="Send"
                 disabled={disabled || !message.trim()}
                 onPress={() =>
                   perform(async () => {
+                    const version = selectionVersion.current;
                     await mutate({
                       action: 'session.prompt',
                       data: { sessionId, text: message },
                     });
-                    setMessage('');
-                    setSession(await client!.readSession(sessionId));
+                    const next = await client!.readSession(sessionId);
+                    if (version === selectionVersion.current) {
+                      setMessage('');
+                      setSession(next);
+                    }
+                  })
+                }
+              />
+              <Button
+                title="Cancel current turn"
+                disabled={disabled || !session?.state?.running}
+                onPress={() =>
+                  perform(async () => {
+                    const version = selectionVersion.current;
+                    await mutate({ action: 'session.cancel', data: { sessionId } });
+                    const next = await client!.readSession(sessionId);
+                    if (version === selectionVersion.current) setSession(next);
                   })
                 }
               />

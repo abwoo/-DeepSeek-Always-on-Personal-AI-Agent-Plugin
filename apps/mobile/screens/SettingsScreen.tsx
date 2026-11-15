@@ -1,10 +1,12 @@
+import { shareRecords } from '../export';
 import React from 'react';
-import { View, Share } from 'react-native';
+import { View } from 'react-native';
 import { Button, Text } from '../ui';
 import { useAgentState } from '../state';
 import { useUi } from '../theme';
 export function SettingsScreen() {
-  const { connection, logout, busy, error, client, perform, snapshot, online } = useAgentState(),
+  const { connection, logout, busy, error, client, perform, snapshot, online, currentDevice } =
+      useAgentState(),
     { styles, language, setLanguage, theme, setTheme } = useUi();
   return (
     <View style={styles.card}>
@@ -37,6 +39,11 @@ export function SettingsScreen() {
       </Text>
       {snapshot?.usage ? (
         <>
+          {snapshot.usage.usage_unknown ? (
+            <Text style={styles.error}>
+              Model usage is unconfirmed. Further model calls are blocked for this UTC day.
+            </Text>
+          ) : null}
           <Text>Daily model usage</Text>
           <Text>{snapshot.usage.steps} / 300</Text>
           <Text>{snapshot.usage.tokens} / 250000</Text>
@@ -48,8 +55,8 @@ export function SettingsScreen() {
           disabled={busy || !online}
           onPress={() =>
             perform(async () => {
-              const data = await client!.request('/export');
-              await Share.share({ message: JSON.stringify(data, null, 2) });
+              const device = connection!.credentials.deviceId;
+              await shareRecords(client!, () => currentDevice.current === device);
             })
           }
         />

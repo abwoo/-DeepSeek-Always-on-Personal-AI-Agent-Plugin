@@ -1,0 +1,2 @@
+# Raw acceptance observations must keep their original bytes on every checkout.
+docs/evidence/** -text

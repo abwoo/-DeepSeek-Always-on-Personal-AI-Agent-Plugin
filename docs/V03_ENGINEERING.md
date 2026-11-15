@@ -1,0 +1,92 @@
+# v0.3 engineering stabilization and verification
+
+Updated 2026-11-16 (Asia/Shanghai); referenced engineering runs occurred on 2026-11-15 UTC. Engineering Preview; **MVP Ready: false**. [PR #4](https://github.com/abwoo/-DeepSeek-Always-on-Personal-AI-Agent-Plugin/pull/4), based on main `7f18534bda7506162e0377321150c560c21244b9`. Initial implementation `0768ad0f66de8601999f2d32f9d76e43edf44877`; extended product/runtime/contract implementation `b4b63e6aa32ce4db23f81fc59314b3a8d4c3b4fa`; authentication assertion/redacted probe follow-up `67ac405a36290ea5c4f1eae8cea617dddf15400c`. The selected stabilization checks passed, including the complete Android native interaction workflow. This is not completion of the entire v0.3 product or its production acceptance. Subsequent checkpoint/runtime fixes are `0d164bd`; native readback tests `3083f41`; integrity verifier `d3cad0f`.
+
+## Implemented in this pass
+
+- Private, device-bound, five-minute record export snapshots; 128 KiB/100-row pages, 64 MiB per snapshot, four concurrent snapshots and separate capture rate limits. UTF-8 byte limits and validated complete JSONL prevent a partial download being presented as complete. Export/read-state cursors cannot be mixed, guessed or transferred between devices. Restart removes disposable copies; existing records/IDs remain.
+- Native phone export writes an app-private temporary file and uses Expo Sharing. Desktop exposes a genuine download through its native plugin panel. No entire history is put into a phone share-sheet message. Credentials and native transcripts are outside record export scope; historical/provider/backups/external export copies are not retroactively erased.
+- Large managed snapshots transparently use bounded pages. The legacy full export refuses oversized datasets before allocation. Recent Run/Inbox projections query bounded rows; full Run Ledger is retained. Goal checkpoints use task-scoped indexed queries. Controller reads upstream responses with a byte-counting stream and cancels oversized bodies before unbounded allocation.
+- Phone account/Session selection guards reject late responses after account changes, clear drafts/consent/live text/cursors, preserve a replacement login against stale credential cleanup, coalesce refresh requests and clear partially written encrypted cache generations on logout. Device navigation no longer skips its read while another action finishes. Native task timing validation, input bounds, cancellation, readback and readable errors improved.
+- Deleted version-zero/legacy memory cannot be resurrected by a stale consent form. Search uses bounded Unicode word segmentation, including Chinese and full-width terms, without a domain dictionary. Native proposals still require explicit user confirmation.
+- Native Schedule failures are checked as domain receipts. Unconfirmed task transitions are recorded as errors; a submitted input/report is never promoted to model/business success. No second Agent loop, framework or private signed-Desktop patch was added.
+- Checkpoint tools reject absent volumes, unrelated running writers and mismatched deployed SHAs before mutation. Backup resumes the exact original running container IDs; restore resumes only previously running services with no dependency auto-start. Format-2 checkpoints record actual Docker image content IDs and verify the Compose-selected restore targets before mutation. Legacy checkpoints require explicit review. Seven-volume restore fixtures also exercise actual plugin SQLite migrations and retained identities.
+- Managed images address runtime tarballs by content hash, verify integrity, and install core/gateway together through the public Harness CLI. Real Docker verification upgrades from immutable previous main to the new image on the same native agent volumes, then restores the matching encrypted old checkpoint and old image. Five other stack volumes are disposable fixtures; this is not a live Auth0/control service or a production restore rehearsal.
+
+## Code and protocol changes
+
+| Area | Main changed paths | Compatibility / state |
+|---|---|---|
+| Bounded exports/sync | `src/managed/exports.ts`, `src/managed/index.ts`, `src/shared/{managed-client,export-contract}.ts`, `src/control/{server,http}.ts` | Additive device API; legacy small reads retained, oversized reads give explicit pagination errors. Temporary capture files are not authoritative records. |
+| Native clients | `apps/mobile/{hooks,credentials,cache,export,forms,ui,locales}.ts*`, `apps/mobile/screens/*`, `src/desktop/{device,client}.*`, `src/client/panel.js` | Existing credentials/IDs preserved; stale callbacks are refused, unresolved outcomes are never replayed. |
+| Core state | `src/host/{tasks,memory,storage}.ts` | Existing records/schema/IDs retained; version-zero stale edits rejected, native receipts checked, indexed recent reads bounded. |
+| Runtime/checkpoint | `deploy/managed/{Dockerfile,bundles,supervisor}.*`, `scripts/{control-backup,verify-control-backup,verify-managed-container}.mjs` | Image-owned content-addressed bundles; all components updated together, whole-checkpoint rollback. |
+| Contract tests | `scripts/verify-mobile-contract.mjs`, `tests/fixtures/mobile-ui/*`, `tests/unit/*`, `scripts/verify-v03-accounts.mjs` | Actual screens/hooks and Harness APIs; browser OS/rendering adapters clearly labeled. |
+| Native QA | `scripts/{prepare-native-engineering,serve-native-fixture}.mjs`, `scripts/mobile-android-contract.py`, `tests/fixtures/native-mobile/entry.tsx`, native mobile workflow | Separate engineering APK; real native UI/OS with loopback-only test bootstrap, temporary scoped test TLS trust, no production login claim. |
+
+## Evidence boundaries
+
+The actual mobile React screens/hooks run against two actual Harness processes through the real account controller. Browser host adapters replace only OS services/rendering: these checks are NOT native keyboard/layout/OS storage, real OAuth, physical devices or native push acceptance. Verified paths include task/goal pause/resume/native deterministic run, explicit proposal consent, memory editing/deletion, shared chat, cancellation, Inbox read state, Run navigation, device revocation, paged export, transport fault/recovery, interrupted-cache cleanup, fixture sign-in and cross-account draft clearing.
+
+The deterministic model fixture is explicitly labeled and uses Harness's native Agent/tool/Session loop. It is not DeepSeek output. Ordinary preview APK/Simulator builds and official signed macOS/Windows GUI tests remain separate workflows. The new Desktop download assertion checks actual exported file contents and shared IDs. Selected authenticated Android native interactions passed separately. Native-form results are never inferred from the browser adapter.
+
+Native Android QA compiles the ordinary preview APK **before** introducing any test entry/trust. The temporary engineering flavor has a separate application ID (`com.abwoo.deepseekalwayson.engineering`); its public test CA is restricted to loopback and its private key stays in the same CI runner outside the workspace/artifacts. The backend runs the pinned real Harness/controller with explicitly local identity/model adapters. The engineering APK is unusable without that disposable backend and must never be distributed as the user product. No TLS verification bypass, production key, owner token or alternate Agent loop is introduced.
+
+Initial native build failure at `0768ad0` exposed a duplicate translation key, fixed before the extended implementation. Initial extended core/account CI exposed assertions matching old authentication error wording; they now check the actual HTTP 401 and error code, retaining stronger assertions. These failures are not deleted or replaced by skipped tests. A fixture callback adapter was corrected to recognize the actual 303 native redirect rather than assuming 302. Test-host screenshots do not substitute for native screenshots.
+
+An iOS smoke failure at `b4b63e6` was a 120-second `simctl launch` command timeout. Its retained failure screenshot already shows the actual account UI. The follow-up requires an independently running UIKit application PID and actual screenshot OCR after the command; command timeout itself is not accepted as success, and the app is not relaunched to hide a crash. Corrected command capture uses regular files to avoid waiting for inherited stdout pipes; a running installed executable in the exact selected Simulator device and screenshot OCR are independently required. Subsequent native startup checks passed. Windows native visual-capture timeout warnings are retained; action/API persistence assertions passed, which does not certify the missing compositor captures.
+
+Local dependency audits currently report zero advisories for the complete root and complete mobile dependency graphs. This does not remediate the older libraries inside the signed vendor Desktop, certify a penetration test, or pass live security gates.
+
+## Verification ledger
+
+| Scope | Source / run | Result and limits |
+|---|---|---|
+| Full TypeScript/build/unit checks | Local `10ef276`; subsequent cloud core checks | 72 passed, 0 failed/skipped. Mobile TypeScript and actual iOS/Android Hermes exports passed. No configured ESLint script. |
+| Official macOS Desktop GUI/panel/download | `b4b63e6`, [43704865921](https://github.com/abwoo/-DeepSeek-Always-on-Personal-AI-Agent-Plugin/actions/runs/43704865921) | Pass, actual signed app/Plugins UI and actual downloaded JSONL; fixture distribution/authority. |
+| Official Windows Desktop GUI/panel/download | `b4b63e6`, [43704865915](https://github.com/abwoo/-DeepSeek-Always-on-Personal-AI-Agent-Plugin/actions/runs/43704865915) | Action/API/persistence assertions Pass. Compositor capture warnings retained, not a visual pass. |
+| Account, proxy, browser-hosted actual mobile components and seven-volume backup | `3083f41`, [43711774869](https://github.com/abwoo/-DeepSeek-Always-on-Personal-AI-Agent-Plugin/actions/runs/43711774869) | Pass, actual two Harness processes/Caddy/Docker. Local identity and deterministic model; browser OS/rendering adapters. |
+| Actual image upgrade and encrypted native-state rollback | `3083f41`, [43711774758](https://github.com/abwoo/-DeepSeek-Always-on-Personal-AI-Agent-Plugin/actions/runs/43711774758) | Pass, previous `7f18534` image → new image → matching whole checkpoint/old image. Two native agent volumes, five other volumes are fixtures. |
+| Initial authenticated Android controls | `10ef276`, [43709246702](https://github.com/abwoo/-DeepSeek-Always-on-Personal-AI-Agent-Plugin/actions/runs/43709246702), job `132797024141` | Whole job Fail at status-text locator. Actual Task creation, native-app process absence during native Schedule completion, restart ID, consent/edit/delete, Goal controls, Inbox history and native chat recorded as partial observations. Never promoted to a full native Pass. |
+| Corrected Android native controls, full field/backend readback and independent selected Session | `3083f41`, [43711774754](https://github.com/abwoo/-DeepSeek-Always-on-Personal-AI-Agent-Plugin/actions/runs/43711774754) | Pass: exact native field/backend values, App process absence during native Schedule completion, same IDs after restart, Memory/Goals/Inbox/Session, actual FileSystem/share chooser and injected transport failure/recovery. Independent account-device reader; engineering bootstrap and fixture model/identity. No live sign-in, fast IME paste, physical phone or native push claim. |
+| Native iOS Simulator startup | `10ef276`, job `132799351863`, [43709246702](https://github.com/abwoo/-DeepSeek-Always-on-Personal-AI-Agent-Plugin/actions/runs/43709246702); subsequent `3083f41` smoke | Pass, actual compiled app, installed native executable PID and screenshot OCR. No iPhone provisioning, account-backed native forms or physical device. |
+| Retained byte integrity | `d3cad0f`, [43712304002](https://github.com/abwoo/-DeepSeek-Always-on-Personal-AI-Agent-Plugin/actions/runs/43712304002) | Earlier CI passed for 22 then 29 raw observations; the final archive contains 34. All 34 passed local byte verification and the account workflow enforces the same check on the documentation head. Hash success does not certify production acceptance. |
+
+The additional backup fix is `0d164bd4d8d95196077d75754825b99e29e20565`. Backup starts original container IDs instead of reconciling edited Compose definitions. Format-2 restore verifies actual target image content IDs, not merely an asserted source SHA. Actual Docker regressions passed for edited configuration during backup and wrong-image rejection before data changes. Decrypted temporary archive cleanup also runs if restart fails. Keep images/configuration unchanged throughout the maintenance window; retain the exact old image digest and matching checkpoint. Legacy format-1 checkpoints require explicit reviewed recovery because they have no image identities.
+
+Raw observations, original artifact provenance and exact byte hashes are retained in the [manifest](evidence/v03-engineering/manifest.json). New observations are captured as raw bytes/base64 plus SHA-256 from a source-controlled CI logger; repository integrity verification recomputes their hashes. All six final mobile/account/runtime ZIPs were also independently downloaded, SHA-256 compared with GitHub-reported digests, and their JSON bytes compared with the repository copies. Their manifest entries record this additional verification. Backend logs, credentials and TLS keys are excluded from this logger. Earlier raw snapshots are not overwritten.
+
+The [current T01–T22 matrix](evidence/v03-engineering/production-current.json) is a derived acceptance report, not a production test event. Every production row remains **Blocked** with source, environment and reason. The earlier matrix snapshot remains byte-preserved. `verify-v03-release.mjs --require-ready` still deliberately exits 1; no release tag, public npm publication, hosted product or signed iPhone delivery exists.
+
+During verification the temporary development workspace disconnected. Submitted code/evidence remained in GitHub; subsequent edits and validation continued through GitHub APIs/Actions. This is not a continuous production Host or a production-availability result.
+
+## Native evidence and distribution scope
+
+The complete [native workflow 43711774754](https://github.com/abwoo/-DeepSeek-Always-on-Personal-AI-Agent-Plugin/actions/runs/43711774754) passed all four jobs from `3083f4127aacbd5233ce98aa2d4cda0769939e72`: ordinary Android APK plus authenticated engineering APK/controls, iOS Simulator build, iOS native startup, and ordinary Android onboarding smoke. Android used API 35/x86_64 Pixel 7 Pro; iOS used iPhone 17 Pro/iOS 26.4 Simulator. Raw [Android controls](evidence/v03-engineering/native-mobile/native-contract.json), [ordinary Android startup](evidence/v03-engineering/native-mobile/android-emulator.json) and [iOS startup](evidence/v03-engineering/native-mobile/ios.json) remain distinct.
+
+| Correlated engineering record | Actual retained ID |
+|---|---|
+| Authority | `c805f5ec-4b4d-487f-a878-3867895334d7` |
+| Task | `febaaadf-e2ff-4041-815a-5ccf57d6ef72` |
+| Run completed with native App process absent | `62a8c537-08e5-4fd4-8c62-2a7b2febd42f` |
+| Native chat Session independently reread through account API | `session-b36e4364-1716-4d56-a04a-b748be6c32e8` |
+
+The independent reader is a separate device API client in the same fixture account. It is **not** a simultaneously running native Desktop app; separate Desktop/protocol tests must not be presented as physical phone/Desktop/cloud production end-to-end evidence. Successful system share-chooser presentation also does not prove another application received or retained the exported file.
+
+Developer review artifacts (14-day retention; download/verify before expiration):
+
+| Artifact | Scope |
+|---|---|
+| [Android native preview](https://github.com/abwoo/-DeepSeek-Always-on-Personal-AI-Agent-Plugin/actions/runs/43711774754/artifacts/14161445556) | Actual APK, development signing, unconfigured account service. Not daily-use delivery. |
+| [Android engineering contract](https://github.com/abwoo/-DeepSeek-Always-on-Personal-AI-Agent-Plugin/actions/runs/43711774754/artifacts/14161681912) | Separate `.engineering` ID and disposable loopback trust/bootstrap. Do not distribute as the product. APK SHA-256 is retained in the raw contract record. |
+| [iOS native Simulator preview](https://github.com/abwoo/-DeepSeek-Always-on-Personal-AI-Agent-Plugin/actions/runs/43711774754/artifacts/14160881965) | Actual ad-hoc Simulator binary/evidence. Cannot be installed on a physical iPhone or submitted as TestFlight. |
+
+## Release boundary and remaining work
+
+This stabilization pass fixes the confirmed export, credential/cache, native Schedule receipt and backup/image-recovery issues and retains reproducible engineering results. It does not establish that every possible bug is fixed or that the full v0.3 mission is finished. T01–T22 production rows remain **Blocked**; no v0.3 release tag, public npm publication, signed iPhone distribution or deployed product was created.
+
+Remaining evidence includes live identity/new-account allocation/two-account isolation, real hosted DeepSeek tasks, simultaneous actual Desktop/phone correlation, physical power-off and notification receipt/navigation. iOS account-backed native forms, physical keyboard/large-text/fast-paste interactions and public-target version upgrade are not accepted from the Android/browser checks. Memory revision/CAS detects concurrent edits; semantic contradictions between separate memories still have no implemented resolver, as already recorded in `V03_ACCEPTANCE.md`. Keep these limitations explicit before a release decision.
+
+## External production prerequisites
+
+Actual authorized compute/budget, public domain/HTTPS, Auth0 tenant/application/two accounts, funded server-side DeepSeek key and verified model, Expo/APNs/FCM, Apple team/provisioning/TestFlight, stable Android distribution signature, npm publication rights and physical-device observations still require usable operator authorization/configuration and real acceptance. Ordinary users are not asked to configure these operator concerns. Schema/fixture/native-build success cannot certify Level 5 or MVP Ready.

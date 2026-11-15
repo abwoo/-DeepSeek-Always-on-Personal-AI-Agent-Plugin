@@ -1,11 +1,17 @@
 """Run the actual native binary on a fresh Simulator runner; no Apple distribution credential or physical-device claim."""
-import subprocess, json, pathlib, plistlib, time, os
+import subprocess, json, pathlib, plistlib, time, os, tempfile
 out=pathlib.Path('mobile-evidence');out.mkdir(exist_ok=True)
 app=next(pathlib.Path('ios-native-build').rglob('*.app'))
 bundle=plistlib.loads((app/'Info.plist').read_bytes())['CFBundleIdentifier']
 evidence={'sourceCommit':os.environ['GITHUB_SHA'],'nativeSimulatorAppBuilt':True,'simulatorLaunch':False,'secureStorageStartupPassed':False,'installableOnPhysicalIPhone':False,'appleSigningCredentialsPresent':False,'realPhone':False,'realDeepSeek':False,'mvpReady':False}
 udid=None
-def run(args,timeout=120):return subprocess.check_output(args,stderr=subprocess.STDOUT,timeout=timeout,text=True)
+def run(args,timeout=120):
+ # Simulator services can inherit stdout after the command exits. A pipe-based
+ # communicate() then waits for unrelated background writers instead of command
+ # completion. Capture to a regular private file while still checking exit/timeout.
+ with tempfile.TemporaryFile(mode='w+') as capture:
+  subprocess.run(args,stdout=capture,stderr=subprocess.STDOUT,timeout=timeout,check=True,text=True)
+  capture.seek(0);return capture.read()
 try:
  print('Inspecting the Xcode-signed Simulator binary and its linked simulated entitlements',flush=True)
  executable=app/plistlib.loads((app/'Info.plist').read_bytes())['CFBundleExecutable']
@@ -21,7 +27,22 @@ try:
  run(['xcrun','simctl','bootstatus',udid,'-b'],timeout=600)
  print('Installing actual compiled application',flush=True)
  run(['xcrun','simctl','install',udid,str(app)])
- run(['xcrun','simctl','launch',udid,bundle],timeout=120)
+ # simctl may retain its launch pipe even after SpringBoard has presented the app.
+ # A timeout alone is neither app success nor app failure: verify the independent
+ # launchd PID AND the actual screenshot below. Do not retry/relaunch a crashed app.
+ try:
+  run(['xcrun','simctl','launch',udid,bundle],timeout=120)
+  evidence['launchCommandReturned']=True
+ except subprocess.TimeoutExpired:
+  evidence['launchCommandReturned']=False
+  evidence['launchCommandTimedOut']=True
+ # Independently inspect the host process executable in THIS Simulator device's
+ # installed application directory, not a process name or a second simctl RPC.
+ processes=run(['ps','-axo','pid=,comm='],timeout=30)
+ suffix='/'+app.name+'/'+executable.name
+ matches=[line.strip().split(None,1) for line in processes.splitlines() if '/'+udid+'/' in line and line.rstrip().endswith(suffix)]
+ if not any(len(parts)==2 and parts[0].isdigit() and int(parts[0])>0 for parts in matches):raise RuntimeError('No running installed native application PID in the selected Simulator device')
+ evidence['nativeHostProcessPidConfirmed']=True
  evidence['simulatorLaunch']=True
  time.sleep(5)
  run(['xcrun','simctl','io',udid,'screenshot',str(out/'ios-pairing.png')])

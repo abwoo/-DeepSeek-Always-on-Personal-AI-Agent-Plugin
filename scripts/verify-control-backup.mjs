@@ -8,7 +8,7 @@ import { randomBytes } from 'node:crypto';
 import assert from 'node:assert/strict';
 const dir = await mkdtemp(join(tmpdir(), 'ao-restore-')),
   project = 'ao-test-' + randomBytes(6).toString('hex'),
-  image = 'node:24.22.2-bookworm-slim';
+  image = 'node:24.22.2-bookworm-slim', changedImage = 'always-on-backup-identity:' + project;
 const names = [
   'control_data',
   'agent_a_data',
@@ -28,7 +28,8 @@ const env = {
   ALWAYS_ON_BACKUP_PROJECT: project,
   ALWAYS_ON_BACKUP_COMPOSE_FILE: compose,
   ALWAYS_ON_BACKUP_KEY_FILE: key,
-  ALWAYS_ON_DEPLOYED_SHA: process.env.GITHUB_SHA ?? 'local-storage-fixture',
+  ALWAYS_ON_DEPLOYED_SHA:
+    process.env.GITHUB_SHA ?? (await run('git', ['rev-parse', 'HEAD'])).stdout.trim(),
 };
 await writeFile(key, randomBytes(32).toString('base64'), { mode: 0o600 });
 await writeFile(
@@ -36,7 +37,11 @@ await writeFile(
   `services:\n  hold:\n    image: ${image}\n    command: ['node', '-e', 'setInterval(()=>{},1000)']\n    volumes:\n${names.map((n, i) => `      - ${n}:/v${i}`).join('\n')}\nvolumes:\n${names.map((n) => `  ${n}: {}`).join('\n')}\n`,
 );
 const dockerCompose = (args) => run('docker', ['compose', '-p', project, '-f', compose, ...args]);
-const mounts = names.flatMap((n, i) => ['--mount', `type=volume,src=${project}_${n},dst=/v${i}`]);
+const mounts = [
+  '--mount',
+  `type=bind,src=${resolve('.')},dst=/code,readonly`,
+  ...names.flatMap((n, i) => ['--mount', `type=volume,src=${project}_${n},dst=/v${i}`]),
+];
 const volumeScript = async (body) =>
   (await run('docker', ['run', '--rm', '--network', 'none', ...mounts, image, 'node', '-e', body]))
     .stdout;
@@ -45,6 +50,50 @@ try {
   await volumeScript(
     `const fs=require('node:fs');const {DatabaseSync}=require('node:sqlite');for(let i=0;i<7;i++){fs.writeFileSync('/v'+i+'/marker','original-'+i,{mode:384});const d=new DatabaseSync('/v'+i+'/state.sqlite');d.exec("CREATE TABLE identity(id TEXT PRIMARY KEY); INSERT INTO identity VALUES('fixture-stable-id-"+i+"')");d.close();}`,
   );
+  const legacyIds = JSON.parse(
+    await volumeScript(`(async()=>{
+    const {Store}=await import('/code/dist/host/storage.js');const {GatewayStore}=await import('/code/dist/managed/store.js');const {ControlStore}=await import('/code/dist/control/store.js');
+    const core=new Store('/v1/core.sqlite');core.put('memory','legacy-consented-memory',{id:'legacy-consented-memory',kind:'project',content:'Retained legacy user context',source:'Explicit fixture consent',consent:true,updatedAt:'2026-01-01T00:00:00Z'});core.close();
+    const gateway=new GatewayStore('/v1/gateway.sqlite');const authority=gateway.authorityId,owner=gateway.ownerId;gateway.db.exec('DROP TABLE account_budget; DROP TABLE turn_budget; DROP TABLE budget_usage; PRAGMA user_version=2');gateway.close();
+    const control=new ControlStore('/v0/accounts.sqlite',Buffer.alloc(32,7).toString('base64'));const account=control.account('https://fixture.invalid','old-account');control.reserve(account,['agent-a']);control.allocationReady(account,authority,owner);control.db.exec('ALTER TABLE accounts DROP COLUMN suspended; DROP TABLE execution_revisions; PRAGMA user_version=1');control.close();
+    console.log(JSON.stringify({account,authority,owner}));
+  })().catch(e=>{console.error(e);process.exitCode=1;});`),
+  );
+  // A typo must not create missing empty volumes and report a good checkpoint.
+  await assert.rejects(() =>
+    run(
+      process.execPath,
+      ['scripts/control-backup.mjs', 'create', join(dir, 'wrong-project.aobackup')],
+      { ...env, ALWAYS_ON_BACKUP_PROJECT: project + '-missing' },
+    ),
+  );
+  await assert.rejects(() =>
+    run('docker', ['volume', 'inspect', project + '-missing_control_data']),
+  );
+  const outsider = project + '-outside';
+  await run('docker', [
+    'run',
+    '-d',
+    '--name',
+    outsider,
+    '--mount',
+    `type=volume,src=${project}_control_data,dst=/v0`,
+    image,
+    'node',
+    '-e',
+    'setInterval(()=>{},1000)',
+  ]);
+  try {
+    await assert.rejects(() =>
+      run(
+        process.execPath,
+        ['scripts/control-backup.mjs', 'create', join(dir, 'outside.aobackup')],
+        env,
+      ),
+    );
+  } finally {
+    await run('docker', ['rm', '-f', outsider]);
+  }
   await run(process.execPath, ['scripts/control-backup.mjs', 'create', encrypted], env);
   assert.ok(!(await readFile(encrypted)).includes(Buffer.from('fixture-stable-id')));
   await volumeScript(
@@ -64,11 +113,59 @@ try {
       await volumeScript(`console.log(require('node:fs').readFileSync('/v0/marker','utf8'))`)
     ).includes('changed-0'),
   );
+  await assert.rejects(() =>
+    run(
+      process.execPath,
+      ['scripts/control-backup.mjs', 'restore', encrypted, '--replace-stopped-volumes'],
+      { ...env, ALWAYS_ON_DEPLOYED_SHA: '0'.repeat(40) },
+    ),
+  );
+  // A backup must not deploy a changed Compose image/configuration while resuming.
+  // A restore must validate actual target image bytes, not just an asserted SHA.
+  const originalId = (await dockerCompose(['ps', '-a', '-q', 'hold'])).stdout.trim();
+  await run('docker', ['commit', '--change', 'LABEL always-on.fixture=changed-image', originalId, changedImage]);
+  const definition = await readFile(compose, 'utf8');
+  await writeFile(compose, definition.replace('image: ' + image, 'image: ' + changedImage));
+  await run(process.execPath, ['scripts/control-backup.mjs', 'create', join(dir, 'changed-config.aobackup')], env);
+  assert.equal((await dockerCompose(['ps', '-a', '-q', 'hold'])).stdout.trim(), originalId);
+  assert.equal(JSON.parse((await run('docker', ['inspect', originalId])).stdout)[0].State.Running, true);
+  await assert.rejects(() => run(process.execPath, ['scripts/control-backup.mjs', 'restore', encrypted, '--replace-stopped-volumes'], env),
+    e => String(e.stderr).includes('Checkpoint image mismatch'));
+  assert.ok((await volumeScript(`console.log(require('node:fs').readFileSync('/v0/marker','utf8'))`)).includes('changed-0'));
+  await writeFile(compose, definition);
+  await dockerCompose(['stop', 'hold']);
+  await run(
+    process.execPath,
+    ['scripts/control-backup.mjs', 'create', join(dir, 'stopped.aobackup')],
+    env,
+  );
+  assert.equal((await dockerCompose(['ps', '--status', 'running', '-q'])).stdout.trim(), '');
   await run(
     process.execPath,
     ['scripts/control-backup.mjs', 'restore', encrypted, '--replace-stopped-volumes'],
     env,
   );
+  assert.equal(
+    (await dockerCompose(['ps', '--status', 'running', '-q'])).stdout.trim(),
+    '',
+    'A previously stopped service was restarted',
+  );
+  const migrated = JSON.parse(
+    await volumeScript(`(async()=>{
+    const {Store}=await import('/code/dist/host/storage.js');const {MemoryService}=await import('/code/dist/host/memory.js');const {GatewayStore}=await import('/code/dist/managed/store.js');const {ControlStore}=await import('/code/dist/control/store.js');
+    const core=new Store('/v1/core.sqlite');const memory=new MemoryService(core);const old=memory.list()[0];const updated=memory.save({id:old.id,kind:old.kind,content:old.content,source:old.source,consent:true,expectedVersion:0});core.close();
+    const gateway=new GatewayStore('/v1/gateway.sqlite');const authority=gateway.authorityId,owner=gateway.ownerId,gatewayVersion=gateway.db.prepare('PRAGMA user_version').get().user_version;gateway.close();
+    const control=new ControlStore('/v0/accounts.sqlite',Buffer.alloc(32,7).toString('base64'));const account=control.account('https://fixture.invalid','old-account'),controlVersion=control.db.prepare('PRAGMA user_version').get().user_version;control.close();
+    console.log(JSON.stringify({account,authority,owner,gatewayVersion,controlVersion,memoryId:updated.id,memoryVersion:updated.version}));
+  })().catch(e=>{console.error(e);process.exitCode=1;});`),
+  );
+  assert.equal(migrated.account, legacyIds.account);
+  assert.equal(migrated.authority, legacyIds.authority);
+  assert.equal(migrated.owner, legacyIds.owner);
+  assert.equal(migrated.gatewayVersion, 3);
+  assert.equal(migrated.controlVersion, 2);
+  assert.equal(migrated.memoryId, 'legacy-consented-memory');
+  assert.equal(migrated.memoryVersion, 1);
   const results = JSON.parse(
     await volumeScript(
       `const fs=require('node:fs');const {DatabaseSync}=require('node:sqlite');console.log(JSON.stringify(Array.from({length:7},(_,i)=>{const db=new DatabaseSync('/v'+i+'/state.sqlite',{readOnly:true});const row=db.prepare('SELECT id FROM identity').get();db.close();return{marker:fs.readFileSync('/v'+i+'/marker','utf8'),id:row.id};})));`,
@@ -87,6 +184,13 @@ try {
         encryptedArchive: true,
         wrongKeyRejectedBeforeVolumeChanges: true,
         allFixtureFilesAndSqliteIdsRestored: true,
+        realPluginSqliteSchemasAndMigrations: true,
+        originalAccountAuthorityAndMemoryIdsRetained: true,
+        missingVolumesAndExternalWritersRejected: true,
+        mismatchedDeployedCommitRejected: true,
+        stoppedServicesRemainStopped: true,
+        changedComposeDoesNotDeployDuringBackup: true,
+        mismatchedActualRuntimeImageRejectedBeforeRestore: true,
         productionData: false,
         actualHarnessExecution: false,
         mvpReady: false,
@@ -100,5 +204,6 @@ try {
   );
 } finally {
   await dockerCompose(['down', '--volumes']).catch(() => {});
+  await run('docker', ['image', 'rm', changedImage]).catch(() => {});
   await rm(dir, { recursive: true, force: true });
 }

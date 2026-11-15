@@ -108,7 +108,7 @@ test('secure-store failure never replays a rotated refresh handle; latest handle
     transport,
   );
   await assert.rejects(c.request('/devices'), /Secure storage unavailable/);
-  await assert.rejects(c.request('/devices'), /sign_in_required/);
+  await assert.rejects(c.request('/devices'), (e:any)=>e.status===401&&e.code==='sign_in_required');
   assert.equal(refreshes, 1);
   await c.logout();
   assert.equal(revoked, true);
@@ -129,7 +129,7 @@ test('ambiguous refresh is not replayed and failed logout stays retryable withou
   };
   const c = new AccountManagedClient(first, async () => {}, undefined, transport);
   await assert.rejects(c.request('/devices'), /Ambiguous refresh/);
-  await assert.rejects(c.request('/devices'), /sign_in_required/);
+  await assert.rejects(c.request('/devices'), (e:any)=>e.status===401&&e.code==='sign_in_required');
   await assert.rejects(c.logout(), /unavailable/);
   await assert.rejects(c.request('/devices'), /Sign-out is in progress/);
   await c.logout();
@@ -169,7 +169,7 @@ test('a late Desktop event authentication error cannot clear a replacement accou
   }
   const desktop = new Desktop(ctx as any, 'https://account.test');
   try {
-    const rejected = assert.rejects(desktop.events({ after: 0 }), /account_session_expired/);
+    const rejected = assert.rejects(desktop.events({ after: 0 }), (e:any)=>e.status===401&&e.code==='account_session_expired');
     await entered.promise;
     current = next;
     release.resolve();
@@ -179,4 +179,82 @@ test('a late Desktop event authentication error cannot clear a replacement accou
   } finally {
     await desktop.dispose();
   }
+});
+
+test('superseded mobile client rejects late success/401 and cannot issue new work or overwrite secure credentials (HTTP fixture)', async () => {
+  for (const status of [200, 401]) {
+    const original = rotated(record()),
+      entered = deferred(),
+      release = deferred();
+    let current = true,
+      requests = 0;
+    const client = new AccountManagedClient(
+      original,
+      async () => {
+        throw Error('Unexpected credential save');
+      },
+      undefined,
+      async () => {
+        requests++;
+        entered.resolve();
+        await release.promise;
+        return Response.json(
+          status === 200 ? { items: ['old-account'] } : { error: 'device_unauthorized' },
+          { status },
+        );
+      },
+      false,
+      () => current,
+    );
+    const pending = assert.rejects(
+      client.request('/devices'),
+      (e: any) => e.code === 'client_replaced',
+    );
+    await entered.promise;
+    current = false;
+    release.resolve();
+    await pending;
+    await assert.rejects(client.request('/devices'), (e: any) => e.code === 'client_replaced');
+    assert.equal(requests, 1);
+  }
+  const first = record(),
+    next = rotated(first),
+    entered = deferred(),
+    release = deferred();
+  let current = true,
+    saves = 0,
+    revoked = false;
+  const client = new AccountManagedClient(
+    first,
+    async () => {
+      saves++;
+    },
+    undefined,
+    async (input, init) => {
+      if (String(input).endsWith('/refresh')) {
+        entered.resolve();
+        await release.promise;
+        return Response.json(next);
+      }
+      if (String(input).endsWith('/logout')) {
+        assert.equal(JSON.parse(String(init?.body)).refreshToken, next.refreshToken);
+        revoked = true;
+        return Response.json({ revoked: true });
+      }
+      throw Error('Superseded refresh reached a resource');
+    },
+    false,
+    () => current,
+  );
+  const pending = assert.rejects(
+    client.request('/devices'),
+    (e: any) => e.code === 'client_replaced',
+  );
+  await entered.promise;
+  current = false;
+  release.resolve();
+  await pending;
+  assert.equal(saves, 0);
+  await client.logout();
+  assert.equal(revoked, true);
 });

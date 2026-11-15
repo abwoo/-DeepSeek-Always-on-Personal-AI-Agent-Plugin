@@ -1,3 +1,4 @@
+import { ScheduleNotConfirmed } from './tasks.js';
 import { z } from 'zod';
 import type { Coordinator } from './tasks.js';
 import type { MemoryService } from './memory.js';
@@ -15,9 +16,9 @@ export function createApi(c: Coordinator, m: MemoryService, n: Notifications, pu
               nextScheduledAt: native.find((n) => n.id === t.scheduleId && n.status === 'active')
                 ?.scheduledAt,
             })),
-            runs: c.runs().slice(0, 200),
+            runs: c.recentRuns(200),
             memories: m.list(),
-            inbox: n.list().slice(0, 200),
+            inbox: n.list(200),
             pushPublicKey: publicKey ?? null,
           },
           { headers: { 'Cache-Control': 'no-store' } },
@@ -44,9 +45,7 @@ export function createApi(c: Coordinator, m: MemoryService, n: Notifications, pu
           break;
         }
         case 'task.run': {
-          const t = c.requireTask(z.object({ id: z.string() }).parse(data).id);
-          if (t.state !== 'active' || !t.scheduleId) throw new Error('Task is not active');
-          result = await c.scheduler.run({ id: t.scheduleId });
+          result = await c.runNow(z.object({ id: z.string() }).parse(data).id);
           break;
         }
         case 'memory.save':
@@ -72,7 +71,11 @@ export function createApi(c: Coordinator, m: MemoryService, n: Notifications, pu
       return Response.json({ ok: true, result }, { headers: { 'Cache-Control': 'no-store' } });
     } catch (e) {
       return Response.json(
-        { ok: false, error: e instanceof Error ? e.message : 'Request failed' },
+        {
+          ok: false,
+          error: e instanceof Error ? e.message : 'Request failed',
+          ...(e instanceof ScheduleNotConfirmed ? { code: 'schedule_not_confirmed' } : {}),
+        },
         { status: 400, headers: { 'Cache-Control': 'no-store' } },
       );
     }
