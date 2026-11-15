@@ -30,6 +30,7 @@ test('account admission binds PKCE, isolates two identities, rotates credentials
       registrationIds.push(b.id);
       if (unavailable) {
         unavailable = false;
+        s.installAccountDevice(b); // The leaf committed, but its acknowledgement was lost.
         return Response.json({}, { status: 503 });
       }
       return Response.json(s.installAccountDevice(b));

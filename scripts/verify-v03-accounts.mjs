@@ -86,6 +86,11 @@ async function boot(slots) {
       registrationAttempts.push(JSON.parse(String(init.body)).id);
       if (unavailableRegistration) {
         unavailableRegistration = false;
+        const committed = await fetch(input, init);
+        assert.equal(committed.status, 200);
+        await committed.arrayBuffer();
+        // The actual Harness leaf committed. Lose only its acknowledgement;
+        // retry must reuse the durable device plan rather than create another.
         return Response.json({ error: 'injected_temporary_unavailability' }, { status: 503 });
       }
     }
@@ -312,6 +317,7 @@ try {
         automaticIsolatedAllocation: true,
         temporaryRegistrationFailureRetriedSameDevice:
           registrationAttempts[0] === registrationAttempts[1],
+        committedRegistrationAcknowledgementLossRecovered: true,
         rotationConcurrentLogoutRevokesLatestHandle: true,
         sameAccountTwoIndependentDevices: true,
         crossAccountSessionAndTaskDenied: true,
