@@ -55,6 +55,9 @@ jobs:
       - name: Start actual container and verify trusted-test TLS, narrow API and device auth
         run: node scripts/verify-managed-container.mjs
         env: { ALWAYS_ON_UPGRADE_FROM: 7f18534bda7506162e0377321150c560c21244b9 }
+      - name: Preserve small raw runtime observations and hashes
+        if: always()
+        run: node scripts/log-engineering-evidence.mjs runtime
       - uses: actions/upload-artifact@v4
         if: always()
         with:

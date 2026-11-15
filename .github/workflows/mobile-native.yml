@@ -13,6 +13,7 @@ on:
         scripts/mobile-android-contract.py,
         scripts/prepare-native-engineering.mjs,
         scripts/serve-native-fixture.mjs,
+        scripts/log-engineering-evidence.mjs,
         scripts/verify-v03-accounts.mjs,
         tests/fixtures/native-mobile/**,
         scripts/check-ios-screen.swift,
@@ -33,6 +34,11 @@ jobs:
           { node-version: '24', cache: npm, cache-dependency-path: apps/mobile/package-lock.json }
       - uses: pnpm/action-setup@v4
         with: { version: 11.28.5 }
+      - name: Validate native probes before expensive builds
+        run: |
+          python3 -m py_compile scripts/mobile-android-contract.py scripts/verify-ios-simulator.py
+          node --check scripts/serve-native-fixture.mjs
+          node --check scripts/log-engineering-evidence.mjs
       - uses: actions/setup-java@v4
         with: { distribution: temurin, java-version: '21' }
       - uses: android-actions/setup-android@v3
@@ -94,6 +100,9 @@ jobs:
           profile: pixel_7_pro
           disable-animations: true
           script: python3 scripts/mobile-android-contract.py
+      - name: Preserve small raw native observations and hashes
+        if: always()
+        run: node scripts/log-engineering-evidence.mjs mobile
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -157,6 +166,9 @@ jobs:
           tar -xzf "$archive" -C ios-native-build
       - name: Verify real Simulator launch and secure-storage startup
         run: python3 scripts/verify-ios-simulator.py
+      - name: Preserve small raw Simulator observation and hash
+        if: always()
+        run: node scripts/log-engineering-evidence.mjs mobile
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -188,6 +200,9 @@ jobs:
           profile: pixel_7_pro
           disable-animations: true
           script: python3 scripts/mobile-android-smoke.py
+      - name: Preserve ordinary preview startup observation
+        if: always()
+        run: node scripts/log-engineering-evidence.mjs mobile
       - uses: actions/upload-artifact@v4
         if: always()
         with:

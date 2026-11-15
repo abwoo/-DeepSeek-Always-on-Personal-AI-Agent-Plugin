@@ -12,6 +12,10 @@ export async function serveNativeFixture({base,connection,observer}){
    const url=new URL(req.url,'https://127.0.0.1:8443');
    if(req.method==='GET'&&url.pathname==='/engineering/bootstrap')return send(200,connection);
    if(req.method==='GET'&&url.pathname==='/engineering/state')return send(200,await observer.snapshot());
+   if(req.method==='GET'&&url.pathname==='/engineering/conversation'){
+    const id=url.searchParams.get('id');if(!/^session-[0-9a-f-]{36}$/.test(id??''))return send(400,{error:'invalid_fixture_session'});
+    return send(200,await observer.readSession(id));
+   }
    if(req.method==='GET'&&url.pathname==='/engineering/metrics')return send(200,metrics);
    if(req.method==='GET'&&url.pathname==='/engineering/ready')return send(200,{fixture:true,actualHarness:true,realIdentityProvider:false,realDeepSeek:false,realPhone:false,mvpReady:false});
    if(req.method==='POST'&&url.pathname==='/engineering/offline'){offline=url.searchParams.get('enabled')==='1';return send(200,{offline});}

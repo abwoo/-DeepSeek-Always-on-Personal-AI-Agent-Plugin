@@ -29,7 +29,7 @@ def tree():
   node=next((n for n in root.iter('node') if n.attrib.get('resource-id')=='android:id/aerr_close'),None)
   if node is not None:tap_node(node);evidence['systemLauncherAnrDismissed']=True;time.sleep(1);return tree()
  return root
-def bounds(n):return list(map(int,re.findall(r'\d+',n.attrib.get('bounds',''))))
+def bounds(n):return list(map(int,re.findall(r'-?\d+',n.attrib.get('bounds',''))))
 def tap_node(n):
  b=bounds(n)
  if len(b)!=4 or b[2]<=b[0] or b[3]<=b[1]:raise RuntimeError('Native control has no reachable bounds')
@@ -47,17 +47,28 @@ def find(label,field=False,scrolling=True):
   nodes.sort(key=lambda n:(n.attrib.get('clickable')!='true',n.attrib.get('content-desc')!=label))
   for n in nodes:
    b=bounds(n)
-   if len(b)==4 and b[3]>b[1] and b[2]>b[0] and b[1]>0 and b[3]<height:return n
+   if len(b)==4 and b[3]>b[1] and b[2]>b[0] and b[0]>=0 and b[2]<=width and b[1]>0 and b[3]<height:return n
   if scrolling:scroll(up=attempt>=8)
  raise RuntimeError('Native control not reachable: '+label)
 def tap(label):
  n=find(label)
- if n.attrib.get('enabled')=='false':raise RuntimeError('Native control is disabled: '+label)
+ end=time.monotonic()+10
+ while n.attrib.get('enabled')=='false' and time.monotonic()<end:
+  time.sleep(.5);n=find(label)
+ if n.attrib.get('enabled')=='false':raise RuntimeError('Native control remained disabled: '+label)
  tap_node(n);time.sleep(.7)
 def fill(label,value,clear=0):
  tap_node(find(label,field=True));time.sleep(.3)
- if clear:adb('shell','input','keyevent','123',*(['67']*clear))
- adb('shell','input','text',value.replace(' ','%s'));adb('shell','input','keyevent','4');time.sleep(.4)
+ if clear:
+  adb('shell','input','keyevent','123',*(['67']*clear))
+  wait(lambda:find(label,field=True,scrolling=False).attrib.get('text','')=='',8)
+ # ADB injects key events (not an IME paste). Pace batches and read the actual
+ # native field before hiding the keyboard; never silently accept lost text.
+ for offset in range(0,len(value),10):
+  part=value[offset:offset+10];adb('shell','input','text',part.replace(' ','%s'))
+  expected=value[:offset+len(part)]
+  wait(lambda:find(label,field=True,scrolling=False).attrib.get('text','')==expected,8)
+ adb('shell','input','keyevent','4');time.sleep(.4)
 def top():
  for _ in range(4):scroll(up=True)
 def tab(label):
@@ -70,6 +81,8 @@ def tab(label):
    y=(bounds(tabs[0])[1]+bounds(tabs[0])[3])//2
    adb('shell','input','swipe',int(width*(.15 if attempt>=4 else .9)),y,int(width*(.9 if attempt>=4 else .15)),y,300)
  raise RuntimeError('Native tab not reachable: '+label)
+def note(stage,**data):
+ evidence['observations'].append({'stage':stage,**data});print('Native fixture observation: '+stage,flush=True)
 def task(title):return next((t for t in get()['tasks'] if t['title']==title),None)
 def launch():adb('shell','am','start','-n',package+'/com.abwoo.deepseekalwayson.MainActivity')
 try:
@@ -86,10 +99,12 @@ try:
  width,height=size[-2:]
  wait(lambda:'Create a task' in words(),90);wait(lambda:'Connected' in words(),45)
  evidence['secureStoreRestoreAndVerifiedTls']=True
- capture('connected')
+ capture('connected');note('Verified TLS and actual native secure storage')
  # The task must be admitted through the actual native form, never the observer API.
  fill('Task name','Native offline proof');fill('What should your agent do?','Deterministic adapter only. Report completion without research.');fill('Interval in minutes','1',clear=8)
  tap('Create task');created=wait(lambda:task('Native offline proof'));tid=created['id'];evidence['taskId']=tid
+ assert created['instruction']=='Deterministic adapter only. Report completion without research.','Native task input differed from persisted text'
+ note('Native task form and persisted values match',taskId=tid)
  tap('Pause');wait(lambda:task('Native offline proof')['state']=='paused')
  tap('Resume');wait(lambda:task('Native offline proof')['state']=='active')
  capture('task-persisted')
@@ -97,7 +112,7 @@ try:
  # No native app process exists while the genuine Harness Schedule/Agent runs.
  if subprocess.run(['adb','shell','pidof',package],capture_output=True).returncode==0:raise RuntimeError('Native app process remained running')
  run=wait(lambda:next((r for r in get()['runs'] if r['taskId']==tid and r['status']=='completed' and r.get('result')),None),105)
- evidence['offlineRunId']=run['id'];evidence['offlineNativeScheduleCompleted']=True
+ evidence['offlineRunId']=run['id'];evidence['offlineNativeScheduleCompleted']=True;note('Real Harness completed the task while native app process was absent',runId=run['id'])
  launch();wait(lambda:'Create a task' in words(),50);tap('Refresh');find('Native offline proof');find('completed');evidence['sameTaskAfterNativeProcessRestart']=task('Native offline proof')['id']==tid
  # Pause repeating task before subsequent forms, preserving only the completed run.
  tap('Pause');wait(lambda:task('Native offline proof')['state']=='paused')
@@ -107,25 +122,30 @@ try:
  mem=wait(lambda:next((m for m in get()['memories'] if m['content']=='Native consent proof'),None));evidence['memoryId']=mem['id']
  tap('Edit');fill('Information to remember','Native edited proof',clear=40);tap('I allow this information to be used across sessions.');tap('Save with my consent')
  wait(lambda:next((m for m in get()['memories'] if m['id']==mem['id'] and m['content']=='Native edited proof'),None));tap('Delete');wait(lambda:not any(m['id']==mem['id'] for m in get()['memories']))
- evidence['nativeMemoryConsentEditDelete']=True
+ evidence['nativeMemoryConsentEditDelete']=True;note('Native memory consent, edit and deletion read back')
  tab('Goals');fill('Goal name','Native goal proof');fill('What should the agent monitor?','Deterministic bounded goal');fill('Check every N minutes','1440',clear=8);tap('Authorize bounded goal')
- goal=wait(lambda:next((g for g in get()['goals'] if g['title']=='Native goal proof'),None));evidence['goalId']=goal['id']
- tap('Pause goal');wait(lambda:next(g for g in get()['goals'] if g['id']==goal['id'])['state']=='paused');tap('Resume goal');wait(lambda:next(g for g in get()['goals'] if g['id']==goal['id'])['state']=='active');evidence['nativeGoalControls']=True
+ goal=wait(lambda:next((g for g in get()['goals'] if g['title']=='Native goal proof'),None));evidence['goalId']=goal['id'];assert goal['instruction']=='Deterministic bounded goal'
+ tap('Pause goal');wait(lambda:next(g for g in get()['goals'] if g['id']==goal['id'])['state']=='paused');tap('Resume goal');wait(lambda:next(g for g in get()['goals'] if g['id']==goal['id'])['state']=='active');evidence['nativeGoalControls']=True;note('Native goal create, pause and resume read back')
  tab('Inbox');tap('Mark read');wait(lambda:any(n['runId']==run['id'] and n['read'] for n in get()['inbox']));tap('Open task result');find('Selected task execution · completed');find(run['id']);evidence['nativeInboxRunNavigation']=True
- tab('Chat');tap('New conversation');fill('Message your agent','Native model fixture hello');tap('Send');find('Fixture check complete.');evidence['nativeSharedSessionChat']=True
- tab('Devices');find('Native engineering device');tap('Check notification delivery');find('Push service not configured');evidence['nativeDeviceReadAndHonestPushStatus']=True
+ tab('Chat');tap('New conversation');fill('Message your agent','Native model fixture hello');tap('Send');find('Fixture check complete.');find('Native model fixture hello')
+ ids=[n.attrib.get('text','') for n in tree().iter('node') if re.fullmatch(r'session-[0-9a-f-]{36}',n.attrib.get('text',''))]
+ assert ids,'Native selected Session ID missing';sid=ids[-1]
+ conversation=get('/engineering/conversation?id='+sid)
+ assert conversation['sessionId']==sid and 'Native model fixture hello' in json.dumps(conversation) and 'Fixture check complete.' in json.dumps(conversation)
+ evidence['chatSessionId']=sid;evidence['nativeSharedSessionChat']=True;note('Native chat and independent reader share Session and actual fixture result',sessionId=sid)
+ tab('Devices');find('Native engineering device');tap('Check notification delivery');wait(lambda:'Push service not configured' in words());evidence['nativeDeviceReadAndHonestPushStatus']=True
  # Actual FileSystem and Android Sharing modules, not browser adapters. No OS
  # receipt is promoted to external delivery: assert the chooser and cancel it.
  tab('Settings');tap('Export personal agent records')
- wait(lambda:re.search(r'mResumedActivity.*(?:ChooserActivity|ResolverActivity)',adb('shell','dumpsys','activity','activities').decode()),30)
+ wait(lambda:re.search(r'(?:mResumedActivity|topResumedActivity).*?(?:ChooserActivity|ResolverActivity)',adb('shell','dumpsys','activity','activities').decode()),30)
  metrics=get('/engineering/metrics')
  assert metrics.get('POST /personal-agent/v1/exports',0)>0 and metrics.get('POST /personal-agent/v1/exports/release',0)>0,'Native export did not capture and finish the paged stream'
  evidence['nativeExportPagesReleased']=True
- capture('native-file-share');adb('shell','input','keyevent','4');evidence['nativeFileExportChooser']=True
+ capture('native-file-share');adb('shell','input','keyevent','4');evidence['nativeFileExportChooser']=True;note('Actual native file export opened the system share chooser')
  get('/engineering/offline?enabled=1',post=True);tap('Refresh');wait(lambda:'Offline' in words(),30);evidence['injectedTransportLossVisible']=True
  get('/engineering/offline?enabled=0',post=True);tap('Refresh');wait(lambda:'Connected' in words(),30)
  assert task('Native offline proof')['id']==tid;evidence['nativeReconnectRetainsId']=True
- capture('complete');evidence['nativeAndroidControls']=True
+ capture('complete');evidence['nativeAndroidControls']=True;note('Native contract completed; production and physical gates remain blocked')
 finally:
  try:capture('final')
  except Exception:pass
