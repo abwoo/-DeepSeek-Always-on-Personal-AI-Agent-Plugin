@@ -1,0 +1,11 @@
+{
+  "sourceCommit": "8323d4e12f7191a0734c7f83813d0226f98ffc41",
+  "actualDockerVolumes": 7,
+  "coordinatedQuiescedCheckpoint": true,
+  "encryptedArchive": true,
+  "wrongKeyRejectedBeforeVolumeChanges": true,
+  "allFixtureFilesAndSqliteIdsRestored": true,
+  "productionData": false,
+  "actualHarnessExecution": false,
+  "mvpReady": false
+}

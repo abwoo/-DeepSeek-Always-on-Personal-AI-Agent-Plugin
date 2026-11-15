@@ -1,0 +1,17 @@
+{
+  "actualContainerStartup": true,
+  "persistentContainerRestart": true,
+  "retainedDeviceAuthorization": true,
+  "retainedTaskMemoryAndSession": true,
+  "trustedTestCertificate": true,
+  "narrowPublicApi": true,
+  "ownerApiBlocked": true,
+  "unauthorizedDeviceRejected": true,
+  "operatorPairing": true,
+  "sameAuthority": true,
+  "privateHarnessPortNotPublished": true,
+  "realDeepSeek": false,
+  "productionCloudDeployment": false,
+  "realPhone": false,
+  "mvpReady": false
+}
