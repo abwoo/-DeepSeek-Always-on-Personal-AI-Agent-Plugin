@@ -1,3 +1,6 @@
+import { writeRecordExport } from './export-contract.js';
+export { writeRecordExport } from './export-contract.js';
+export type { ExportPage } from './export-contract.js';
 import {
   credentialsSchema,
   pairClaim,
@@ -110,7 +113,7 @@ export class ManagedClient {
   }
   async request(path: string, body?: unknown) {
     if (
-      !/^\/(snapshot|export|events\?[^#]{1,1024}|runs\/[0-9a-f-]+|inbox\/[0-9a-f-]+|sessions|session\/read|changes(?:\?after=\d+)?|mutate|operations\/[0-9a-f-]+|goals|devices(?:\/revoke|\/pair-code)?|push\/(register|disable|ack|status))$/.test(
+      !/^\/(snapshot|export|exports(?:\?cursor=[A-Za-z0-9_.%+-]{1,160}|\/release)?|events\?[^#]{1,1024}|runs\/[0-9a-f-]+|inbox\/[0-9a-f-]+|sessions|session\/read|changes(?:\?after=\d+)?|mutate|operations\/[0-9a-f-]+|goals|devices(?:\/revoke|\/pair-code)?|push\/(register|disable|ack|status))$/.test(
         path,
       )
     )
@@ -126,6 +129,9 @@ export class ManagedClient {
     if (data.authorityId && data.authorityId !== this.credentials.authorityId)
       throw new ApiError(409, 'authority_mismatch');
     return data;
+  }
+  exportRecords(write: (text: string) => Promise<void>, current?: () => boolean) {
+    return writeRecordExport((path, body) => this.request(path, body), write, current);
   }
   async snapshot() {
     return snapshotSchema.parse(await this.request('/snapshot'));

@@ -113,13 +113,18 @@ export class AccountManagedClient extends ManagedClient {
     operations?: OperationStorage,
     transport: typeof fetch = fetch,
     allowLoopback = false,
+    private current: () => boolean = () => true,
   ) {
     super(record.origin, { ...record.credentials }, operations, allowLoopback, transport);
     this.connection = accountConnectionSchema.parse(record);
     this.accountApi = new AccountApi(record.origin, transport, allowLoopback);
   }
   readonly accountApi: AccountApi;
+  private assertCurrent() {
+    if (!this.current()) throw new ApiError(409, 'client_replaced');
+  }
   private async fresh() {
+    this.assertCurrent();
     if (this.signingOut) throw new ApiError(409, 'sign_out_in_progress');
     if (this.refreshFailed) throw new ApiError(401, 'sign_in_required');
     if (Date.parse(this.connection.credentials.expiresAt) > Date.now() + 60000) return;
@@ -129,6 +134,7 @@ export class AccountManagedClient extends ManagedClient {
         // Retain the rotated handle in this instance even if secure persistence
         // fails: never replay the old handle, and allow explicit revocation.
         this.connection = next;
+        this.assertCurrent();
         try {
           await this.save(next);
         } catch (e) {
@@ -149,8 +155,16 @@ export class AccountManagedClient extends ManagedClient {
   }
   override async request(path: string, body?: unknown) {
     await this.fresh();
+    this.assertCurrent();
     if (this.signingOut) throw new ApiError(409, 'sign_out_in_progress');
-    return super.request(path, body);
+    try {
+      const value = await super.request(path, body);
+      this.assertCurrent();
+      return value;
+    } catch (e) {
+      this.assertCurrent();
+      throw e;
+    }
   }
   async logout() {
     if (!this.logoutPending) {

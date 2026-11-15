@@ -1,3 +1,4 @@
+import { writeRecordExport } from '../shared/export-contract';
 import { createPanelModule } from '../client/panel.js';
 import { conversationRows } from './messages.js';
 window.__ModuleLoader__.load({
@@ -45,6 +46,8 @@ window.__ModuleLoader__.load({
         remoteOnly:
           'Personal Agent conversations are hosted. Your local Harness workspace stays separate.',
         signOut: 'Sign out',
+        exportRecords: 'Export personal agent records',
+        exporting: 'Exporting records…',
         title: 'Personal Agent',
         overview: 'Agent & tasks',
         conversations: 'Conversations',
@@ -109,6 +112,8 @@ window.__ModuleLoader__.load({
         loginWaiting: '等待完成登录…',
         remoteOnly: '个人智能体会话保存在托管服务中，与本机 Harness 工作区分开。',
         signOut: '退出登录',
+        exportRecords: '导出个人智能体记录',
+        exporting: '正在导出记录…',
         title: '个人智能体',
         overview: '智能体与任务',
         conversations: '会话',
@@ -751,7 +756,11 @@ window.__ModuleLoader__.load({
         [session, setSession] = React.useState(''),
         [runId, setRunId] = React.useState(null),
         [pending, setPending] = React.useState([]),
-        [controlError, setControlError] = React.useState('');
+        [controlError, setControlError] = React.useState(''),
+        [exporting, setExporting] = React.useState(false);
+      const exportBusy = React.useRef(false),
+        device = React.useRef();
+      device.current = status?.deviceId;
       React.useEffect(() => {
         let active = true;
         const load = () =>
@@ -846,6 +855,68 @@ window.__ModuleLoader__.load({
                   },
                 },
                 status?.credentialMode === 'account' ? t('signOut') : 'Remove device access',
+              )
+            : null,
+          status?.configured
+            ? h(
+                'button',
+                {
+                  disabled: exporting || !status.connected,
+                  onClick: async () => {
+                    if (exportBusy.current) return;
+                    exportBusy.current = true;
+                    setExporting(true);
+                    setControlError('');
+                    const id = device.current,
+                      chunks = [];
+                    try {
+                      const request = async (path, body) => {
+                        const action =
+                          path === '/exports'
+                            ? 'export.start'
+                            : path === '/exports/release'
+                              ? 'export.release'
+                              : 'export.page';
+                        const payload = {
+                          action,
+                          ...(body ?? {}),
+                          ...(action === 'export.page'
+                            ? { cursor: new URLSearchParams(path.split('?')[1]).get('cursor') }
+                            : {}),
+                        };
+                        const r = await fetch('/api/always-on-desktop/manage', {
+                          method: 'POST',
+                          headers: { 'content-type': 'application/json' },
+                          body: JSON.stringify(payload),
+                        });
+                        const data = await r.json();
+                        if (!r.ok) throw Error(data.error || 'Export failed');
+                        return data;
+                      };
+                      await writeRecordExport(
+                        request,
+                        async (text) => {
+                          chunks.push(text);
+                        },
+                        () => device.current === id,
+                      );
+                      const url = URL.createObjectURL(
+                        new Blob(chunks, { type: 'application/x-ndjson' }),
+                      );
+                      const a = document.createElement('a');
+                      a.href = url;
+                      a.download = 'personal-agent-records.jsonl';
+                      a.click();
+                      setTimeout(() => URL.revokeObjectURL(url), 30000);
+                    } catch (e) {
+                      setControlError(e.message);
+                    } finally {
+                      exportBusy.current = false;
+                      setExporting(false);
+                    }
+                  },
+                },
+                t(exporting ? 'exporting' : 'exportRecords'),
               )
             : null,
           controlError ? h('p', { role: 'alert' }, controlError) : null,

@@ -121,3 +121,32 @@ test('a model proposal cannot select an existing memory ID or consent/revision p
     store.close();
   }
 });
+
+test('deleted legacy/proposed version-zero memory cannot be resurrected by a stale consent/edit form', () => {
+  const s = new Store(':memory:'),
+    m = new MemoryService(s);
+  try {
+    const proposal = m.propose({
+      kind: 'fact',
+      content: 'Proposed fact',
+      source: 'Agent suggestion',
+    });
+    m.remove(proposal.id);
+    assert.throws(
+      () =>
+        m.save({
+          id: proposal.id,
+          kind: 'fact',
+          content: 'Stale confirmation',
+          source: 'User',
+          consent: true,
+          expectedVersion: 0,
+        }),
+      /another device/,
+    );
+    assert.equal(m.list().length, 0);
+    assert.equal(m.search('fact').length, 0);
+  } finally {
+    s.close();
+  }
+});

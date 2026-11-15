@@ -180,3 +180,81 @@ test('a late Desktop event authentication error cannot clear a replacement accou
     await desktop.dispose();
   }
 });
+
+test('superseded mobile client rejects late success/401 and cannot issue new work or overwrite secure credentials (HTTP fixture)', async () => {
+  for (const status of [200, 401]) {
+    const original = rotated(record()),
+      entered = deferred(),
+      release = deferred();
+    let current = true,
+      requests = 0;
+    const client = new AccountManagedClient(
+      original,
+      async () => {
+        throw Error('Unexpected credential save');
+      },
+      undefined,
+      async () => {
+        requests++;
+        entered.resolve();
+        await release.promise;
+        return Response.json(
+          status === 200 ? { items: ['old-account'] } : { error: 'device_unauthorized' },
+          { status },
+        );
+      },
+      false,
+      () => current,
+    );
+    const pending = assert.rejects(
+      client.request('/devices'),
+      (e: any) => e.code === 'client_replaced',
+    );
+    await entered.promise;
+    current = false;
+    release.resolve();
+    await pending;
+    await assert.rejects(client.request('/devices'), (e: any) => e.code === 'client_replaced');
+    assert.equal(requests, 1);
+  }
+  const first = record(),
+    next = rotated(first),
+    entered = deferred(),
+    release = deferred();
+  let current = true,
+    saves = 0,
+    revoked = false;
+  const client = new AccountManagedClient(
+    first,
+    async () => {
+      saves++;
+    },
+    undefined,
+    async (input, init) => {
+      if (String(input).endsWith('/refresh')) {
+        entered.resolve();
+        await release.promise;
+        return Response.json(next);
+      }
+      if (String(input).endsWith('/logout')) {
+        assert.equal(JSON.parse(String(init?.body)).refreshToken, next.refreshToken);
+        revoked = true;
+        return Response.json({ revoked: true });
+      }
+      throw Error('Superseded refresh reached a resource');
+    },
+    false,
+    () => current,
+  );
+  const pending = assert.rejects(
+    client.request('/devices'),
+    (e: any) => e.code === 'client_replaced',
+  );
+  await entered.promise;
+  current = false;
+  release.resolve();
+  await pending;
+  assert.equal(saves, 0);
+  await client.logout();
+  assert.equal(revoked, true);
+});

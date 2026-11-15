@@ -55,6 +55,51 @@ const fileHash = async (path) => {
   for await (const part of createReadStream(path)) h.update(part);
   return h.digest('hex');
 };
+const deployedSha = process.env.ALWAYS_ON_DEPLOYED_SHA;
+if (!/^[a-f0-9]{40}$/.test(deployedSha ?? ''))
+  throw Error('An exact deployed commit SHA is required for checkpoint compatibility');
+let runningServices = [];
+const inspectStack = async () => {
+  // --mount creates missing named volumes. Inspect first, before Docker can
+  // turn a mistyped project into a successful-looking empty checkpoint.
+  await run('docker', ['volume', 'inspect', ...volumes.map((v) => project + '_' + v)]);
+  const ids = (await compose(['ps', '-a', '-q'])).stdout.trim().split(/\s+/).filter(Boolean);
+  if (!ids.length) throw Error('No existing operator stack containers found');
+  const containers = JSON.parse((await run('docker', ['inspect', ...ids])).stdout);
+  const mounted = new Set(
+    containers.flatMap((c) => c.Mounts.filter((m) => m.Type === 'volume').map((m) => m.Name)),
+  );
+  if (volumes.some((v) => !mounted.has(project + '_' + v)))
+    throw Error('Checkpoint volumes do not match the selected stack');
+  for (const v of volumes) {
+    const writers = (
+      await run('docker', [
+        'ps',
+        '--no-trunc',
+        '--filter',
+        'volume=' + project + '_' + v,
+        '--format',
+        '{{.ID}}',
+      ])
+    ).stdout
+      .trim()
+      .split(/\s+/)
+      .filter(Boolean);
+    if (writers.some((id) => !ids.includes(id)))
+      throw Error('Checkpoint volume has a running container outside the selected stack');
+  }
+  runningServices = [
+    ...new Set(
+      containers
+        .filter((c) => c.State.Running)
+        .map((c) => c.Config.Labels['com.docker.compose.service']),
+    ),
+  ];
+  const defined = new Set((await compose(['config', '--services'])).stdout.trim().split(/\s+/));
+  if (runningServices.some((s) => !s || !defined.has(s) || !/^[A-Za-z0-9_-]+$/.test(s)))
+    throw Error('Unknown Compose service identity');
+  return ids;
+};
 const dir = await mkdtemp(join(tmpdir(), 'always-on-backup-')),
   archive = join(dir, 'checkpoint.tar');
 let stopped = false,
@@ -99,19 +144,26 @@ try {
       throw Error(
         'Restore into the recorded compatible runtime first; downgrade/migration review required',
       );
+    if (manifest.sourceCommit !== deployedSha)
+      throw Error('Restore requires the checkpoint matching the exact deployed image/commit');
     for (const name of volumes) {
       if ((await fileHash(join(dir, name + '.tar'))) !== manifest.volumes[name])
         throw Error('Checkpoint hash mismatch');
     }
   }
-  await compose(['stop']);
+  const stackIds = await inspectStack();
   stopped = true;
+  await compose(['stop']);
+  const quiesced = JSON.parse((await run('docker', ['inspect', ...stackIds])).stdout);
+  if (quiesced.some((c) => c.State.Running))
+    throw Error('Stack did not stop; refusing an inconsistent checkpoint');
   const manifest = {
     format: 1,
     createdAt: new Date().toISOString(),
     harness: '0.2.2-rc.3',
     cordis: '4.1.0',
-    sourceCommit: process.env.ALWAYS_ON_DEPLOYED_SHA ?? 'operator-must-record-deployed-sha',
+    sourceCommit: deployedSha,
+    previouslyRunningServices: runningServices,
     volumes: {},
   };
   for (const name of volumes) {
@@ -185,8 +237,9 @@ try {
       : 'Stopped volumes restored; now verify identities, migrations and interrupted task classification.',
   );
 } finally {
-  if (stopped && (action === 'create' || finished)) await compose(['up', '-d']);
-  else if (stopped)
+  if (stopped && (action === 'create' || finished) && runningServices.length)
+    await compose(['up', '-d', '--no-deps', ...runningServices]);
+  else if (stopped && action === 'restore' && !finished)
     console.error(
       'Restore incomplete: all services remain stopped. Complete the coordinated checkpoint restore before restarting.',
     );

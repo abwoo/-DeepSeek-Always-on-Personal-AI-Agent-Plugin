@@ -87,7 +87,17 @@ export function MemoryScreen() {
               title="Delete"
               danger
               disabled={disabled}
-              onPress={() => perform(() => mutate({ action: 'memory.delete', data: { id: m.id } }))}
+              onPress={() =>
+                perform(async () => {
+                  await mutate({ action: 'memory.delete', data: { id: m.id } });
+                  if (editing === m.id) {
+                    setEditing(undefined);
+                    setEditingVersion(undefined);
+                    setMemory('');
+                    setConsent(false);
+                  }
+                })
+              }
             />
           </View>
         </View>

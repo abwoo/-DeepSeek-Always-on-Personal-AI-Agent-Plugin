@@ -266,11 +266,22 @@ export class PairedDesktop {
           z.object({ action: z.literal('devices.list') }),
           z.object({ action: z.literal('devices.pair-code') }),
           z.object({ action: z.literal('devices.revoke'), deviceId: z.uuid() }),
+          z.object({ action: z.literal('export.start') }),
+          z.object({
+            action: z.literal('export.page'),
+            cursor: z.string().regex(/^[0-9a-f-]{36}\.[A-Za-z0-9_-]{43}\.\d{1,4}$/),
+          }),
+          z.object({ action: z.literal('export.release'), exportId: z.uuid() }),
           z.object({ action: z.literal('goals.list') }),
           z.object({ action: z.literal('goals.create'), operationId: z.uuid(), goal: goalSchema }),
         ])
         .parse(input);
       const client = await this.client();
+      if (data.action === 'export.start') return client.request('/exports', {});
+      if (data.action === 'export.page')
+        return client.request('/exports?cursor=' + encodeURIComponent(data.cursor));
+      if (data.action === 'export.release')
+        return client.request('/exports/release', { exportId: data.exportId });
       if (data.action === 'devices.list') return client.request('/devices');
       if (data.action === 'devices.pair-code') return client.request('/devices/pair-code', {});
       if (data.action === 'devices.revoke')

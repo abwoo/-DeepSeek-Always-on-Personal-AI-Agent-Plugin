@@ -17,7 +17,10 @@ export class MemoryService {
     const id = data.id ?? randomUUID();
     const prior = this.store.get<Memory>('memory', id);
     if (!prior && this.list().length >= 500) throw new Error('Memory limit (500) reached');
-    if (data.expectedVersion !== undefined && data.expectedVersion !== (prior?.version ?? 0))
+    if (
+      data.expectedVersion !== undefined &&
+      (!prior || data.expectedVersion !== (prior.version ?? 0))
+    )
       throw new Error('Memory changed on another device; reload and review before saving.');
     const { expectedVersion: _, ...value } = data;
     const entry = {

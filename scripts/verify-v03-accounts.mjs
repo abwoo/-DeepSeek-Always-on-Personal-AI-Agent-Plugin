@@ -319,6 +319,41 @@ try {
     data: { id: memory.result.result.id },
   });
   assert.equal((await mobile.snapshot()).memories.length, 0);
+  // Exercise the restricted account proxy with >2 MiB of real persisted UTF-8
+  // records. Each page remains bounded; a second device cannot reuse its cursor.
+  const largeIds = [];
+  for (let i = 0; i < 210; i++) {
+    const saved = await desktop.mutate(randomUUID(), {
+      action: 'memory.save',
+      data: {
+        kind: 'project',
+        content: '研究'.repeat(1800),
+        source: 'Explicit export integration fixture consent',
+        consent: true,
+      },
+    });
+    largeIds.push(saved.result.result.id);
+  }
+  const exportStart = await desktop.request('/exports', {});
+  assert.ok(exportStart.pages > 10);
+  await assert.rejects(
+    () => mobile.request('/exports?cursor=' + encodeURIComponent(exportStart.next)),
+    (e) => e.code === 'export_expired' && e.status === 410,
+  );
+  await desktop.request('/exports/release', { exportId: exportStart.exportId });
+  let exportBytes = 0,
+    exportRecords = 0;
+  await desktop.exportRecords(async (chunk) => {
+    exportBytes += Buffer.byteLength(chunk);
+    for (const line of chunk.trim().split('\n').filter(Boolean)) {
+      const item = JSON.parse(line);
+      if (item.kind === 'memory') exportRecords++;
+    }
+  });
+  assert.ok(exportBytes > 2 * 1024 * 1024);
+  assert.equal(exportRecords, 210);
+  for (const id of largeIds)
+    await desktop.mutate(randomUUID(), { action: 'memory.delete', data: { id } });
   // Execute through the native Schedule/Agent with a clearly labeled model fixture.
   await desktop.mutate(randomUUID(), { action: 'task.run', data: { id: task.id } });
   await until(async () =>
@@ -473,6 +508,8 @@ try {
         expiredDirectInputCannotReachModelAdapter: true,
         explicitUserTaskPausePreservedOnAccountResume: true,
         activeNativeRequestCancellationObserved: true,
+        largeUtf8ExportThroughRestrictedAccountProxy: true,
+        exportCursorBoundToDevice: true,
         automaticIsolatedAllocation: true,
         temporaryRegistrationFailureRetriedSameDevice:
           registrationAttempts[0] === registrationAttempts[1],

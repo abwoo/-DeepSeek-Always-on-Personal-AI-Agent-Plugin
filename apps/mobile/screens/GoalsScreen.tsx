@@ -67,7 +67,7 @@ export function GoalsScreen() {
           <View style={styles.row}>
             <Button
               title="Pause goal"
-              disabled={disabled}
+              disabled={disabled || goal.state === 'cancelled'}
               onPress={() =>
                 perform(() =>
                   mutate({
@@ -79,7 +79,7 @@ export function GoalsScreen() {
             />
             <Button
               title="Resume goal"
-              disabled={disabled}
+              disabled={disabled || goal.state === 'cancelled'}
               onPress={() =>
                 perform(() =>
                   mutate({

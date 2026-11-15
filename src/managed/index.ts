@@ -1,3 +1,4 @@
+import { RecordExports } from './exports.js';
 import { ExecutionLease } from './execution.js';
 import type { Context } from '@deepseek-ai/cordis';
 import type {} from '@deepseek-ai/dsh-host-webserver';
@@ -33,6 +34,12 @@ export async function apply(ctx: Context, config: Config = {}) {
   );
   const store = new GatewayStore(resolve(dir, 'gateway.sqlite'));
   const feed = new LiveFeed();
+  const exports = new RecordExports(
+    resolve(dir, 'exports-ephemeral'),
+    ctx.alwaysOn.coordinator.store,
+    store,
+  );
+  ctx.effect(() => () => exports.close());
   const execution = new ExecutionLease(ctx, store);
   ctx.effect(() => async () => {
     await execution.close();
@@ -328,6 +335,31 @@ export async function apply(ctx: Context, config: Config = {}) {
     const authorization = String(req.headers.authorization ?? '');
     if (!authorization.startsWith('Bearer ')) throw new GatewayError(401, 'device_unauthorized');
     const device = store.authenticate(authorization.slice(7));
+    if (req.method === 'POST' && path === '/exports') {
+      z.object({})
+        .strict()
+        .parse(await readBody(req));
+      store.authenticate(authorization.slice(7));
+      if (url.search) throw new GatewayError(400, 'invalid_export_cursor');
+      return json(exports.start(device.id));
+    }
+    if (req.method === 'GET' && path === '/exports') {
+      if (
+        [...url.searchParams.keys()].some((k) => k !== 'cursor') ||
+        url.searchParams.getAll('cursor').length !== 1
+      )
+        throw new GatewayError(400, 'invalid_export_cursor');
+      return json(exports.read(device.id, url.searchParams.get('cursor')!));
+    }
+    if (req.method === 'POST' && path === '/exports/release') {
+      const input = z
+        .object({ exportId: z.uuid() })
+        .strict()
+        .parse(await readBody(req));
+      store.authenticate(authorization.slice(7));
+      exports.release(device.id, input.exportId);
+      return json({ ok: true });
+    }
     if (req.method === 'GET' && path === '/export')
       return json({
         authorityId: store.authorityId,
@@ -426,7 +458,7 @@ export async function apply(ctx: Context, config: Config = {}) {
         ) {
           const memory = body.command.data;
           const current = ctx.alwaysOn.memory.list().find((m) => m.id === memory.id);
-          if ((current?.version ?? 0) !== memory.expectedVersion)
+          if (!current || (current.version ?? 0) !== memory.expectedVersion)
             throw new GatewayError(409, 'memory_conflict');
         }
         const result = await store.execute(device.id, body.operationId, body.command, () =>
