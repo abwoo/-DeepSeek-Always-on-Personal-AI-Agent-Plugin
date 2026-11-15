@@ -77,17 +77,23 @@ export class AccountBudget {
     });
   }
 }
-export function installAccountPolicy(ctx: Context, store: GatewayStore) {
+export function installAccountPolicy(
+  ctx: Context,
+  store: GatewayStore,
+  executionAllowed?: () => boolean,
+) {
   const budget = new AccountBudget(store),
     bound = () => !!store.db.prepare("SELECT value FROM meta WHERE key='account_id'").get();
   const timers = new Map<string, ReturnType<typeof setTimeout>>();
   ctx.tools.guard((exec) =>
-    bound() && !readOnly.has(exec.name)
+    bound() && (!readOnly.has(exec.name) || executionAllowed?.() === false)
       ? 'This managed account permits read-only research and consented personal-agent tools. Local files, shell and external writes require a separate reviewed device/approval capability.'
       : undefined,
   );
   ctx.on('agent/pre-step', async ({ agent, turn }, next) => {
     if (bound()) {
+      if (executionAllowed?.() === false)
+        throw new Error('Managed account execution is suspended or awaiting renewal');
       const id = agent.session.id + ':' + turn;
       if (!timers.has(id) && timers.size >= 2)
         throw Error('Managed account concurrent-turn limit reached');

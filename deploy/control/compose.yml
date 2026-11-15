@@ -44,6 +44,7 @@ services:
     build: { context: ../.., dockerfile: deploy/managed/Dockerfile }
     restart: unless-stopped
     environment:
+      ALWAYS_ON_ACCOUNT_EXECUTION_REQUIRED: '1'
       ALWAYS_ON_PUBLIC_ORIGIN: https://agent-a:8443
       ALWAYS_ON_TLS_CERT: /run/secrets/agent-a.pem
       ALWAYS_ON_TLS_KEY: /run/secrets/agent-a.key
@@ -71,6 +72,7 @@ services:
     build: { context: ../.., dockerfile: deploy/managed/Dockerfile }
     restart: unless-stopped
     environment:
+      ALWAYS_ON_ACCOUNT_EXECUTION_REQUIRED: '1'
       ALWAYS_ON_PUBLIC_ORIGIN: https://agent-b:8443
       ALWAYS_ON_TLS_CERT: /run/secrets/agent-b.pem
       ALWAYS_ON_TLS_KEY: /run/secrets/agent-b.key

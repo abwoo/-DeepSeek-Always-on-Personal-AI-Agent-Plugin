@@ -6,7 +6,7 @@ import { AgentPool } from '../../src/control/pool.js';
 import { controlServer } from '../../src/control/server.js';
 import { GatewayStore } from '../../src/managed/store.js';
 import { AccountApi } from '../../src/shared/account-client.js';
-import { ManagedClient } from '../../src/shared/managed-client.js';
+import { ManagedClient, ApiError } from '../../src/shared/managed-client.js';
 import type { IdentityProvider } from '../../src/control/identity.js';
 
 test('account admission binds PKCE, isolates two identities, rotates credentials and revokes independently (labeled transport fixture)', async () => {
@@ -26,6 +26,8 @@ test('account admission binds PKCE, isolates two identities, rotates credentials
     const b = init?.body ? JSON.parse(String(init.body)) : {};
     if (u.pathname.endsWith('/operator/bind'))
       return Response.json({ authorityId: s.authorityId, ownerId: s.ownerId });
+    if (u.pathname.endsWith('/operator/execution'))
+      return Response.json({ ...b, authorityId: s.authorityId, ownerId: s.ownerId });
     if (u.pathname.endsWith('/operator/device')) {
       registrationIds.push(b.id);
       if (unavailable) {
@@ -148,7 +150,10 @@ test('account admission binds PKCE, isolates two identities, rotates credentials
     assert.ok(!raw.includes(next.refreshToken));
     assert.ok(!raw.includes(next.credentials.token));
     store.db.prepare('UPDATE accounts SET disabled=1 WHERE id=?').run(b.account.id);
-    await assert.rejects(() => cb.request('/devices'), /account_disabled/);
+    await assert.rejects(
+      () => cb.request('/devices'),
+      (e: unknown) => e instanceof ApiError && e.code === 'account_disabled' && e.status === 403,
+    );
   } finally {
     await app.close();
     store.close();

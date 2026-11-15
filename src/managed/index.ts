@@ -1,3 +1,4 @@
+import { ExecutionLease } from './execution.js';
 import type { Context } from '@deepseek-ai/cordis';
 import type {} from '@deepseek-ai/dsh-host-webserver';
 import type { IncomingMessage, ServerResponse } from 'node:http';
@@ -14,7 +15,7 @@ import type {} from '../host/index.js';
 import { nativeClient } from './native.js';
 import { pairClaim, mutationSchema, opaqueId, goalSchema } from '../shared/managed-contract.js';
 
-export const inject = ['alwaysOn', 'connection', 'webServer', 'sessions', 'tools'];
+export const inject = ['alwaysOn', 'connection', 'webServer', 'sessions', 'tools', 'agents'];
 export interface Config {
   dataDir?: string;
   publicOrigin?: string;
@@ -32,7 +33,12 @@ export async function apply(ctx: Context, config: Config = {}) {
   );
   const store = new GatewayStore(resolve(dir, 'gateway.sqlite'));
   const feed = new LiveFeed();
-  const accountBudget = installAccountPolicy(ctx, store);
+  const execution = new ExecutionLease(ctx, store);
+  ctx.effect(() => async () => {
+    await execution.close();
+    store.close();
+  });
+  const accountBudget = installAccountPolicy(ctx, store, () => execution.allowed());
   ctx.on('session/event', (session, event) => {
     store.change('session', session.id);
     feed.publish(session.id, 'session-event', { seq: event.seq, type: event.type });
@@ -55,7 +61,7 @@ export async function apply(ctx: Context, config: Config = {}) {
         ...(frame.type === 'end' ? { outcome: frame.outcome } : {}),
       });
   });
-  ctx.effect(() => () => store.close());
+
   const native = await nativeClient(ctx);
   ctx.effect(() => () => native.close());
   const push = new NativePush(store, () => ctx.alwaysOn.notifications.list(), {
@@ -64,6 +70,7 @@ export async function apply(ctx: Context, config: Config = {}) {
     accessToken: process.env.ALWAYS_ON_EXPO_ACCESS_TOKEN,
   });
   const pushTimer = setInterval(() => {
+    if (!execution.allowed()) return;
     void push.tick().catch(() => ctx.logger.warn('Native push worker unavailable; Inbox retained'));
   }, 10000);
   pushTimer.unref();
@@ -202,12 +209,12 @@ export async function apply(ctx: Context, config: Config = {}) {
     }
   };
   const attempts = new Map<string, { count: number; until: number }>();
-  function throttle(ip: string) {
+  function throttle(ip: string, max = 30) {
     const now = Date.now();
     for (const [key, value] of attempts) if (value.until < now) attempts.delete(key);
     if (attempts.size > 4096) throw new GatewayError(429, 'rate_limit');
     const value = attempts.get(ip) ?? { count: 0, until: now + 60000 };
-    if (++value.count > 30) throw new GatewayError(429, 'rate_limit');
+    if (++value.count > max) throw new GatewayError(429, 'rate_limit');
     attempts.set(ip, value);
   }
   const isLocal = (address: string) =>
@@ -235,10 +242,29 @@ export async function apply(ctx: Context, config: Config = {}) {
         b = Buffer.from(hash(supplied));
       if (expected.length < 32 || !timingSafeEqual(a, b))
         throw new GatewayError(401, 'operator_unauthorized');
-      throttle(remote);
-      if (req.method === 'POST' && path === '/operator/inspect')
-        return json({ authorityId: store.authorityId, ownerId: store.ownerId });
+      throttle('operator:' + remote, 240);
+      if (req.method === 'POST' && path === '/operator/inspect') {
+        const catalog = (await ctx.alwaysOn.coordinator.scheduler.catalog?.()) ?? [];
+        return json({
+          authorityId: store.authorityId,
+          ownerId: store.ownerId,
+          executionLease: true,
+          execution: execution.status(),
+          schedules: ctx.alwaysOn.coordinator.tasks().map((t) => ({
+            taskId: t.id,
+            scheduleId: t.scheduleId,
+            status: catalog.find((e) => e.id === t.scheduleId)?.status ?? 'not_found',
+          })),
+        });
+      }
+      if (req.method === 'POST' && path === '/operator/execution') {
+        const receivedAt = performance.now();
+        const policy = await readBody(req);
+        return serialized(async () => json(await execution.apply(policy, receivedAt)));
+      }
       if (req.method === 'POST' && path === '/operator/bind') {
+        if (process.env.ALWAYS_ON_ACCOUNT_EXECUTION_REQUIRED !== '1')
+          throw new GatewayError(409, 'account_execution_mode_required');
         const { accountId } = z
           .object({ accountId: z.uuid() })
           .strict()
@@ -295,7 +321,7 @@ export async function apply(ctx: Context, config: Config = {}) {
     if (req.method === 'POST' && path === '/pair/claim') {
       if (store.db.prepare("SELECT value FROM meta WHERE key='account_id'").get())
         throw new GatewayError(403, 'account_login_required');
-      throttle(remote);
+      throttle('operator:' + remote, 240);
       const body = pairClaim.parse(await readBody(req));
       return json(store.claim(body.code, body.name, body.platform));
     }

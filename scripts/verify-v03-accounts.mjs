@@ -2,7 +2,7 @@
 // Never substitutes for a live Auth0 tenant, real model output or physical-device acceptance.
 import { spawn, execFile } from 'node:child_process';
 import { promisify } from 'node:util';
-import { mkdtemp, mkdir, rm, writeFile } from 'node:fs/promises';
+import { mkdtemp, mkdir, rm, writeFile, readFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { randomBytes, randomUUID } from 'node:crypto';
@@ -15,7 +15,7 @@ import { ManagedClient } from '../dist/shared/managed-client.js';
 const root = await mkdtemp(join(tmpdir(), 'always-on-v03-')),
   cli = resolve('node_modules/@deepseek-ai/dsh/lib/bin.js');
 const authorities = [];
-let controller, store, base;
+let controller, store, base, pool, currentSlots;
 let unavailableRegistration = true;
 const registrationAttempts = [];
 const encryption = randomBytes(32).toString('base64');
@@ -28,7 +28,9 @@ async function authority(index) {
     ALWAYS_ON_DATA_DIR: join(dir, 'data'),
     ALWAYS_ON_DOCUMENTS_DIR: join(dir, 'documents'),
     ALWAYS_ON_GATEWAY_ALLOW_LOOPBACK: '1',
+    ALWAYS_ON_ACCOUNT_EXECUTION_REQUIRED: '1',
     ALWAYS_ON_PROVISIONING_KEY: provisioningKey,
+    ALWAYS_ON_FIXTURE_TRACE: join(dir, 'model-calls.log'),
   };
   const run = (args) =>
     promisify(execFile)(process.execPath, [cli, ...args], { env, timeout: 120000 });
@@ -37,9 +39,16 @@ async function authority(index) {
     'abwoo-deepseek-always-on-managed-0.2.0-dev.1.tgz',
   ])
     await run(['plugin', '--profile', 'web', 'add', resolve(file)]);
+  const patch = join(dir, 'runtime.yml');
+  await mkdir(dir, { recursive: true });
+  await writeFile(
+    patch,
+    (await readFile('deploy/headless.patch.yml', 'utf8')) +
+      `\n- id: agent-default-model\n  config:\n    provider: always-on-test\n    model: fixture\n- insert:\n    - id: suspension-fixture-model\n      name: '${resolve('tests/fixtures/model.mjs')}'\n`,
+  );
   const child = spawn(
     process.execPath,
-    [cli, 'web', '--patch', resolve('deploy/headless.patch.yml'), '--no-open', '--port', '0'],
+    [cli, 'web', '--patch', patch, '--no-open', '--port', '0'],
     { env, stdio: ['ignore', 'pipe', 'pipe'] },
   );
   const entry = { child };
@@ -96,7 +105,9 @@ async function boot(slots) {
     }
     return fetch(input, init);
   };
-  controller = controlServer(store, new AgentPool(store, slots, true, leafTransport), identity, {
+  currentSlots = slots;
+  pool = new AgentPool(store, slots, true, leafTransport);
+  controller = controlServer(store, pool, identity, {
     publicOrigin: 'https://service-fixture.invalid',
     mobileRedirect: 'deepseek-always-on://oauth/return',
     allowLoopback: true,
@@ -128,6 +139,54 @@ async function login(subject) {
   return result.connection;
 }
 const client = (c) => new ManagedClient(c.origin, c.credentials, undefined, false, transport);
+async function until(check, timeout = 20000) {
+  const deadline = Date.now() + timeout;
+  while (Date.now() < deadline) {
+    if (await check()) return;
+    await new Promise((r) => setTimeout(r, 200));
+  }
+  throw Error('Actual Harness policy/model observation timed out');
+}
+function internalClient(connection) {
+  const d = store.db
+    .prepare('SELECT * FROM devices WHERE id=?')
+    .get(connection.credentials.deviceId);
+  const slot = currentSlots.find((s) => s.id === d.slot_id);
+  const secret = store.open(d.secret, 'device');
+  return new ManagedClient(
+    slot.origin,
+    { ...connection.credentials, token: secret.upstreamToken },
+    undefined,
+    true,
+  );
+}
+async function calls(index = 0) {
+  const text = await readFile(join(root, 'agent-' + index, 'model-calls.log'), 'utf8').catch(
+    () => '',
+  );
+  return text.trim() ? text.trim().split('\n').length : 0;
+}
+async function execution(connection) {
+  const row = store.allocation(connection.account.id);
+  return pool.operator(pool.slot(row.slot_id), 'inspect');
+}
+async function deniedInput(connection, label, index = 0) {
+  const native = internalClient(connection),
+    before = await calls(index);
+  const made = await native.mutate(randomUUID(), {
+    action: 'session.create',
+    data: { creationId: 'denial-' + randomUUID() },
+  });
+  const sessionId = made.result.sessionId;
+  await native.mutate(randomUUID(), { action: 'session.prompt', data: { sessionId, text: label } });
+  await until(async () => {
+    const state = await native.readSession(sessionId);
+    return !state.state.running && state.state.pendingInput.length === 0;
+  });
+  await new Promise((r) => setTimeout(r, 300));
+  assert.equal(await calls(index), before, 'Denied authority started another native model request');
+}
+
 try {
   const slots = [await authority(0), await authority(1)];
   await boot(slots);
@@ -145,7 +204,7 @@ try {
     action: 'task.create',
     data: {
       title: 'Account isolation proof',
-      instruction: 'Read-only task; no model execution claimed.',
+      instruction: 'Deterministic test adapter only; not real DeepSeek research.',
       timing: { kind: 'every', every_seconds: 86400 },
       allowedTools: [],
     },
@@ -155,7 +214,7 @@ try {
       action: 'task.create',
       data: {
         title: 'Account isolation proof',
-        instruction: 'Read-only task; no model execution claimed.',
+        instruction: 'Deterministic test adapter only; not real DeepSeek research.',
         timing: { kind: 'every', every_seconds: 86400 },
         allowedTools: [],
       },
@@ -232,7 +291,10 @@ try {
   );
   await desktop.mutate(randomUUID(), {
     action: 'session.prompt',
-    data: { sessionId, text: 'Real account-backed native input receipt; no provider configured.' },
+    data: {
+      sessionId,
+      text: 'Real account-backed native input receipt; deterministic adapter only.',
+    },
   });
   const pulse = await waiting;
   assert.ok(pulse.revision > initial.revision || pulse.live > initial.live);
@@ -257,8 +319,61 @@ try {
     data: { id: memory.result.result.id },
   });
   assert.equal((await mobile.snapshot()).memories.length, 0);
+  // Execute through the native Schedule/Agent with a clearly labeled model fixture.
+  await desktop.mutate(randomUUID(), { action: 'task.run', data: { id: task.id } });
+  await until(async () =>
+    (await desktop.snapshot()).runs.some((r) => r.taskId === task.id && r.status === 'completed'),
+  );
+  await desktop.mutate(randomUUID(), {
+    action: 'task.control',
+    data: { id: goal.result.taskId, state: 'paused' },
+  });
+  store.db.prepare('UPDATE accounts SET suspended=1 WHERE id=?').run(a.account.id);
+  store.db
+    .prepare("UPDATE allocations SET status='suspended' WHERE account_id=?")
+    .run(a.account.id);
+  // Observe the production controller timer, not a direct test-only policy call.
+  await until(async () => !(await execution(a)).execution.enabled);
+  const stopped = await execution(a);
+  assert.equal(stopped.schedules.find((s) => s.taskId === task.id).status, 'paused');
+  await assert.rejects(
+    () => desktop.snapshot(),
+    (e) => e.code === 'account_suspended' && e.status === 403,
+  );
+  await deniedInput(a, 'Must not invoke a model while this account is suspended');
+  const retained = await internalClient(a).snapshot();
+  assert.equal(retained.tasks.find((t) => t.id === task.id).state, 'active');
+  store.db.prepare('UPDATE accounts SET suspended=0 WHERE id=?').run(a.account.id);
+  store.db.prepare("UPDATE allocations SET status='ready' WHERE account_id=?").run(a.account.id);
+  await until(async () => (await execution(a)).execution.enabled);
+  assert.equal(
+    (await execution(a)).schedules.find((s) => s.taskId === goal.result.taskId).status,
+    'paused',
+  );
+  assert.equal((await execution(a)).schedules.find((s) => s.taskId === task.id).status, 'active');
+  // Native Schedule deliberately spaces new-Session deliveries of the same task
+  // by 60 seconds, including manual runs. Use a distinct authorized task here;
+  // independently verify the original schedule's restored ID/status above.
+  const resumedTask = await desktop.mutate(randomUUID(), {
+    action: 'task.create',
+    data: {
+      title: 'Post-resume native proof',
+      instruction: 'Deterministic adapter after account resume',
+      timing: { kind: 'every', every_seconds: 86400 },
+      maxRuns: 1,
+    },
+  });
+  const resumedId = resumedTask.result.result.id;
+  await desktop.mutate(randomUUID(), { action: 'task.run', data: { id: resumedId } });
+  await until(async () =>
+    (await desktop.snapshot()).runs.some((r) => r.taskId === resumedId && r.status === 'completed'),
+  );
   const auth = a.credentials.authorityId;
   await controller.close();
+  await pool.syncExecution(a.account.id, 1);
+  await new Promise((r) => setTimeout(r, 1500));
+  assert.equal((await execution(a)).execution.enabled, false);
+  await deniedInput(a, 'Must not invoke a model after control renewal stopped');
   store.close();
   await boot(slots);
   assert.equal((await mobile.snapshot()).authorityId, auth);
@@ -305,6 +420,30 @@ try {
     ),
   );
   assert.equal((await client(b).snapshot()).authorityId, b.credentials.authorityId);
+  const bobTask = await other.mutate(randomUUID(), {
+    action: 'task.create',
+    data: {
+      title: 'Cancellation fixture',
+      instruction: 'FIXTURE_HANG',
+      timing: { kind: 'every', every_seconds: 86400 },
+      maxRuns: 1,
+    },
+  });
+  const bobId = bobTask.result.result.id,
+    beforeHang = await calls(1),
+    bobNative = internalClient(b);
+  await other.mutate(randomUUID(), { action: 'task.run', data: { id: bobId } });
+  await until(async () => (await calls(1)) > beforeHang);
+  store.db.prepare('UPDATE accounts SET suspended=1 WHERE id=?').run(b.account.id);
+  await pool.syncExecution(b.account.id);
+  await until(async () =>
+    (await bobNative.snapshot()).runs.some((r) => r.taskId === bobId && r.finishedAt),
+  );
+  assert.ok(
+    (await bobNative.snapshot()).runs
+      .filter((r) => r.taskId === bobId)
+      .every((r) => r.status !== 'completed'),
+  );
   await mkdir('test-results', { recursive: true });
   await writeFile(
     'test-results/v03-accounts.json',
@@ -314,6 +453,14 @@ try {
         evidenceLevel: 2,
         identity: 'explicit local adapter fixture; not live Auth0',
         actualHarnessProcesses: 2,
+        deterministicModelAdapter: true,
+        nativeFixtureTaskCompletesBeforeAndAfterPause: true,
+        persistedSuspensionPausesNativeSchedules: true,
+        suspendedDirectInputCannotReachModelAdapter: true,
+        controllerLossExpiresExecutionLease: true,
+        expiredDirectInputCannotReachModelAdapter: true,
+        explicitUserTaskPausePreservedOnAccountResume: true,
+        activeNativeRequestCancellationObserved: true,
         automaticIsolatedAllocation: true,
         temporaryRegistrationFailureRetriedSameDevice:
           registrationAttempts[0] === registrationAttempts[1],

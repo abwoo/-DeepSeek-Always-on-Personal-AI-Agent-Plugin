@@ -1,4 +1,5 @@
 // Deterministic test adapter only. Harness still owns scheduling, turns, tools and persistence.
+import { appendFileSync } from 'node:fs';
 import { LlmAdapter } from '@deepseek-ai/dsh-llm';
 export const inject = ['llm'];
 class Fixture extends LlmAdapter {
@@ -7,6 +8,7 @@ class Fixture extends LlmAdapter {
     return { provider, id: model, name: 'Deterministic test fixture', defaultMaxTokens: 4096 };
   }
   async *stream(options) {
+    if (process.env.ALWAYS_ON_FIXTURE_TRACE) appendFileSync(process.env.ALWAYS_ON_FIXTURE_TRACE, 'model-call\n');
     const text = JSON.stringify(options.messages);
     if (text.includes('EXPECT_MEMORY') && !text.includes('FIXTURE_SAVED_MEMORY'))
       throw new Error('Confirmed memory missing from a native model request');

@@ -51,6 +51,7 @@ export interface Scheduler {
 export const marker = '[ALWAYS_ON_TRIGGER]';
 export class Coordinator {
   enabled = true;
+  executionAllowed?: () => boolean;
   cancelSession?: (sessionId: string) => void;
   constructor(
     readonly store: Store,
@@ -68,6 +69,8 @@ export class Coordinator {
     return this.store.all<Run>('runs');
   }
   async create(input: unknown) {
+    if (this.executionAllowed && !this.executionAllowed())
+      throw new Error('Managed account execution is suspended or awaiting renewal');
     if (this.tasks().length >= 100) throw new Error('Host task limit (100) reached');
     const data = taskSchema.parse(input);
     const task: Task = {
@@ -130,7 +133,7 @@ export class Coordinator {
     };
   }
   claim(taskId: string, occurrence: string, sessionId: string, turn: number) {
-    if (!this.enabled) return;
+    if (!this.enabled || this.executionAllowed?.() === false) return;
     const task = this.requireTask(taskId);
     return this.store.transaction(() => {
       if (task.state !== 'active') return;
