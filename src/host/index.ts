@@ -21,7 +21,6 @@ export const inject = [
   'tools',
   'systemPrompt',
   'connection',
-  'webServer',
 ];
 export interface Config {
   dataDir?: string;
@@ -46,20 +45,6 @@ const output = {
   render: (_a: unknown, v: string) => [{ type: 'text' as const, text: v }],
 };
 export async function apply(ctx: Context, config: Config = {}) {
-  // Opt-in, content-free lifecycle observations for disposable native CI profiles.
-  // Never serialize configuration, paths, messages, errors or credentials.
-  let startupStage = 'store-open';
-  const startup = (stage: string, error?: unknown) => {
-    startupStage = stage;
-    if (process.env.ALWAYS_ON_NATIVE_STARTUP_DIAGNOSTICS !== '1') return;
-    const code = (error as NodeJS.ErrnoException | undefined)?.code;
-    process.stderr.write('always-on-startup ' + JSON.stringify({
-      stage,
-      ...(error === undefined ? {} : { failed: true }),
-      ...(typeof code === 'string' && /^[A-Z][A-Z0-9_]{0,63}$/.test(code) ? { code } : {}),
-    }) + '\n');
-  };
-  startup(startupStage);
   const dataDir = resolve(
     config.dataDir ??
       process.env.ALWAYS_ON_DATA_DIR ??
@@ -110,10 +95,8 @@ export async function apply(ctx: Context, config: Config = {}) {
         .get(id as Parameters<typeof ctx.agents.get>[0])
         ?.cancel({ kind: 'hook', reason: 'Always-on task cancelled by its owner' });
     c.recover();
-    startup('native-catalog');
     // Native Schedule owns crash recovery. Only undo pauses explicitly made by this plugin's own graceful unload.
     const nativeTasks = await ctx.schedule.catalog();
-    startup('native-reconcile');
     for (const task of c.tasks()) {
       const entry = nativeTasks.find(
         (e) => e.id === task.scheduleId || e.prompt.startsWith(`[ALWAYS_ON_TRIGGER] ${task.id}\n`),
@@ -141,7 +124,6 @@ export async function apply(ctx: Context, config: Config = {}) {
       }
     }
     const api = createApi(c, memory, notifications, vapid?.publicKey);
-    startup('api-register');
     ctx.effect(() =>
       ctx.connection.fetch.register({
         path: '/api/always-on',
@@ -422,7 +404,6 @@ export async function apply(ctx: Context, config: Config = {}) {
     }, 60000);
     pushTimer.unref();
     ctx.effect(() => async () => {
-      startup('dispose');
       c.enabled = false;
       clearInterval(pushTimer);
       for (const timer of timers.values()) clearTimeout(timer);
@@ -438,9 +419,7 @@ export async function apply(ctx: Context, config: Config = {}) {
         store.close();
       }
     });
-    startup('ready');
   } catch (error) {
-    startup(startupStage, error);
     store.close();
     throw error;
   }
