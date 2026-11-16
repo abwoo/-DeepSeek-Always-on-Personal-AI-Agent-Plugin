@@ -135,7 +135,9 @@ try:
  conversation=get('/engineering/conversation?id='+sid)
  assert conversation['sessionId']==sid and 'Native model fixture hello' in json.dumps(conversation) and 'Fixture check complete.' in json.dumps(conversation)
  assert any(r.get('event',{}).get('type')=='user/message' and r['event'].get('data',{}).get('source',{}).get('kind')=='runtime-context' for r in conversation['events']['records']),'Native runtime history was unexpectedly removed'
+ assert any(r.get('event',{}).get('type')=='user/message' and r['event'].get('data',{}).get('source',{}).get('form')=='catalog' for r in conversation['events']['records']),'Native catalog was unexpectedly removed from authoritative history'
  assert '<system-reminder>' not in words(),'Internal native runtime snapshot leaked into normal chat'
+ evidence['nativeModelContextHidden']=True
  capture('chat');evidence['nativeRuntimeContextHidden']=True
  evidence['chatSessionId']=sid;evidence['nativeSharedSessionChat']=True;note('Native chat and independent reader share Session and actual fixture result',sessionId=sid)
  tab('Devices');find('Native engineering device');tap('Check notification delivery');wait(lambda:'Push service not configured' in words());evidence['nativeDeviceReadAndHonestPushStatus']=True

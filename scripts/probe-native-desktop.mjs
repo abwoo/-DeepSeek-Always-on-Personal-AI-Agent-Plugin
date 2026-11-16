@@ -252,6 +252,16 @@ async function boot(action) {
           { timeout: 30000 },
         )
         .toBe(200);
+    const startup = await page.evaluate(async () => {
+      try {
+        const response = await fetch('/api/always-on-phase0-startup');
+        return response.ok ? await response.json() : null;
+      } catch { return null; }
+    });
+    if (startup) {
+      await writeFile(join(output, `boot-${attempt}-ready.json`), JSON.stringify({attempt, startup}, null, 2));
+      console.log('NATIVE_BOOT_READY ' + JSON.stringify({attempt, startup}));
+    }
     await action(page);
   } catch (error) {
     const pages = [];
@@ -600,8 +610,8 @@ try {
     }
     evidence.remoteReadableWithDesktopStopped = true;
     const restartPasses = Number(process.env.ALWAYS_ON_DESKTOP_RESTART_PASSES ?? 1);
-    if (!Number.isSafeInteger(restartPasses) || restartPasses < 1 || restartPasses > 5)
-      throw Error('Native restart pass count must be an integer from one to five');
+    if (!Number.isSafeInteger(restartPasses) || restartPasses < 1 || restartPasses > 12)
+      throw Error('Native restart pass count must be an integer from one to twelve');
     evidence.requestedRestartPasses = restartPasses;
     evidence.confirmedRestartPasses = 0;
     evidence.allRequestedRestartsPassed = false;
