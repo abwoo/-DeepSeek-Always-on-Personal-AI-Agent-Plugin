@@ -6,7 +6,7 @@
   "latestNativeTestImplementationCommit": "3083f4127aacbd5233ce98aa2d4cda0769939e72",
   "status": "Historical engineering observations plus post-merge failures and follow-up checks; production remains blocked",
   "mvpReady": false,
-  "productionGateStatus": "T01\u2013T22 Blocked; no Level 4/5",
+  "productionGateStatus": "T01–T22 Blocked; no Level 4/5",
   "versions": {
     "harness": "0.2.2-rc.3",
     "cordis": "4.1.0",
@@ -213,7 +213,7 @@
     {
       "path": "production-blockers.json",
       "sha256": "5e8595ee6591f2fc94f8a09d64997069b8043563efe80ba4cc2940ce38e62573",
-      "scope": "Current T01\u2013T22 production gates: all Blocked"
+      "scope": "Current T01–T22 production gates: all Blocked"
     },
     {
       "path": "cloud-accounts/v03-accounts.json",
@@ -546,6 +546,60 @@
       "originalPath": "real-deepseek.json",
       "reportedSourceCommit": null,
       "headCommit": "3f5cfe74ff32e62bb5ffde481eb2cd08eef39d76"
+    },
+    {
+      "path": "native-context-repair/native-contract.json",
+      "sha256": "04cbcb09106402735390183b92fe45f34bc7890555a40d7a2382a9cf55f0d1c9",
+      "runId": 43783993339,
+      "artifactId": 14190441219,
+      "zipSha256": "4470f4eef4b6ce352260e3c9b92f3fdb4867c4130950ad3b221709f79a5ea21e",
+      "zipIndependentlyVerified": false,
+      "originalPath": "mobile-evidence/native-contract.json",
+      "reportedSourceCommit": "170524194f326a87c5909efd0da51a757b1168d0",
+      "headCommit": "170524194f326a87c5909efd0da51a757b1168d0",
+      "extraction": "Exact base64 raw record from ALWAYS_ON_EVIDENCE in native job 133027403311; raw-record SHA-256 checked by CI. ZIP hash is upload-reported."
+    },
+    {
+      "path": "native-context-repair/android.json",
+      "sha256": "8bdd4c3d50f1f53aec165b4e08e02710edefde7b186f62484c1313645a74f650",
+      "runId": 43783993339,
+      "artifactId": 14189429179,
+      "zipSha256": "0f1887447f7b7ed170db6581662fd0e1fef778d59efe91975512a2cbba30df93",
+      "zipIndependentlyVerified": false,
+      "originalPath": "mobile-evidence/android.json",
+      "reportedSourceCommit": "170524194f326a87c5909efd0da51a757b1168d0",
+      "headCommit": "170524194f326a87c5909efd0da51a757b1168d0",
+      "extraction": "Exact base64 raw record from ALWAYS_ON_EVIDENCE in native job 133027403311; raw-record SHA-256 checked by CI. ZIP hash is upload-reported."
+    },
+    {
+      "path": "continuation-macos-failure/plugin.json",
+      "sha256": "5ca172f8ef5f8219a79170f15fecc65015a2d909ed7b4b862de0fcd678afeb8e",
+      "runId": 43783993352,
+      "artifactId": 14189931349,
+      "zipSha256": "0919be9a9cfcfe80d1d3a70de0c102cdf7af505dba1f74618c9f8f409e74a355",
+      "zipIndependentlyVerified": true,
+      "originalPath": "plugin.json",
+      "headCommit": "170524194f326a87c5909efd0da51a757b1168d0"
+    },
+    {
+      "path": "continuation-macos-failure/boot-5-failure.json",
+      "sha256": "de8471be637bed1547a8fcdb824db75d9050a93eab3f09bb30223fd493cb10e2",
+      "runId": 43783993352,
+      "artifactId": 14189931349,
+      "zipSha256": "0919be9a9cfcfe80d1d3a70de0c102cdf7af505dba1f74618c9f8f409e74a355",
+      "zipIndependentlyVerified": true,
+      "originalPath": "boot-5-failure.json",
+      "headCommit": "170524194f326a87c5909efd0da51a757b1168d0"
+    },
+    {
+      "path": "continuation-macos-failure/boot-5-startup.json",
+      "sha256": "4cd4a9f133de7d8c1d56100d05fbf4c00d349b13c5057d1b81b33fc7cb9bc85b",
+      "runId": 43783993352,
+      "artifactId": 14189931349,
+      "zipSha256": "0919be9a9cfcfe80d1d3a70de0c102cdf7af505dba1f74618c9f8f409e74a355",
+      "zipIndependentlyVerified": true,
+      "originalPath": "boot-5-startup.json",
+      "headCommit": "170524194f326a87c5909efd0da51a757b1168d0"
     }
   ],
   "failedObservations": [
@@ -659,6 +713,6 @@
       "scope": "Development signing/unconfigured preview, not a hosted product"
     }
   ],
-  "evidenceIntegrity": "51 retained raw observations; hashes are verified independently of production acceptance. Historical failures are retained, not overwritten.",
+  "evidenceIntegrity": "56 retained raw observations; hashes are verified independently of production acceptance. Historical failures are retained, not overwritten.",
   "postMergeFollowUpCommit": "3f5cfe74ff32e62bb5ffde481eb2cd08eef39d76"
 }
