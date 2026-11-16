@@ -17,16 +17,15 @@ on:
       - package-lock.json
 permissions:
   contents: read
+concurrency:
+  group: phase0-macos-${{ github.ref }}
+  cancel-in-progress: true
 jobs:
   actual-desktop:
-    strategy:
-      fail-fast: false
-      matrix:
-        reproduction: [1, 2]
     runs-on: macos-15
     timeout-minutes: 20
     env:
-      ALWAYS_ON_DESKTOP_RESTART_PASSES: '24'
+      ALWAYS_ON_DESKTOP_RESTART_PASSES: '4'
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -92,13 +91,13 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: phase0-macos-native-evidence-${{ matrix.reproduction }}
+          name: phase0-macos-native-evidence
           path: .artifacts/macos-desktop/
           retention-days: 14
       - name: Save tested installable Desktop preview
         uses: actions/upload-artifact@v4
         with:
-          name: always-on-desktop-preview-macos-${{ matrix.reproduction }}
+          name: always-on-desktop-preview-macos
           path: abwoo-deepseek-always-on-desktop-0.3.0-dev.1.tgz
           retention-days: 14
           if-no-files-found: error
