@@ -1,0 +1,18 @@
+{
+  "timestamp": "2026-11-16T02:56:23.382Z",
+  "sourceCommit": "49e64c9af1e7afcfaf10d946946f6095ce13e816",
+  "platform": "darwin",
+  "nativePlugin": false,
+  "restartPersistence": false,
+  "remoteDesktopSession": false,
+  "realDeepSeek": false,
+  "realPhone": false,
+  "mvpReady": false,
+  "graphicalInstallation": true,
+  "graphicalDisable": true,
+  "graphicalEnable": true,
+  "graphicalUninstall": true,
+  "graphicalReinstall": true,
+  "graphicalRestart": true,
+  "distribution": "actual official Plugins UI, local HTTP immutable tarball fixture; not published npm/live service"
+}

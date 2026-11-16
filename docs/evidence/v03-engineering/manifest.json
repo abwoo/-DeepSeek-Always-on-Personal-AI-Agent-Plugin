@@ -6,7 +6,7 @@
   "latestNativeTestImplementationCommit": "3083f4127aacbd5233ce98aa2d4cda0769939e72",
   "status": "Historical engineering observations plus post-merge failures and follow-up checks; production remains blocked",
   "mvpReady": false,
-  "productionGateStatus": "T01\u2013T22 Blocked; no Level 4/5",
+  "productionGateStatus": "T01–T22 Blocked; no Level 4/5",
   "versions": {
     "harness": "0.2.2-rc.3",
     "cordis": "4.1.0",
@@ -213,7 +213,7 @@
     {
       "path": "production-blockers.json",
       "sha256": "5e8595ee6591f2fc94f8a09d64997069b8043563efe80ba4cc2940ce38e62573",
-      "scope": "Current T01\u2013T22 production gates: all Blocked"
+      "scope": "Historical production blocker snapshot; latest derived matrix is production-current.json. All 22 production gates remain Blocked."
     },
     {
       "path": "cloud-accounts/v03-accounts.json",
@@ -546,6 +546,329 @@
       "originalPath": "real-deepseek.json",
       "reportedSourceCommit": null,
       "headCommit": "3f5cfe74ff32e62bb5ffde481eb2cd08eef39d76"
+    },
+    {
+      "path": "native-context-repair/native-contract.json",
+      "sha256": "04cbcb09106402735390183b92fe45f34bc7890555a40d7a2382a9cf55f0d1c9",
+      "runId": 43783993339,
+      "artifactId": 14190441219,
+      "zipSha256": "4470f4eef4b6ce352260e3c9b92f3fdb4867c4130950ad3b221709f79a5ea21e",
+      "zipIndependentlyVerified": false,
+      "originalPath": "mobile-evidence/native-contract.json",
+      "reportedSourceCommit": "170524194f326a87c5909efd0da51a757b1168d0",
+      "headCommit": "170524194f326a87c5909efd0da51a757b1168d0",
+      "extraction": "Exact base64 raw record from ALWAYS_ON_EVIDENCE in native job 133027403311; raw-record SHA-256 checked by CI. ZIP hash is upload-reported."
+    },
+    {
+      "path": "native-context-repair/android.json",
+      "sha256": "8bdd4c3d50f1f53aec165b4e08e02710edefde7b186f62484c1313645a74f650",
+      "runId": 43783993339,
+      "artifactId": 14189429179,
+      "zipSha256": "0f1887447f7b7ed170db6581662fd0e1fef778d59efe91975512a2cbba30df93",
+      "zipIndependentlyVerified": false,
+      "originalPath": "mobile-evidence/android.json",
+      "reportedSourceCommit": "170524194f326a87c5909efd0da51a757b1168d0",
+      "headCommit": "170524194f326a87c5909efd0da51a757b1168d0",
+      "extraction": "Exact base64 raw record from ALWAYS_ON_EVIDENCE in native job 133027403311; raw-record SHA-256 checked by CI. ZIP hash is upload-reported."
+    },
+    {
+      "path": "continuation-macos-failure/plugin.json",
+      "sha256": "5ca172f8ef5f8219a79170f15fecc65015a2d909ed7b4b862de0fcd678afeb8e",
+      "runId": 43783993352,
+      "artifactId": 14189931349,
+      "zipSha256": "0919be9a9cfcfe80d1d3a70de0c102cdf7af505dba1f74618c9f8f409e74a355",
+      "zipIndependentlyVerified": true,
+      "originalPath": "plugin.json",
+      "headCommit": "170524194f326a87c5909efd0da51a757b1168d0"
+    },
+    {
+      "path": "continuation-macos-failure/boot-5-failure.json",
+      "sha256": "de8471be637bed1547a8fcdb824db75d9050a93eab3f09bb30223fd493cb10e2",
+      "runId": 43783993352,
+      "artifactId": 14189931349,
+      "zipSha256": "0919be9a9cfcfe80d1d3a70de0c102cdf7af505dba1f74618c9f8f409e74a355",
+      "zipIndependentlyVerified": true,
+      "originalPath": "boot-5-failure.json",
+      "headCommit": "170524194f326a87c5909efd0da51a757b1168d0"
+    },
+    {
+      "path": "continuation-macos-failure/boot-5-startup.json",
+      "sha256": "4cd4a9f133de7d8c1d56100d05fbf4c00d349b13c5057d1b81b33fc7cb9bc85b",
+      "runId": 43783993352,
+      "artifactId": 14189931349,
+      "zipSha256": "0919be9a9cfcfe80d1d3a70de0c102cdf7af505dba1f74618c9f8f409e74a355",
+      "zipIndependentlyVerified": true,
+      "originalPath": "boot-5-startup.json",
+      "headCommit": "170524194f326a87c5909efd0da51a757b1168d0"
+    },
+    {
+      "path": "native-startup-diagnosis/failed-9ca0985.json",
+      "sha256": "71d62b6beba3804562325e2538611bb6bc1b65d0ad47aceff14b8634b28215ec",
+      "runId": 43789067273,
+      "jobId": 133043130973,
+      "headCommit": "9ca098572b19633ff76c1cfabae5c16891f8a8e4",
+      "evidenceKind": "Exact redacted workflow log observation wrapped with provenance; not an artifact-byte copy."
+    },
+    {
+      "path": "native-context-repair/ef38ada-failed-native-contract.json",
+      "sha256": "4da70d00701bdef896b0e7f142e3ac9a7806293ed5176458c554e1c1afc937bb",
+      "runId": 43785326814,
+      "artifactId": 14190616373,
+      "headCommit": "ef38ada7f3f5dbbf91eb7f8a3441d6267e409124",
+      "extraction": "Exact raw record from workflow ALWAYS_ON_EVIDENCE; native controls remained false because hierarchy XML parsing failed before task forms."
+    },
+    {
+      "path": "native-context-repair/42bc886-failed-native-contract.json",
+      "sha256": "9c581e7adf4242bea92f8375596596033f2420ee7574bce0cb6df39980feb869",
+      "runId": 43785948211,
+      "artifactId": 14190513948,
+      "headCommit": "42bc8862380e59e9436030d32cab2de461589b17",
+      "extraction": "Exact raw record from workflow ALWAYS_ON_EVIDENCE; native controls remained false because hierarchy XML parsing failed before task forms."
+    },
+    {
+      "path": "native-final-macos/initialize.json",
+      "sha256": "a91701262a693aecfd0e6db1084bf8bf3e88815441caa1ef2850000ad8d5d69a",
+      "runId": 43794743975,
+      "jobId": 133060877441,
+      "artifactId": 14193988497,
+      "zipSha256": "9dc8c7afe989c7109cd6657caeed906dde03a74bf68cda6ffbf34afcf1deb30f",
+      "zipIndependentlyVerified": false,
+      "emissionPath": ".artifacts/macos-desktop/initialize.json",
+      "reportedSourceCommit": "49e64c9af1e7afcfaf10d946946f6095ce13e816",
+      "headCommit": "49e64c9af1e7afcfaf10d946946f6095ce13e816",
+      "extraction": "Exact base64 bytes from successful workflow ALWAYS_ON_EVIDENCE record. Raw-record SHA-256 is independently checked in repository CI; ZIP digest is upload-reported."
+    },
+    {
+      "path": "native-final-macos/plugins-ui.json",
+      "sha256": "bec4ed01f9adcf604be576947e8e85d5d669c6e9f3778176c2451f3107c607b9",
+      "runId": 43794743975,
+      "jobId": 133060877441,
+      "artifactId": 14193988497,
+      "zipSha256": "9dc8c7afe989c7109cd6657caeed906dde03a74bf68cda6ffbf34afcf1deb30f",
+      "zipIndependentlyVerified": false,
+      "emissionPath": ".artifacts/macos-desktop/plugins-ui.json",
+      "reportedSourceCommit": "49e64c9af1e7afcfaf10d946946f6095ce13e816",
+      "headCommit": "49e64c9af1e7afcfaf10d946946f6095ce13e816",
+      "extraction": "Exact base64 bytes from successful workflow ALWAYS_ON_EVIDENCE record. Raw-record SHA-256 is independently checked in repository CI; ZIP digest is upload-reported."
+    },
+    {
+      "path": "native-final-macos/plugin.json",
+      "sha256": "ae694c7720ca9ac2c346743954cc3ff598d25ae74f9c48aaef4b93650a42806c",
+      "runId": 43794743975,
+      "jobId": 133060877441,
+      "artifactId": 14193988497,
+      "zipSha256": "9dc8c7afe989c7109cd6657caeed906dde03a74bf68cda6ffbf34afcf1deb30f",
+      "zipIndependentlyVerified": false,
+      "emissionPath": ".artifacts/macos-desktop/plugin.json",
+      "reportedSourceCommit": "49e64c9af1e7afcfaf10d946946f6095ce13e816",
+      "headCommit": "49e64c9af1e7afcfaf10d946946f6095ce13e816",
+      "extraction": "Exact base64 bytes from successful workflow ALWAYS_ON_EVIDENCE record. Raw-record SHA-256 is independently checked in repository CI; ZIP digest is upload-reported."
+    },
+    {
+      "path": "native-final-windows/initialize.json",
+      "sha256": "67b191c243eec6f2ce979074fa3f2f11d21ac469a90e952f7a2411c61d7acab0",
+      "runId": 43794744045,
+      "jobId": 133060877228,
+      "artifactId": 14194565148,
+      "zipSha256": "17e361943d8b6a873544de925fa8031e2fda3fca6fefbcf4fd86e211036aa6be",
+      "zipIndependentlyVerified": false,
+      "emissionPath": ".artifacts\\windows-desktop\\initialize.json",
+      "reportedSourceCommit": "49e64c9af1e7afcfaf10d946946f6095ce13e816",
+      "headCommit": "49e64c9af1e7afcfaf10d946946f6095ce13e816",
+      "extraction": "Exact base64 bytes from successful workflow ALWAYS_ON_EVIDENCE record. Raw-record SHA-256 is independently checked in repository CI; ZIP digest is upload-reported."
+    },
+    {
+      "path": "native-final-windows/plugins-ui.json",
+      "sha256": "9d3c6300a16566f24f22906670ba9bdb034e23e9f54184aeebe84101a6aeecd1",
+      "runId": 43794744045,
+      "jobId": 133060877228,
+      "artifactId": 14194565148,
+      "zipSha256": "17e361943d8b6a873544de925fa8031e2fda3fca6fefbcf4fd86e211036aa6be",
+      "zipIndependentlyVerified": false,
+      "emissionPath": ".artifacts\\windows-desktop\\plugins-ui.json",
+      "reportedSourceCommit": "49e64c9af1e7afcfaf10d946946f6095ce13e816",
+      "headCommit": "49e64c9af1e7afcfaf10d946946f6095ce13e816",
+      "extraction": "Exact base64 bytes from successful workflow ALWAYS_ON_EVIDENCE record. Raw-record SHA-256 is independently checked in repository CI; ZIP digest is upload-reported."
+    },
+    {
+      "path": "native-final-windows/plugin.json",
+      "sha256": "221a8bd39875de157ba12d00bcb1a0c54d1654a78422e4212fa9e4c470fa40b6",
+      "runId": 43794744045,
+      "jobId": 133060877228,
+      "artifactId": 14194565148,
+      "zipSha256": "17e361943d8b6a873544de925fa8031e2fda3fca6fefbcf4fd86e211036aa6be",
+      "zipIndependentlyVerified": false,
+      "emissionPath": ".artifacts\\windows-desktop\\plugin.json",
+      "reportedSourceCommit": "49e64c9af1e7afcfaf10d946946f6095ce13e816",
+      "headCommit": "49e64c9af1e7afcfaf10d946946f6095ce13e816",
+      "extraction": "Exact base64 bytes from successful workflow ALWAYS_ON_EVIDENCE record. Raw-record SHA-256 is independently checked in repository CI; ZIP digest is upload-reported."
+    },
+    {
+      "path": "native-final-mobile/native-contract.json",
+      "sha256": "5b51a650c524843807affa2185a5175c50913daa67b189578e1f0a517c6e36b9",
+      "runId": 43793514641,
+      "jobId": 133057050566,
+      "artifactId": 14193818828,
+      "zipSha256": "0a01252d3a25e0c0dce0c9143722baa49dc004c8abac5e2d21a45d22a91f9de8",
+      "zipIndependentlyVerified": false,
+      "emissionPath": "mobile-evidence/native-contract.json",
+      "reportedSourceCommit": "2a5383307aaa4fcfb8a890d543793a91d925c40e",
+      "headCommit": "2a5383307aaa4fcfb8a890d543793a91d925c40e",
+      "extraction": "Exact base64 bytes from successful workflow ALWAYS_ON_EVIDENCE record. Raw-record SHA-256 is independently checked in repository CI; ZIP digest is upload-reported."
+    },
+    {
+      "path": "native-final-mobile/android.json",
+      "sha256": "e78048c053d4314a54b945bd2b9676c2e665fac2619f573ba11a57ac647ef9ef",
+      "runId": 43793514641,
+      "jobId": 133057050566,
+      "artifactId": 14193672251,
+      "zipSha256": "24f9d9de96bc99419c52e85258ee77030c5921422a74d11b621997d7f79d83d4",
+      "zipIndependentlyVerified": false,
+      "emissionPath": "mobile-evidence/android.json",
+      "reportedSourceCommit": "2a5383307aaa4fcfb8a890d543793a91d925c40e",
+      "headCommit": "2a5383307aaa4fcfb8a890d543793a91d925c40e",
+      "extraction": "Exact base64 bytes from successful workflow ALWAYS_ON_EVIDENCE record. Raw-record SHA-256 is independently checked in repository CI; ZIP digest is upload-reported."
+    },
+    {
+      "path": "native-final-mobile/ios.json",
+      "sha256": "2f0572287f5ab6f65f1eee2b64eaca8613789645331862042b61232d37d5da77",
+      "runId": 43793514641,
+      "jobId": 133059951094,
+      "artifactId": 14194445267,
+      "zipSha256": "d46e50f2cb9c01640ff4aa8ca57cefe86819693d6e78f85ccf9d99315b7f86ee",
+      "zipIndependentlyVerified": false,
+      "emissionPath": "mobile-evidence/ios.json",
+      "reportedSourceCommit": "2a5383307aaa4fcfb8a890d543793a91d925c40e",
+      "headCommit": "2a5383307aaa4fcfb8a890d543793a91d925c40e",
+      "extraction": "Exact base64 bytes from successful workflow ALWAYS_ON_EVIDENCE record. Raw-record SHA-256 is independently checked in repository CI; ZIP digest is upload-reported."
+    },
+    {
+      "path": "native-final-mobile/android-emulator.json",
+      "sha256": "330f5c8eb3c9280c79d5c920edf6d2e75f637e9c3350ae0603661b15c75d51e9",
+      "runId": 43793514641,
+      "jobId": 133062737635,
+      "artifactId": 14194218269,
+      "zipSha256": "d201140cdeb116c6d54722d107d6ba919cb77d56acf859bc5915314ac20b564d",
+      "zipIndependentlyVerified": false,
+      "emissionPath": "mobile-evidence/android-emulator.json",
+      "reportedSourceCommit": null,
+      "headCommit": "2a5383307aaa4fcfb8a890d543793a91d925c40e",
+      "extraction": "Exact base64 bytes from successful workflow ALWAYS_ON_EVIDENCE record. Raw-record SHA-256 is independently checked in repository CI; ZIP digest is upload-reported."
+    },
+    {
+      "path": "native-final-runtime/managed-authority.json",
+      "sha256": "406909ea9ff71ff54ed2370c366ffc7c20244ef2ca10b3f7c74b00374aa2a57f",
+      "runId": 43793514598,
+      "jobId": 133057050120,
+      "artifactId": 14193194314,
+      "zipSha256": "a6b6e373f2644eb07f03c83d65a214e3796172cc2fe280c2e2faf6022f0cff76",
+      "zipIndependentlyVerified": false,
+      "emissionPath": "test-results/managed-authority.json",
+      "reportedSourceCommit": null,
+      "headCommit": "2a5383307aaa4fcfb8a890d543793a91d925c40e",
+      "extraction": "Exact base64 bytes from successful workflow ALWAYS_ON_EVIDENCE record. Raw-record SHA-256 is independently checked in repository CI; ZIP digest is upload-reported."
+    },
+    {
+      "path": "native-final-runtime/managed-container.json",
+      "sha256": "66f653ba05bd16b1c19cccbc7653a90f4fb50af4e44f002216a8062f219943cb",
+      "runId": 43793514598,
+      "jobId": 133057050120,
+      "artifactId": 14193194314,
+      "zipSha256": "a6b6e373f2644eb07f03c83d65a214e3796172cc2fe280c2e2faf6022f0cff76",
+      "zipIndependentlyVerified": false,
+      "emissionPath": "test-results/managed-container.json",
+      "reportedSourceCommit": "2a5383307aaa4fcfb8a890d543793a91d925c40e",
+      "headCommit": "2a5383307aaa4fcfb8a890d543793a91d925c40e",
+      "extraction": "Exact base64 bytes from successful workflow ALWAYS_ON_EVIDENCE record. Raw-record SHA-256 is independently checked in repository CI; ZIP digest is upload-reported."
+    },
+    {
+      "path": "native-final-accounts/v03-accounts.json",
+      "sha256": "6e9d0ad9dc42215c729869dc6a97537ea9e06d125750084f066ebda652646b43",
+      "runId": 43793514659,
+      "jobId": 133057050571,
+      "artifactId": 14193600668,
+      "zipSha256": "4eadcc453deceb4cd08799e44f955112115a97f0a172d514c1c6df6d544b214c",
+      "zipIndependentlyVerified": false,
+      "emissionPath": "test-results/v03-accounts.json",
+      "reportedSourceCommit": "2a5383307aaa4fcfb8a890d543793a91d925c40e",
+      "headCommit": "2a5383307aaa4fcfb8a890d543793a91d925c40e",
+      "extraction": "Exact base64 bytes from successful workflow ALWAYS_ON_EVIDENCE record. Raw-record SHA-256 is independently checked in repository CI; ZIP digest is upload-reported."
+    },
+    {
+      "path": "native-final-accounts/v03-backup.json",
+      "sha256": "f3cfb6b31cd6d044f7f240da8af5f7ba6d4bc1919ff526bb7e451ec8d12fae69",
+      "runId": 43793514659,
+      "jobId": 133057050571,
+      "artifactId": 14193600668,
+      "zipSha256": "4eadcc453deceb4cd08799e44f955112115a97f0a172d514c1c6df6d544b214c",
+      "zipIndependentlyVerified": false,
+      "emissionPath": "test-results/v03-backup.json",
+      "reportedSourceCommit": "2a5383307aaa4fcfb8a890d543793a91d925c40e",
+      "headCommit": "2a5383307aaa4fcfb8a890d543793a91d925c40e",
+      "extraction": "Exact base64 bytes from successful workflow ALWAYS_ON_EVIDENCE record. Raw-record SHA-256 is independently checked in repository CI; ZIP digest is upload-reported."
+    },
+    {
+      "path": "native-final-accounts/control-proxy.json",
+      "sha256": "7409ca0ef6db58fc9529864ba989c31df09a7321d84110a4dcac1acd218af75e",
+      "runId": 43793514659,
+      "jobId": 133057050571,
+      "artifactId": 14193600668,
+      "zipSha256": "4eadcc453deceb4cd08799e44f955112115a97f0a172d514c1c6df6d544b214c",
+      "zipIndependentlyVerified": false,
+      "emissionPath": "test-results/control-proxy.json",
+      "reportedSourceCommit": "2a5383307aaa4fcfb8a890d543793a91d925c40e",
+      "headCommit": "2a5383307aaa4fcfb8a890d543793a91d925c40e",
+      "extraction": "Exact base64 bytes from successful workflow ALWAYS_ON_EVIDENCE record. Raw-record SHA-256 is independently checked in repository CI; ZIP digest is upload-reported."
+    },
+    {
+      "path": "native-final-accounts/mobile-component-contract.json",
+      "sha256": "0af30b157580e3f92a1b8f481bf12ddd358ea156ab5cd24e363fcc2121ebb206",
+      "runId": 43793514659,
+      "jobId": 133057050571,
+      "artifactId": 14193600668,
+      "zipSha256": "4eadcc453deceb4cd08799e44f955112115a97f0a172d514c1c6df6d544b214c",
+      "zipIndependentlyVerified": false,
+      "emissionPath": "test-results/mobile-component-contract.json",
+      "reportedSourceCommit": "2a5383307aaa4fcfb8a890d543793a91d925c40e",
+      "headCommit": "2a5383307aaa4fcfb8a890d543793a91d925c40e",
+      "extraction": "Exact base64 bytes from successful workflow ALWAYS_ON_EVIDENCE record. Raw-record SHA-256 is independently checked in repository CI; ZIP digest is upload-reported."
+    },
+    {
+      "path": "native-final-accounts/v03-release-gate.json",
+      "sha256": "74e8e4b992f4266a85a32795b3ceb288ba3bb6d00d05af887ed04e70b114bd2b",
+      "runId": 43793514659,
+      "jobId": 133057050571,
+      "artifactId": 14193600668,
+      "zipSha256": "4eadcc453deceb4cd08799e44f955112115a97f0a172d514c1c6df6d544b214c",
+      "zipIndependentlyVerified": false,
+      "emissionPath": "test-results/v03-release-gate.json",
+      "reportedSourceCommit": "2a5383307aaa4fcfb8a890d543793a91d925c40e",
+      "headCommit": "2a5383307aaa4fcfb8a890d543793a91d925c40e",
+      "extraction": "Exact base64 bytes from successful workflow ALWAYS_ON_EVIDENCE record. Raw-record SHA-256 is independently checked in repository CI; ZIP digest is upload-reported."
+    },
+    {
+      "path": "native-final-validation/core.json",
+      "sha256": "7d089e2977422d20ce8c9b7fc5bef97098f3ca2bf5d4988261993bd4301cdbb8",
+      "runId": 43793514656,
+      "jobId": 133057050698,
+      "headCommit": "2a5383307aaa4fcfb8a890d543793a91d925c40e",
+      "evidenceKind": "Derived workflow observation with retained exact log lines; not a copied native artifact."
+    },
+    {
+      "path": "native-final-validation/mac-24-profile-1.json",
+      "sha256": "94cea17d4324094a0159a329ed8ce85c120bdec3f51becbefa4d5b9ac61902ed",
+      "runId": 43790330720,
+      "jobId": 133047056154,
+      "headCommit": "db00da084ae70c08dd7a8c53aac9476b63f3cd39",
+      "evidenceKind": "Derived workflow observation with retained exact log lines; not a copied native artifact."
+    },
+    {
+      "path": "native-final-validation/mac-24-profile-2.json",
+      "sha256": "db58003be02af6d899e12be4da58184bdadb0f992b4878a708c0f95ceda2443e",
+      "runId": 43790330720,
+      "jobId": 133047056422,
+      "headCommit": "db00da084ae70c08dd7a8c53aac9476b63f3cd39",
+      "evidenceKind": "Derived workflow observation with retained exact log lines; not a copied native artifact."
     }
   ],
   "failedObservations": [
@@ -659,6 +982,11 @@
       "scope": "Development signing/unconfigured preview, not a hosted product"
     }
   ],
-  "evidenceIntegrity": "51 retained raw observations; hashes are verified independently of production acceptance. Historical failures are retained, not overwritten.",
-  "postMergeFollowUpCommit": "3f5cfe74ff32e62bb5ffde481eb2cd08eef39d76"
+  "evidenceIntegrity": "79 retained observations; exact raw records and explicitly labeled derived observations are SHA-256 checked in CI. Historical failures are retained, not overwritten.",
+  "postMergeFollowUpCommit": "3f5cfe74ff32e62bb5ffde481eb2cd08eef39d76",
+  "continuationPullRequest": 6,
+  "continuationDate": "2026-11-16",
+  "continuationImplementationCommit": "2a5383307aaa4fcfb8a890d543793a91d925c40e",
+  "continuationNativeProbeCommit": "49e64c9af1e7afcfaf10d946946f6095ce13e816",
+  "continuationStatus": "Engineering repair verified; production and physical-device release remain blocked."
 }

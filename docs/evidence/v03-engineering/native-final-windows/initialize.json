@@ -1,0 +1,12 @@
+{
+  "timestamp": "2026-11-16T02:54:31.249Z",
+  "sourceCommit": "49e64c9af1e7afcfaf10d946946f6095ce13e816",
+  "platform": "win32",
+  "nativePlugin": false,
+  "restartPersistence": false,
+  "remoteDesktopSession": false,
+  "realDeepSeek": false,
+  "realPhone": false,
+  "mvpReady": false,
+  "profileInitialized": true
+}

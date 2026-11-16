@@ -1,0 +1,63 @@
+{
+  "sourceCommit": "2a5383307aaa4fcfb8a890d543793a91d925c40e",
+  "nativeAndroidControls": true,
+  "actualHarness": true,
+  "testOnlyCredentialBootstrap": true,
+  "realIdentityProvider": false,
+  "realDeepSeek": false,
+  "realPhone": false,
+  "nativePush": false,
+  "mvpReady": false,
+  "observations": [
+    {
+      "stage": "Verified TLS and actual native secure storage"
+    },
+    {
+      "stage": "Native task form and persisted values match",
+      "taskId": "fda014f5-6982-457b-a268-30a8f1cb428c"
+    },
+    {
+      "stage": "Real Harness completed the task while native app process was absent",
+      "runId": "cf321603-5af4-4ab6-9ed9-ca09291c0444"
+    },
+    {
+      "stage": "Native memory consent, edit and deletion read back"
+    },
+    {
+      "stage": "Native goal create, pause and resume read back"
+    },
+    {
+      "stage": "Native chat and independent reader share Session and actual fixture result",
+      "sessionId": "session-8ba66e39-d71d-49b1-af24-31f09019436e"
+    },
+    {
+      "stage": "Actual native file export opened the system share chooser"
+    },
+    {
+      "stage": "Native contract completed; production and physical gates remain blocked"
+    }
+  ],
+  "authorityId": "a49df52a-166c-45a0-bf70-249d70fc6dbb",
+  "engineeringApkSha256": "b4f8ac2e9e6dae35193b00cb97ff63649a481d03024871c0141515999ab38a34",
+  "systemLauncherAnrDismissed": true,
+  "secureStoreRestoreAndVerifiedTls": true,
+  "taskId": "fda014f5-6982-457b-a268-30a8f1cb428c",
+  "offlineRunId": "cf321603-5af4-4ab6-9ed9-ca09291c0444",
+  "offlineNativeScheduleCompleted": true,
+  "sameTaskAfterNativeProcessRestart": true,
+  "memoryId": "65392e4e-5fbf-4d80-b2fb-cfc37679235b",
+  "nativeMemoryConsentEditDelete": true,
+  "goalId": "cdd24900-6ca8-40d3-94b2-46929ddf16e1",
+  "nativeGoalControls": true,
+  "nativeInboxRunNavigation": true,
+  "nativeModelContextHidden": true,
+  "nativeRuntimeContextHidden": true,
+  "chatSessionId": "session-8ba66e39-d71d-49b1-af24-31f09019436e",
+  "nativeSharedSessionChat": true,
+  "nativeDeviceReadAndHonestPushStatus": true,
+  "nativeExportFilenameVisible": true,
+  "nativeExportPagesReleased": true,
+  "nativeFileExportChooser": true,
+  "injectedTransportLossVisible": true,
+  "nativeReconnectRetainsId": true
+}

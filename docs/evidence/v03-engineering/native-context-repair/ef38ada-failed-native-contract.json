@@ -1,0 +1,14 @@
+{
+  "sourceCommit": "ef38ada7f3f5dbbf91eb7f8a3441d6267e409124",
+  "nativeAndroidControls": false,
+  "actualHarness": true,
+  "testOnlyCredentialBootstrap": true,
+  "realIdentityProvider": false,
+  "realDeepSeek": false,
+  "realPhone": false,
+  "nativePush": false,
+  "mvpReady": false,
+  "observations": [],
+  "authorityId": "acc39fc6-7f00-4444-a727-dff963c07157",
+  "engineeringApkSha256": "66306152281d248c149274a3c2483fda1de716521081386152385339f5892972"
+}

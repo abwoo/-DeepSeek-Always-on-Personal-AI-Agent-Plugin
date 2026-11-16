@@ -1,0 +1,14 @@
+{
+  "kind": "derived-workflow-observation",
+  "sourceCommit": "db00da084ae70c08dd7a8c53aac9476b63f3cd39",
+  "independentProfile": 1,
+  "jobConclusion": "success",
+  "requestedRestartPasses": 24,
+  "confirmedRestartPasses": 24,
+  "confirmedReadyBoots": 25,
+  "rawFinalReadyLogLine": "2026-11-16T02:25:15.2255210Z NATIVE_BOOT_READY {\"attempt\":25,\"startup\":{\"loaderAvailable\":true,\"services\":{\"schedule\":true,\"agents\":true,\"sessions\":true,\"tools\":true,\"systemPrompt\":true,\"connection\":true,\"webServer\":true,\"sessionController\":true,\"alwaysOn\":true},\"entries\":[{\"module\":\"@abwoo/deepseek-always-on\",\"enabled\":true,\"phase\":2},{\"module\":\"@abwoo/always-on-desktop-remote-probe\",\"enabled\":true,\"phase\":2},{\"module\":\"@abwoo/deepseek-always-on-desktop\",\"enabled\":true,\"phase\":2}]}}",
+  "evidenceBasis": "Successful signed Desktop job with unchanged per-restart identity, Session, authority and re-pair assertions; final raw ready observation retained. Full artifact remains in the workflow.",
+  "realDeepSeek": false,
+  "realPhone": false,
+  "mvpReady": false
+}

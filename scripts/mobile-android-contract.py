@@ -8,21 +8,41 @@ package='com.abwoo.deepseekalwayson.engineering'
 evidence={'sourceCommit':os.environ['GITHUB_SHA'],'nativeAndroidControls':False,'actualHarness':True,'testOnlyCredentialBootstrap':True,'realIdentityProvider':False,'realDeepSeek':False,'realPhone':False,'nativePush':False,'mvpReady':False,'observations':[]}
 context=ssl.create_default_context(cafile=os.environ['ALWAYS_ON_NATIVE_TLS_CERT'])
 backend=None; log=None
+class SnapshotUnavailable(RuntimeError): pass
 
-def adb(*args):return subprocess.check_output(['adb',*map(str,args)],stderr=subprocess.STDOUT,timeout=35)
+def snapshot_unavailable(kind):
+ evidence['snapshotCollectionRetryCount']=evidence.get('snapshotCollectionRetryCount',0)+1
+ warnings=evidence.setdefault('snapshotCollectionWarnings',[])
+ if len(warnings)<20:warnings.append(kind)
+ print('Native snapshot unavailable: '+kind,flush=True)
+ return SnapshotUnavailable('Fresh native hierarchy unavailable: '+kind)
+
+def adb(*args):
+ result=subprocess.run(['adb',*map(str,args)],stdout=subprocess.PIPE,stderr=subprocess.PIPE,timeout=35,check=True)
+ if result.stderr:
+  evidence['adbDiagnosticCount']=evidence.get('adbDiagnosticCount',0)+1
+  observations=evidence.setdefault('adbDiagnosticObservations',[])
+  if len(observations)<20:observations.append({'command':str(args[0]) if args else '', 'stderrBytes':len(result.stderr)})
+ return result.stdout
 def get(path='/engineering/state',post=False):
  req=urllib.request.Request('https://127.0.0.1:8443'+path,method='POST' if post else 'GET')
  with urllib.request.urlopen(req,context=context,timeout=25) as r:return json.load(r)
 def wait(check,timeout=35):
  end=time.monotonic()+timeout
  while time.monotonic()<end:
-  value=check()
+  try:value=check()
+  except SnapshotUnavailable:value=False
   if value:return value
   time.sleep(1)
  raise RuntimeError('Native contract observation timed out')
 def tree():
- adb('shell','uiautomator','dump','/sdcard/native-contract.xml')
- raw=adb('exec-out','cat','/sdcard/native-contract.xml');root=ET.fromstring(raw)
+ adb('shell','rm','-f','/sdcard/native-contract.xml')
+ dumped=adb('shell','uiautomator','dump','/sdcard/native-contract.xml')
+ if b'UI hierchary dumped to:' not in dumped:raise snapshot_unavailable('dump_not_confirmed')
+ raw=adb('exec-out','cat','/sdcard/native-contract.xml')
+ try:root=ET.fromstring(raw)
+ except ET.ParseError:raise snapshot_unavailable('malformed_xml') from None
+ if root.tag!='hierarchy':raise snapshot_unavailable('wrong_xml_root')
  text=' '.join(n.attrib.get('text','')+' '+n.attrib.get('content-desc','') for n in root.iter('node'))
  if "isn't responding" in text:
   if "Pixel Launcher isn't responding" not in text:raise RuntimeError('Application under test is not responding')
@@ -44,7 +64,9 @@ def capture(name):
 def scroll(up=False):adb('shell','input','swipe',width//2,int(height*(.43 if up else .82)),width//2,int(height*(.82 if up else .43)),300);time.sleep(.4)
 def find(label,field=False,scrolling=True):
  for attempt in range(13 if scrolling else 1):
-  root=tree()
+  try:root=tree()
+  except SnapshotUnavailable:
+   time.sleep(.4);continue
   nodes=[n for n in root.iter('node') if (n.attrib.get('content-desc')==label or n.attrib.get('text')==label) and (not field or n.attrib.get('class')=='android.widget.EditText')]
   nodes.sort(key=lambda n:(n.attrib.get('clickable')!='true',n.attrib.get('content-desc')!=label))
   for n in nodes:
@@ -135,7 +157,9 @@ try:
  conversation=get('/engineering/conversation?id='+sid)
  assert conversation['sessionId']==sid and 'Native model fixture hello' in json.dumps(conversation) and 'Fixture check complete.' in json.dumps(conversation)
  assert any(r.get('event',{}).get('type')=='user/message' and r['event'].get('data',{}).get('source',{}).get('kind')=='runtime-context' for r in conversation['events']['records']),'Native runtime history was unexpectedly removed'
+ assert any(r.get('event',{}).get('type')=='user/message' and r['event'].get('data',{}).get('source',{}).get('form')=='catalog' for r in conversation['events']['records']),'Native catalog was unexpectedly removed from authoritative history'
  assert '<system-reminder>' not in words(),'Internal native runtime snapshot leaked into normal chat'
+ evidence['nativeModelContextHidden']=True
  capture('chat');evidence['nativeRuntimeContextHidden']=True
  evidence['chatSessionId']=sid;evidence['nativeSharedSessionChat']=True;note('Native chat and independent reader share Session and actual fixture result',sessionId=sid)
  tab('Devices');find('Native engineering device');tap('Check notification delivery');wait(lambda:'Push service not configured' in words());evidence['nativeDeviceReadAndHonestPushStatus']=True

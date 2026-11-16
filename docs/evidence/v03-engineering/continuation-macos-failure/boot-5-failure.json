@@ -1,0 +1,16 @@
+{
+  "attempt": 5,
+  "childExited": false,
+  "exitCode": null,
+  "pages": [
+    {
+      "origin": "dsh-app://app",
+      "pathname": "/",
+      "routes": {
+        "/api/always-on": 404,
+        "/api/always-on-desktop/status": 200
+      }
+    }
+  ],
+  "filteredDiagnostics": []
+}

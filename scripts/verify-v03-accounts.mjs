@@ -14,6 +14,7 @@ import { AgentPool } from '../dist/control/pool.js';
 import { controlServer } from '../dist/control/server.js';
 import { AccountApi, AccountManagedClient } from '../dist/shared/account-client.js';
 import { ManagedClient } from '../dist/shared/managed-client.js';
+import { conversationRows } from '../dist/shared/messages.js';
 const nativeFixture = process.argv.includes('--native-fixture');
 const productOrigin = nativeFixture ? 'https://127.0.0.1:8443' : 'https://service-fixture.invalid';
 const root = await mkdtemp(join(tmpdir(), 'always-on-v03-')),
@@ -314,6 +315,19 @@ try {
       'Real account-backed native input receipt',
     ),
   );
+  // Exercise the same chat projection that Desktop and the native mobile bundle use
+  // against actual Harness events, including its real skill catalog producer.
+  await until(async () => {
+    const conversation = await mobile.readSession(sessionId);
+    const events = conversation.events.records.filter(r => r.type === 'event').map(r => r.event);
+    return conversationRows(events).some(row => row.role === 'assistant' && row.text === 'Fixture check complete.');
+  });
+  const conversation = await mobile.readSession(sessionId);
+  const conversationEvents = conversation.events.records.filter(r => r.type === 'event').map(r => r.event);
+  assert.ok(conversationEvents.some(e => e.type === 'user/message' && e.data.source?.form === 'catalog'), 'Actual Harness catalog missing from preserved history');
+  const chatRows = conversationRows(conversationEvents);
+  assert.ok(chatRows.some(row => row.role === 'you' && row.text === 'Real account-backed native input receipt; deterministic adapter only.'));
+  assert.ok(chatRows.every(row => !row.text.includes('<system-reminder>')), 'Internal native context leaked into shared chat projection');
   await assert.rejects(() => other.readSession(sessionId));
   const goal = await mobile.createGoal(randomUUID(), {
     title: 'Bounded ongoing goal',

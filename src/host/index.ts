@@ -3,6 +3,7 @@ import { defineTool } from '@deepseek-ai/dsh-tools';
 import type { Agent } from '@deepseek-ai/dsh-agent';
 import type {} from '@deepseek-ai/dsh-session';
 import type {} from '@deepseek-ai/dsh-schedule';
+import type {} from '@deepseek-ai/dsh-api-session-controller';
 import type {} from '@deepseek-ai/dsh-client-connection';
 import type {} from '@deepseek-ai/dsh-host-webserver';
 import { resolve } from 'node:path';
@@ -16,12 +17,12 @@ import { createApi } from './api.js';
 export const name = 'abwoo-always-on';
 export const inject = [
   'schedule',
+  'sessionController',
   'agents',
   'sessions',
   'tools',
   'systemPrompt',
   'connection',
-  'webServer',
 ];
 export interface Config {
   dataDir?: string;
@@ -85,7 +86,6 @@ export async function apply(ctx: Context, config: Config = {}) {
     };
     const c = new Coordinator(store, scheduler, notifications);
     if (process.env.ALWAYS_ON_ACCOUNT_EXECUTION_REQUIRED === '1') c.executionAllowed = () => false;
-    new AlwaysOnService(ctx, c, memory, notifications);
     ctx.on('llm/stream', async function* (_options, next) {
       if (c.executionAllowed?.() === false)
         throw new Error('Managed account execution is suspended or awaiting renewal');
@@ -108,12 +108,22 @@ export async function apply(ctx: Context, config: Config = {}) {
           'Host restarted during schedule creation. Inspect the native task before recreating.';
         if (entry) {
           task.scheduleId = entry.id;
-          await scheduler.edit({ id: entry.id, action: 'update', patch: { active: false } });
+          const receipt = await scheduler.edit({ id: entry.id, action: 'update', patch: { active: false } }) as { id?: string; status?: string; code?: string };
+          if (receipt?.id !== entry.id || receipt.code || !['paused', 'ended'].includes(receipt.status ?? ''))
+            task.error = 'Task pause during recovery is unconfirmed; review before retrying.';
         }
         store.put('tasks', task.id, task);
       } else if (task.state === 'active' && task.suspendedForUnload && entry?.status === 'paused') {
-        await scheduler.edit({ id: entry.id, action: 'update', patch: { active: true } });
+        const receipt = await scheduler.edit({ id: entry.id, action: 'update', patch: { active: true } }) as { id?: string; status?: string; code?: string };
+        if (receipt?.id !== entry.id || receipt.code || receipt.status !== 'active') {
+          task.state = 'error';
+          task.suspendedForUnload = false;
+          task.error = 'Task restart is unconfirmed; review before retrying.';
+          store.put('tasks', task.id, task);
+          continue;
+        }
         task.suspendedForUnload = false;
+        delete task.error;
         store.put('tasks', task.id, task);
       } else if (
         task.state === 'active' &&
@@ -390,6 +400,8 @@ export async function apply(ctx: Context, config: Config = {}) {
         })(),
       );
     });
+    // Native recovery, routes and hooks are ready before dependents activate.
+    new AlwaysOnService(ctx, c, memory, notifications);
     const pushTimer = setInterval(() => {
       for (const run of c.runs().filter((r) => r.status === 'queued')) {
         const task = c.requireTask(run.taskId);

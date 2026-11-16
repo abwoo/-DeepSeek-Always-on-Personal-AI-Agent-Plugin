@@ -1,0 +1,78 @@
+{
+  "kind": "workflow-log-observation",
+  "headCommit": "9ca098572b19633ff76c1cfabae5c16891f8a8e4",
+  "runId": 43789067273,
+  "jobId": 133043130973,
+  "rawLogLine": "2026-11-16T02:02:37.6088960Z NATIVE_BOOT_FAILURE {\"attempt\":10,\"pages\":[{\"origin\":\"dsh-app://app\",\"pathname\":\"/\",\"routes\":{\"/api/always-on\":404,\"/api/always-on-desktop/status\":200},\"startup\":{\"loaderAvailable\":true,\"services\":{\"schedule\":true,\"agents\":true,\"sessions\":true,\"tools\":true,\"systemPrompt\":true,\"connection\":true,\"webServer\":true,\"alwaysOn\":false},\"entries\":[{\"module\":\"@abwoo/deepseek-always-on\",\"enabled\":true,\"phase\":3,\"failure\":{\"message\":\"This Host cannot create Sessions; choose an existing Session target.\",\"type\":\"unknown\",\"frames\":[{\"file\":\"index.js\",\"line\":2517,\"column\":60},{\"file\":\"index.js\",\"line\":122,\"column\":36},{\"file\":\"index.js\",\"line\":2511,\"column\":64},{\"file\":\"index.js\",\"line\":2431,\"column\":6}],\"categories\":[]}},{\"module\":\"@abwoo/always-on-desktop-remote-probe\",\"enabled\":true,\"phase\":2},{\"module\":\"@abwoo/deepseek-always-on-desktop\",\"enabled\":true,\"phase\":2}]}}]}",
+  "observation": {
+    "attempt": 10,
+    "pages": [
+      {
+        "origin": "dsh-app://app",
+        "pathname": "/",
+        "routes": {
+          "/api/always-on": 404,
+          "/api/always-on-desktop/status": 200
+        },
+        "startup": {
+          "loaderAvailable": true,
+          "services": {
+            "schedule": true,
+            "agents": true,
+            "sessions": true,
+            "tools": true,
+            "systemPrompt": true,
+            "connection": true,
+            "webServer": true,
+            "alwaysOn": false
+          },
+          "entries": [
+            {
+              "module": "@abwoo/deepseek-always-on",
+              "enabled": true,
+              "phase": 3,
+              "failure": {
+                "message": "This Host cannot create Sessions; choose an existing Session target.",
+                "type": "unknown",
+                "frames": [
+                  {
+                    "file": "index.js",
+                    "line": 2517,
+                    "column": 60
+                  },
+                  {
+                    "file": "index.js",
+                    "line": 122,
+                    "column": 36
+                  },
+                  {
+                    "file": "index.js",
+                    "line": 2511,
+                    "column": 64
+                  },
+                  {
+                    "file": "index.js",
+                    "line": 2431,
+                    "column": 6
+                  }
+                ],
+                "categories": []
+              }
+            },
+            {
+              "module": "@abwoo/always-on-desktop-remote-probe",
+              "enabled": true,
+              "phase": 2
+            },
+            {
+              "module": "@abwoo/deepseek-always-on-desktop",
+              "enabled": true,
+              "phase": 2
+            }
+          ]
+        }
+      }
+    ]
+  },
+  "productionAcceptance": false
+}

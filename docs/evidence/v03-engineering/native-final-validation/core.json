@@ -1,0 +1,19 @@
+{
+  "kind": "derived-workflow-observation",
+  "sourceCommit": "2a5383307aaa4fcfb8a890d543793a91d925c40e",
+  "tests": 82,
+  "passed": 82,
+  "failed": 0,
+  "skipped": 0,
+  "browserContracts": 3,
+  "rawLogLines": [
+    "2026-11-16T02:41:16.9444437Z ✔ real Cordis startup: native new-once recovery waits for SessionController and retains task identities (45.182627ms)",
+    "2026-11-16T02:41:16.9445929Z ✔ real Cordis startup never promotes an unconfirmed native recovery receipt to an active task (59.835083ms)",
+    "2026-11-16T02:41:16.9511534Z ℹ tests 82",
+    "2026-11-16T02:41:16.9512076Z ℹ pass 82",
+    "2026-11-16T02:41:16.9512287Z ℹ fail 0",
+    "2026-11-16T02:41:16.9512741Z ℹ skipped 0",
+    "2026-11-16T02:42:05.6893302Z   3 passed (24.7s)"
+  ],
+  "mvpReady": false
+}

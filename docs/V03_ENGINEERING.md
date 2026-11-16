@@ -1,5 +1,7 @@
 # v0.3 engineering stabilization and verification
 
+Latest continuation: [native chat and startup repair](V03_NATIVE_REPAIR.md). Earlier observations below remain historical; production gates are independent.
+
 Updated 2026-11-16 (Asia/Shanghai); referenced engineering runs occurred on 2026-11-15 UTC. Engineering Preview; **MVP Ready: false**. [PR #4](https://github.com/abwoo/-DeepSeek-Always-on-Personal-AI-Agent-Plugin/pull/4), based on main `7f18534bda7506162e0377321150c560c21244b9`. Initial implementation `0768ad0f66de8601999f2d32f9d76e43edf44877`; extended product/runtime/contract implementation `b4b63e6aa32ce4db23f81fc59314b3a8d4c3b4fa`; authentication assertion/redacted probe follow-up `67ac405a36290ea5c4f1eae8cea617dddf15400c`. The selected stabilization checks passed, including the complete Android native interaction workflow. This is not completion of the entire v0.3 product or its production acceptance. Subsequent checkpoint/runtime fixes are `0d164bd`; native readback tests `3083f41`; integrity verifier `d3cad0f`.
 
 ## Implemented in this pass

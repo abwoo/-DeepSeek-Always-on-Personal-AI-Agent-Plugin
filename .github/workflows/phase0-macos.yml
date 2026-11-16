@@ -17,6 +17,9 @@ on:
       - package-lock.json
 permissions:
   contents: read
+concurrency:
+  group: phase0-macos-${{ github.ref }}
+  cancel-in-progress: true
 jobs:
   actual-desktop:
     runs-on: macos-15

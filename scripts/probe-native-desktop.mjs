@@ -7,6 +7,7 @@ import { promisify } from 'node:util';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { setTimeout as delay } from 'node:timers/promises';
 import { createServer } from 'node:http';
+import { createHash } from 'node:crypto';
 import { dirname, join, resolve } from 'node:path';
 import { ManagedClient } from '../dist/shared/managed-client.js';
 import { connectProbe } from '../dist/remote/probe-connection.js';
@@ -252,6 +253,16 @@ async function boot(action) {
           { timeout: 30000 },
         )
         .toBe(200);
+    const startup = await page.evaluate(async () => {
+      try {
+        const response = await fetch('/api/always-on-phase0-startup');
+        return response.ok ? await response.json() : null;
+      } catch { return null; }
+    });
+    if (startup) {
+      await writeFile(join(output, `boot-${attempt}-ready.json`), JSON.stringify({attempt, startup}, null, 2));
+      console.log('NATIVE_BOOT_READY ' + JSON.stringify({attempt, startup}));
+    }
     await action(page);
   } catch (error) {
     const pages = [];
@@ -264,15 +275,24 @@ async function boot(action) {
           catch { routes[path] = 0; }
         }
         // No DOM text, query strings, headers, response bodies or credentials.
-        return { origin: location.origin, pathname: location.pathname, routes };
+        let startup;
+        try {
+          const response = await fetch('/api/always-on-phase0-startup');
+          if (response.ok) startup = await response.json();
+        } catch {}
+        return { origin: location.origin, pathname: location.pathname, routes, startup };
       }).catch(() => ({ unavailable: true })));
     }
     await writeFile(join(output, `boot-${attempt}-failure.json`), JSON.stringify({
       attempt, childExited: child.exitCode !== null, exitCode: child.exitCode,
       pages, filteredDiagnostics: diagnosticLines,
     }, null, 2));
+    console.log('NATIVE_BOOT_FAILURE ' + JSON.stringify({ attempt, pages }));
     throw error;
   } finally {
+    await writeFile(join(output, `boot-${attempt}-startup.json`), JSON.stringify({
+      attempt, filteredDiagnostics: diagnosticLines,
+    }, null, 2));
     await browser?.close().catch(() => {});
     // Only this newly spawned disposable CI app tree. No user machine is touched.
     await stopTree(child);
@@ -424,7 +444,12 @@ try {
         return response.json();
       });
       const task = state.tasks.find((t) => t.title === 'Native Desktop persistence proof');
-      if (!task?.id) throw new Error('UI mutation did not persist a task on the native Host');
+      if (!task?.id || !task.scheduleId || !task.sessionId)
+        throw new Error('UI mutation did not persist native task, Schedule and reserved Session identities');
+      if (task.state !== 'active' || typeof task.nextScheduledAt !== 'string')
+        throw new Error('Created native task was not confirmed as armed');
+      evidence.nativeScheduleId = task.scheduleId;
+      evidence.nativeTaskSessionId = task.sessionId;
       id = task.id;
       evidence.nativePlugin = true;
       await capture(page, 'native-plugin.png');
@@ -591,18 +616,25 @@ try {
     }
     evidence.remoteReadableWithDesktopStopped = true;
     const restartPasses = Number(process.env.ALWAYS_ON_DESKTOP_RESTART_PASSES ?? 1);
-    if (!Number.isSafeInteger(restartPasses) || restartPasses < 1 || restartPasses > 5)
-      throw Error('Native restart pass count must be an integer from one to five');
+    if (!Number.isSafeInteger(restartPasses) || restartPasses < 1 || restartPasses > 24)
+      throw Error('Native restart pass count must be an integer from one to twenty-four');
     evidence.requestedRestartPasses = restartPasses;
     evidence.confirmedRestartPasses = 0;
     evidence.allRequestedRestartsPassed = false;
+    evidence.nativeScheduleRearmedAfterEveryRestart = false;
     for (let pass = 0; pass < restartPasses; pass++) {
       evidence.restartPersistence = false;
       await boot(async (page) => {
         await page.getByText('Always-on', { exact: true }).click();
         const state = await page.evaluate(async () => (await fetch('/api/always-on')).json());
-        if (!state.tasks.some((t) => t.id === id))
-          throw new Error('Task lost after actual Desktop process restart');
+        const restoredTask = state.tasks.find((t) => t.id === id);
+        if (!restoredTask) throw new Error('Task lost after actual Desktop process restart');
+        if (restoredTask.scheduleId !== evidence.nativeScheduleId ||
+            restoredTask.sessionId !== evidence.nativeTaskSessionId)
+          throw new Error('Native recovery changed the Schedule or reserved Session identity');
+        if (restoredTask.state !== 'active' || restoredTask.suspendedForUnload ||
+            restoredTask.error || typeof restoredTask.nextScheduledAt !== 'string')
+          throw new Error('Native task was not confirmed as rearmed after process restart');
         evidence.restartPersistence = true;
         evidence.taskId = id;
         await page.getByText('Remote Session probe', { exact: true }).click();
@@ -653,6 +685,7 @@ try {
       evidence.confirmedRestartPasses = pass + 1;
     }
     evidence.allRequestedRestartsPassed = true;
+    evidence.nativeScheduleRearmedAfterEveryRestart = true;
   }
 } catch (error) {
   evidence.blocker = error.message;
@@ -660,15 +693,17 @@ try {
 } finally {
   await observer?.close();
   await stopTree(remoteProcess);
-  await writeFile(
-    join(
-      output,
-      process.argv.includes('--initialize')
-        ? 'initialize.json'
-        : process.argv.includes('--plugins-ui')
-          ? 'plugins-ui.json'
-          : 'plugin.json',
-    ),
-    JSON.stringify({ timestamp: new Date().toISOString(), ...evidence }, null, 2),
-  );
+  const filename = process.argv.includes('--initialize')
+    ? 'initialize.json'
+    : process.argv.includes('--plugins-ui') ? 'plugins-ui.json' : 'plugin.json';
+  const record = { timestamp: new Date().toISOString(), sourceCommit: process.env.GITHUB_SHA, ...evidence };
+  const bytes = JSON.stringify(record, null, 2);
+  await writeFile(join(output, filename), bytes);
+  // Successful records contain only fixture identities/origins and explicit scope flags.
+  // Failures keep their existing artifact; never expand arbitrary exception text into logs.
+  if (!('blocker' in evidence)) console.log('ALWAYS_ON_EVIDENCE ' + JSON.stringify({
+    path: join(output, filename), checkoutCommit: process.env.GITHUB_SHA,
+    sha256: createHash('sha256').update(bytes).digest('hex'),
+    base64: Buffer.from(bytes).toString('base64'), record,
+  }));
 }
