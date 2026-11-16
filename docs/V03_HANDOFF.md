@@ -1,6 +1,6 @@
 # v0.3 operator handoff and user experience
 
-**Candidate only, not a live service or MVP Ready.** Original implementation source: `95793a60d3475be5b36a425562cb4065daba19f1`. See [acceptance](V03_ACCEPTANCE.md) and [evidence manifest](evidence/v03/manifest.json). Latest policy/proxy implementation: [stabilization](V03_STABILIZATION.md). Subsequent export, client and runtime evidence: [engineering stabilization](V03_ENGINEERING.md). Existing alpha releases remain unchanged. Ordinary users should not be asked to deploy or configure infrastructure.
+**Candidate only, not a live service or MVP Ready.** Original implementation source: `95793a60d3475be5b36a425562cb4065daba19f1`. See [acceptance](V03_ACCEPTANCE.md) and [evidence manifest](evidence/v03/manifest.json). Latest policy/proxy implementation: [stabilization](V03_STABILIZATION.md). Subsequent export, client and runtime evidence: [engineering stabilization](V03_ENGINEERING.md). Native SessionController startup, task-recovery receipt and shared-chat repairs are documented in the [latest native repair record](V03_NATIVE_REPAIR.md). Existing alpha releases remain unchanged. Ordinary users should not be asked to deploy or configure infrastructure.
 
 ## Current deliverables
 

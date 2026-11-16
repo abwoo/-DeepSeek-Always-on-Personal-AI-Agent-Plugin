@@ -2,6 +2,10 @@
 
 **Not a published v0.3.0 release. Not MVP Ready.** App implementation: `95793a60d3475be5b36a425562cb4065daba19f1`; native probe HTTP follow-up: `610ba0b51802844c646bc73d8ac9930412cc210a`. Acceptance/evidence and operator prerequisites are linked from the README. The existing Web alpha release/version is preserved.
 
+## Engineering stabilization — 2026-11-16
+
+Native startup now waits for SessionController before rearming reserved-session schedules, preserves existing Task/Schedule/Session identities and checks recovery receipts before reporting success. Shared Desktop/mobile chat hides native model-context catalogs/instructions/snapshots while preserving user quotations and full authoritative history. Native observation collection separates ADB diagnostics from XML/image bytes and retains original retry deadlines and application failures. Exact validation and remaining production blockers are in [the native repair record](V03_NATIVE_REPAIR.md).
+
 ## Changes
 
 - Official Desktop Plugins metadata/package and actual macOS/Windows GUI lifecycle verification; native Personal Agent sidebar and account-first welcome.

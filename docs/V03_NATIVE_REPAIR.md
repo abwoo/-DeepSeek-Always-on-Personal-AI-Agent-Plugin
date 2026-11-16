@@ -1,53 +1,55 @@
-# v0.3 native repair continuation
+# v0.3 native repair — verified engineering continuation
 
-Engineering Preview. Production T01–T22 remain blocked. This report does not certify hosted identity, real DeepSeek, physical-phone push, signing or distribution.
+**Engineering Preview; MVP Ready: false. Production T01–T22 remain Blocked.** PR #6 repairs the captured startup failure and native conversation leakage. It does not deliver a live account service, real-provider execution or a physical-phone release.
 
-## Shared chat repair
+## Startup failure and recovery
 
-Native Android run [43754213125](https://github.com/abwoo/-DeepSeek-Always-on-Personal-AI-Agent-Plugin/actions/runs/43754213125) failed because the actual skill-catalog producer appeared as a Task/context message containing system-reminder instructions. Filtering only runtime-context did not cover this producer.
-
-Shared Desktop/mobile conversation projection now uses native source semantics: model instructions, catalogs and snapshots stay in authoritative history while ordinary chat omits them; notices show their producer summary. Exact user quotations, model replies and undeclared context are preserved. Actual two-Harness account testing also checks the shared projection against genuine native catalog events.
-
-At source `170524194f326a87c5909efd0da51a757b1168d0`, core validation passed 76 tests with zero failures/skips, plus three browser contracts. Android [native job 133027403311](https://github.com/abwoo/-DeepSeek-Always-on-Personal-AI-Agent-Plugin/actions/runs/43783993339/job/133027403311) passed real RN controls, TLS/secure storage, Task pause/resume, execution with the App absent, persisted IDs, Memory/Goal operations, shared Session chat without internal runtime text, actual native file-share chooser and reconnect. Identity/model are fixtures. Exact raw records and their hashes are indexed under `native-context-repair` in the engineering manifest; the ZIP digests are upload-reported, not independently downloaded here.
-
-## Carrier-neutral core repair
-
-The core declared webServer as required although its two Fetch routes use the carrier-neutral Connection registry. A real Cordis/SQLite lifecycle fixture reproduced pending phase 0 without webServer, active phase 2 with it, and missing routes after its removal. The unused dependency is removed at `6ce7fcc695a0b08f511e24e91a29fd61e39c56e9`. Regression verifies native route readiness, API reads, consented memory, independence from HTTP service lifetime and cleanup.
-
-This is a verified independent coupling defect. It is **not yet the established cause of Issue #5**: the original native macOS 404 recurred while webServer and every other declared dependency were available.
-
-## macOS restart investigation
-
-The original four-restart assertions remain, with bounded reproduction expanded to twelve passes. Only the separately installed private CI probe reads Loader phases, service availability and filtered error metadata. It never ships in the Desktop bundle.
-
-- Source 1705241: run [43783993352](https://github.com/abwoo/-DeepSeek-Always-on-Personal-AI-Agent-Plugin/actions/runs/43783993352) confirmed three restarts then failed at boot 5 with core 404 and Desktop status 200. Host stderr did not reach Electron stdout, so content-free stderr tracing was removed.
-- Source 262c7bf: run [43784637728](https://github.com/abwoo/-DeepSeek-Always-on-Personal-AI-Agent-Plugin/actions/runs/43784637728) passed all four restarts; this did not establish a repair.
-- Source ef38ada: run [43785326882](https://github.com/abwoo/-DeepSeek-Always-on-Personal-AI-Agent-Plugin/actions/runs/43785326882) reached boot 7 then failed. All dependencies remained available, but the core Loader fiber was failed (phase 3), while both other plugins were active. Issue #5 remains open.
-
-Retained exact failure log observation:
-
-```text
-2026-11-16T01:23:23.0813700Z NATIVE_BOOT_FAILURE {"attempt":7,"pages":[{"origin":"dsh-app://app","pathname":"/","routes":{"/api/always-on":404,"/api/always-on-desktop/status":200},"startup":{"loaderAvailable":true,"services":{"schedule":true,"agents":true,"sessions":true,"tools":true,"systemPrompt":true,"connection":true,"webServer":true,"alwaysOn":false},"entries":[{"module":"@abwoo/deepseek-always-on","enabled":true,"phase":3,"failure":{"categories":[]}},{"module":"@abwoo/always-on-desktop-remote-probe","enabled":true,"phase":2},{"module":"@abwoo/deepseek-always-on-desktop","enabled":true,"phase":2}]}}]}
-```
-
-## Captured startup root cause and repair
-
-The two-profile reproduction at source `9ca098572b19633ff76c1cfabae5c16891f8a8e4`, [run 43789067273, job 133043130973](https://github.com/abwoo/-DeepSeek-Always-on-Personal-AI-Agent-Plugin/actions/runs/43789067273/job/133043130973), captured the actual error at boot 10:
+Creating a delayed task, closing Desktop before its first delivery and reopening could leave the core API at 404 while Desktop itself remained available. [Two-profile reproduction, job 133043130973](https://github.com/abwoo/-DeepSeek-Always-on-Personal-AI-Agent-Plugin/actions/runs/43789067273/job/133043130973), captured this native error at boot 10:
 
 > This Host cannot create Sessions; choose an existing Session target.
 
-Trigger: create a delayed native task, exit before its first delivery, then relaunch. Its `new_once` target has a reserved Session ID but no persisted Session yet. Always-on resumes the native Schedule it paused for plugin unload. Native Schedule revalidates Session-creation capability during that resume. Schedule itself was ready before `sessionController`; this rejection escaped core startup, failed its Cordis fiber and removed both APIs.
+A `new_once` Schedule already has a reserved Session ID, but that Session may not yet exist in persistence. During recovery, native Schedule validates creation capability before rearming it. Schedule was ready before SessionController, and the rejection failed the entire core plugin. The same requirement is present in the [pinned 0.2.2-rc.3 source at 38a6a5c](https://github.com/deepseek-ai/deepseek-harness/blob/38a6a5c965aa99ab525161efb7cc5cf1fe62fced/packages/schedule/schedule/src/index.ts).
 
-At `db00da084ae70c08dd7a8c53aac9476b63f3cd39`, core explicitly requires the native SessionController before recovery. It preserves the existing Task/Schedule/reserved Session IDs and uses the existing native edit operation. It does not recreate tasks or add an Agent runtime. A real Cordis/SQLite regression reproduces the exact old refusal with the old dependency metadata, then verifies the fixed startup waits, resumes once and survives Controller removal/restoration without changing IDs. Peer services in this regression are labeled fixtures; actual signed macOS validation remains separate.
+Core now explicitly waits for `sessionController`, retains the existing Task/Schedule/reserved Session identities and uses the original native edit operation. Its unused HTTP-server dependency is removed; Connection Fetch routes remain carrier-neutral. The Always-on service is published after native recovery, routing and hooks are ready.
 
-An additional readiness barrier publishes the Always-on service only after native recovery, routes and hooks are ready. The earlier carrier-neutral HTTP dependency repair remains a separate correction.
+Recovery also checks native acknowledgement identity/status/code. Negative, mismatched or still-paused resume receipts become explicit task errors rather than an active-task claim. An unconfirmed pause during interrupted creation is visible as an error. These cases retain their identities and leave the healthy API available.
 
-Raw redacted failure and source locations are retained as `native-startup-diagnosis/failed-9ca0985.json` in the engineering manifest. Exception type was outside the probe's narrow name allowlist, so its recorded type is `unknown`; its actual captured message and source locations established the cause.
+Real Cordis/SQLite tests reproduce the old missing-dependency refusal, verify waiting and controller removal/restoration, and cover all four unconfirmed-receipt cases. Peer services in these lifecycle tests are fixtures; signed Desktop checks below are separate.
 
-## Native observation collector repair
+## Native conversation and observation repair
 
-Sources ef38ada and 42bc886 failed before task forms because UIAutomator hierarchy bytes could not be parsed as XML. Their native-controls flags remain false and both raw records are retained. The collector now removes an old dump, requires confirmation of a fresh hierarchy, validates its root and retries only unavailable observations within the existing wait deadline. Invalid UI never becomes a pass; actual application assertions still propagate. A deterministic clock regression verifies these boundaries. Repaired-source native interaction validation is in progress.
+The previous runtime-context-only projection missed the native skill-catalog producer. Shared Desktop/mobile chat now omits model instructions, catalogs and snapshots according to native source metadata, and presents producer notice summaries. Exact user quotations, model replies, undeclared context and complete authoritative history are preserved.
 
-## Remaining release work
+The actual two-Harness account contract and Android OS controls verify that native catalogs remain in history while internal reminders disappear from ordinary chat. Native observation collection requires a fresh confirmed hierarchy, separates ADB diagnostic output from XML/image bytes, and retries unavailable observations without resetting the existing wait budget. Application assertions and persistent collection failures remain failures.
 
-Latest repaired-source native checks are in progress. Issue #5 will remain open until the targeted regression and independent signed macOS restart runs verify the repair. No MVP Ready declaration, release tag, npm publication, cloud deployment, Apple provisioning or physical push is claimed. See [operator handoff](V03_HANDOFF.md) for the real service, identity/provider credentials, signing, devices and production acceptance still required.
+## Verified checks
+
+| Check | Result and source | Inspectable run |
+|---|---|---|
+| Core unit/integration + browser | 82/82, zero skipped; 3 browser contracts; source `2a53833` | [43793514656](https://github.com/abwoo/-DeepSeek-Always-on-Personal-AI-Agent-Plugin/actions/runs/43793514656) |
+| Two actual account-owned Harnesses, execution leases, proxy and coordinated backup fixtures | Passed; source `2a53833`; identity/model are fixtures | [43793514659](https://github.com/abwoo/-DeepSeek-Always-on-Personal-AI-Agent-Plugin/actions/runs/43793514659) |
+| Managed authority/TLS/container fixtures | Passed; real DeepSeek remains unverified | [43793514598](https://github.com/abwoo/-DeepSeek-Always-on-Personal-AI-Agent-Plugin/actions/runs/43793514598) |
+| Captured-race repair in two independent signed macOS profiles | 24 restarts each, 48 total; source `db00da0`; unchanged identity/authority assertions | [43790330720](https://github.com/abwoo/-DeepSeek-Always-on-Personal-AI-Agent-Plugin/actions/runs/43790330720) |
+| Final signed macOS recovery | 4/4; source `49e64c9`; original Task/Schedule/Session IDs, active native catalog and rearmed status checked on every restart | [43794743975](https://github.com/abwoo/-DeepSeek-Always-on-Personal-AI-Agent-Plugin/actions/runs/43794743975) |
+| Final signed Windows recovery | Passed; source `49e64c9`; same identity/rearming assertions | [43794744045](https://github.com/abwoo/-DeepSeek-Always-on-Personal-AI-Agent-Plugin/actions/runs/43794744045) |
+| Android native forms and actual Harness state | Passed; source `2a53833`; app-absent fixture execution, shared chat, Memory/Goals/Inbox, native file/share chooser, reconnect and ordinary preview startup | [43793514641](https://github.com/abwoo/-DeepSeek-Always-on-Personal-AI-Agent-Plugin/actions/runs/43793514641) |
+| iOS native Simulator build and startup | Passed in that mobile workflow; secure-storage startup checked; physical iPhone and account-backed iOS forms remain unverified | [43793514641](https://github.com/abwoo/-DeepSeek-Always-on-Personal-AI-Agent-Plugin/actions/runs/43793514641) |
+
+Windows hosted-runner compositor capture failed for `native-plugin.png`, `native-remote-session.png` and `personal-agent.png`. Functional/API checks passed; those frames do not establish visual acceptance.
+
+The final native probe requires both identity preservation and a genuinely active/rearmed native schedule, not merely a retained task row. Native Harness remains the only Schedule/Agent runtime. No model success is inferred from a prompt receipt.
+
+## Evidence and retained failures
+
+[Engineering manifest](evidence/v03-engineering/manifest.json) indexes 79 observations. Exact base64 raw records were recovered from workflow logs and are SHA-256 checked in CI. Uploaded ZIP digests are labeled as upload-reported unless an archive was independently downloaded. The core summary and two 24-restart summaries are explicitly labeled derived observations, with exact supporting log lines.
+
+- Earlier macOS failures remain under `continuation-macos-failure`; the captured cause is retained under `native-startup-diagnosis/failed-9ca0985.json`.
+- ef38ada/42bc886 Android collector failures before task forms remain under `native-context-repair`, with native-controls flags false. Later successes do not overwrite them.
+- Latest raw records are under `native-final-macos`, `native-final-windows`, `native-final-mobile`, `native-final-runtime` and `native-final-accounts`.
+- [Queue maintenance 43791183572](https://github.com/abwoo/-DeepSeek-Always-on-Personal-AI-Agent-Plugin/actions/runs/43791183572) cancelled only three unfinished obsolete experiments (43789878704, 43789878780, 43789705366). Completed failures were retained. The temporary maintenance workflow was removed; routine macOS checks use four restarts with superseded-run cancellation.
+
+## Release boundary
+
+These are engineering observations using local identity, deterministic model and disposable authorities. Development APK signing, Simulator signing and local-tarball Plugins installation are not production distribution. Real Auth0/DeepSeek, continuously hosted service, public plugin installation, physical phone/push, stable mobile signing and production security/operations acceptance remain required in the [operator handoff](V03_HANDOFF.md).
+
+The [current production matrix](evidence/v03-engineering/production-current.json) remains fully Blocked; its T17 reason now separates the repaired engineering race from missing real-service/device restart acceptance. No v0.3 release tag, npm publication, deployment or MVP Ready claim is made.

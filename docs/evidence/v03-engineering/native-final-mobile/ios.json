@@ -1,0 +1,16 @@
+{
+  "sourceCommit": "2a5383307aaa4fcfb8a890d543793a91d925c40e",
+  "nativeSimulatorAppBuilt": true,
+  "simulatorLaunch": true,
+  "secureStorageStartupPassed": true,
+  "installableOnPhysicalIPhone": false,
+  "appleSigningCredentialsPresent": false,
+  "realPhone": false,
+  "realDeepSeek": false,
+  "mvpReady": false,
+  "simulatorRuntime": "com.apple.CoreSimulator.SimRuntime.iOS-26-4",
+  "simulatorDevice": "iPhone 17 Pro",
+  "simulatorSigning": "Xcode Simulator ad-hoc signature and linked simulated entitlements; no physical-device provisioning profile",
+  "launchCommandReturned": true,
+  "nativeHostProcessPidConfirmed": true
+}
