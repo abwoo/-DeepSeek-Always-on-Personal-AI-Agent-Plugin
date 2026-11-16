@@ -30,6 +30,24 @@ Retained exact failure log observation:
 2026-11-16T01:23:23.0813700Z NATIVE_BOOT_FAILURE {"attempt":7,"pages":[{"origin":"dsh-app://app","pathname":"/","routes":{"/api/always-on":404,"/api/always-on-desktop/status":200},"startup":{"loaderAvailable":true,"services":{"schedule":true,"agents":true,"sessions":true,"tools":true,"systemPrompt":true,"connection":true,"webServer":true,"alwaysOn":false},"entries":[{"module":"@abwoo/deepseek-always-on","enabled":true,"phase":3,"failure":{"categories":[]}},{"module":"@abwoo/always-on-desktop-remote-probe","enabled":true,"phase":2},{"module":"@abwoo/deepseek-always-on-desktop","enabled":true,"phase":2}]}}]}
 ```
 
+## Captured startup root cause and repair
+
+The two-profile reproduction at source `9ca098572b19633ff76c1cfabae5c16891f8a8e4`, [run 43789067273, job 133043130973](https://github.com/abwoo/-DeepSeek-Always-on-Personal-AI-Agent-Plugin/actions/runs/43789067273/job/133043130973), captured the actual error at boot 10:
+
+> This Host cannot create Sessions; choose an existing Session target.
+
+Trigger: create a delayed native task, exit before its first delivery, then relaunch. Its `new_once` target has a reserved Session ID but no persisted Session yet. Always-on resumes the native Schedule it paused for plugin unload. Native Schedule revalidates Session-creation capability during that resume. Schedule itself was ready before `sessionController`; this rejection escaped core startup, failed its Cordis fiber and removed both APIs.
+
+At `db00da084ae70c08dd7a8c53aac9476b63f3cd39`, core explicitly requires the native SessionController before recovery. It preserves the existing Task/Schedule/reserved Session IDs and uses the existing native edit operation. It does not recreate tasks or add an Agent runtime. A real Cordis/SQLite regression reproduces the exact old refusal with the old dependency metadata, then verifies the fixed startup waits, resumes once and survives Controller removal/restoration without changing IDs. Peer services in this regression are labeled fixtures; actual signed macOS validation remains separate.
+
+An additional readiness barrier publishes the Always-on service only after native recovery, routes and hooks are ready. The earlier carrier-neutral HTTP dependency repair remains a separate correction.
+
+Raw redacted failure and source locations are retained as `native-startup-diagnosis/failed-9ca0985.json` in the engineering manifest. Exception type was outside the probe's narrow name allowlist, so its recorded type is `unknown`; its actual captured message and source locations established the cause.
+
+## Native observation collector repair
+
+Sources ef38ada and 42bc886 failed before task forms because UIAutomator hierarchy bytes could not be parsed as XML. Their native-controls flags remain false and both raw records are retained. The collector now removes an old dump, requires confirmation of a fresh hierarchy, validates its root and retries only unavailable observations within the existing wait deadline. Invalid UI never becomes a pass; actual application assertions still propagate. A deterministic clock regression verifies these boundaries. Repaired-source native interaction validation is in progress.
+
 ## Remaining release work
 
-Latest repaired-source native checks and exception-location diagnosis are in progress. No MVP Ready declaration, release tag, npm publication, cloud deployment, Apple provisioning or physical push is claimed. See [operator handoff](V03_HANDOFF.md) for the real service, identity/provider credentials, signing, devices and production acceptance still required.
+Latest repaired-source native checks are in progress. Issue #5 will remain open until the targeted regression and independent signed macOS restart runs verify the repair. No MVP Ready declaration, release tag, npm publication, cloud deployment, Apple provisioning or physical push is claimed. See [operator handoff](V03_HANDOFF.md) for the real service, identity/provider credentials, signing, devices and production acceptance still required.

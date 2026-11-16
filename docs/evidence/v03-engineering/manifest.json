@@ -600,6 +600,30 @@
       "zipIndependentlyVerified": true,
       "originalPath": "boot-5-startup.json",
       "headCommit": "170524194f326a87c5909efd0da51a757b1168d0"
+    },
+    {
+      "path": "native-startup-diagnosis/failed-9ca0985.json",
+      "sha256": "71d62b6beba3804562325e2538611bb6bc1b65d0ad47aceff14b8634b28215ec",
+      "runId": 43789067273,
+      "jobId": 133043130973,
+      "headCommit": "9ca098572b19633ff76c1cfabae5c16891f8a8e4",
+      "evidenceKind": "Exact redacted workflow log observation wrapped with provenance; not an artifact-byte copy."
+    },
+    {
+      "path": "native-context-repair/ef38ada-failed-native-contract.json",
+      "sha256": "4da70d00701bdef896b0e7f142e3ac9a7806293ed5176458c554e1c1afc937bb",
+      "runId": 43785326814,
+      "artifactId": 14190616373,
+      "headCommit": "ef38ada7f3f5dbbf91eb7f8a3441d6267e409124",
+      "extraction": "Exact raw record from workflow ALWAYS_ON_EVIDENCE; native controls remained false because hierarchy XML parsing failed before task forms."
+    },
+    {
+      "path": "native-context-repair/42bc886-failed-native-contract.json",
+      "sha256": "9c581e7adf4242bea92f8375596596033f2420ee7574bce0cb6df39980feb869",
+      "runId": 43785948211,
+      "artifactId": 14190513948,
+      "headCommit": "42bc8862380e59e9436030d32cab2de461589b17",
+      "extraction": "Exact raw record from workflow ALWAYS_ON_EVIDENCE; native controls remained false because hierarchy XML parsing failed before task forms."
     }
   ],
   "failedObservations": [
@@ -713,6 +737,6 @@
       "scope": "Development signing/unconfigured preview, not a hosted product"
     }
   ],
-  "evidenceIntegrity": "56 retained raw observations; hashes are verified independently of production acceptance. Historical failures are retained, not overwritten.",
+  "evidenceIntegrity": "59 retained raw observations; hashes are verified independently of production acceptance. Historical failures are retained, not overwritten.",
   "postMergeFollowUpCommit": "3f5cfe74ff32e62bb5ffde481eb2cd08eef39d76"
 }
