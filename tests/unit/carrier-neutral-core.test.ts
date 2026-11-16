@@ -5,6 +5,11 @@ import { mkdtemp, rm } from 'node:fs/promises';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import * as core from '../../src/host/index.js';
+import { Store } from '../../src/host/storage.js';
+import { Notifications } from '../../src/host/notifications.js';
+import { Coordinator } from '../../src/host/tasks.js';
+import { ScheduleInputError } from '@deepseek-ai/dsh-schedule';
+import { randomUUID } from 'node:crypto';
 
 test('real Cordis lifecycle: core Fetch routes and durable memory work without an HTTP server', async () => {
   const ctx = new Context();
@@ -13,6 +18,7 @@ test('real Cordis lifecycle: core Fetch routes and durable memory work without a
   // Peer services are fixtures. Cordis, plugin startup/disposal, API and SQLite are real.
   const release = Object.entries({
     schedule: { catalog: async () => [] },
+    sessionController: {},
     agents: { list: () => [] },
     sessions: {},
     tools: { guard: () => {}, register: () => {} },
@@ -69,6 +75,7 @@ test('real Cordis lifecycle: Always-on readiness is withheld until native recove
   const routes = new Map<string, unknown>();
   const releases = Object.entries({
     schedule: { catalog: async () => { started(); await recovery; return []; } },
+    sessionController: {},
     agents: { list: () => [] }, sessions: {}, systemPrompt: {},
     tools: { guard: () => {}, register: () => {} },
     connection: { fetch: { register: (route: any) => {
@@ -90,6 +97,97 @@ test('real Cordis lifecycle: Always-on readiness is withheld until native recove
     releaseCatalog();
     await fiber.dispose();
     releases.reverse().forEach(dispose => dispose());
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
+test('real Cordis startup: native new-once recovery waits for SessionController and retains task identities', async () => {
+  const dir = await mkdtemp(join(tmpdir(), 'always-on-session-readiness-'));
+  const scheduleId = 'schedule-' + randomUUID(), sessionId = 'session-' + randomUUID();
+  const seed = new Store(join(dir, 'state.sqlite'));
+  const coordinator = new Coordinator(seed, {
+    create: async () => ({ id: scheduleId, target: { sessionId } }),
+    edit: async () => ({}), run: async () => {},
+  }, new Notifications(seed));
+  const task = await coordinator.create({
+    title: 'Native controller startup proof', instruction: 'Read-only fixture',
+    timing: { kind: 'after', after_seconds: 3600 },
+  });
+  seed.put('tasks', task.id, { ...task, suspendedForUnload: true });
+  seed.close();
+
+  function host(plugin: any) {
+    const ctx = new Context();
+    const routes = new Map<string, any>();
+    let status = 'paused', resumes = 0, catalogs = 0;
+    const releases = Object.entries({
+      schedule: {
+        catalog: async () => {
+          catalogs++;
+          return [{ id: scheduleId, status, prompt: '[ALWAYS_ON_TRIGGER] ' + task.id,
+            target: { kind: 'new_once', sessionId } }];
+        },
+        edit: async (request: any) => {
+          assert.equal(request.id, scheduleId, 'Recovery must use the existing native Schedule');
+          if (request.patch.active && !ctx.get('sessionController'))
+            throw new ScheduleInputError('invalid_rule', 'This Host cannot create Sessions; choose an existing Session target.');
+          status = request.patch.active ? 'active' : 'paused';
+          if (request.patch.active) resumes++;
+          return { id: scheduleId, status };
+        },
+        create: async () => { throw new Error('Recovery must not recreate a Schedule or Session'); },
+      },
+      agents: { list: () => [] }, sessions: {}, systemPrompt: {},
+      tools: { guard: () => {}, register: () => {} },
+      connection: { fetch: { register: (route: any) => {
+        routes.set(route.path, route); return () => routes.delete(route.path);
+      } } },
+    }).map(([name, value]) => ctx.provide(name, value));
+    const fiber = ctx.plugin(plugin, { dataDir: dir });
+    return { ctx, fiber, routes, resumes: () => resumes, catalogs: () => catalogs,
+      close: async () => { await fiber.dispose(); releases.reverse().forEach(dispose => dispose()); } };
+  }
+
+  // Reproduce the exact native arming refusal with the old missing dependency.
+  const unsafe = host({ ...core, inject: core.inject.filter(name => name !== 'sessionController') });
+  try {
+    await assert.rejects(unsafe.fiber.await(), /This Host cannot create Sessions/);
+    assert.equal(unsafe.fiber.state, 3);
+    assert.equal(unsafe.routes.size, 0);
+  } finally { await unsafe.close(); }
+
+  const fixed = host(core);
+  let removeController: (() => void) | undefined;
+  try {
+    await fixed.fiber.await();
+    assert.equal(fixed.fiber.state, 0, 'Core must wait for the actual Session creation provider');
+    assert.equal(fixed.catalogs(), 0);
+    assert.equal(fixed.resumes(), 0);
+    assert.equal(fixed.ctx.get('alwaysOn'), undefined);
+    removeController = fixed.ctx.provide('sessionController', {});
+    await fixed.fiber.await();
+    assert.equal(fixed.fiber.state, 2);
+    assert.equal(fixed.resumes(), 1);
+    const snapshot = await (await fixed.routes.get('/api/always-on').fetch(
+      new Request('https://carrier.invalid/api/always-on'))).json();
+    const retained = snapshot.tasks.find((value: any) => value.id === task.id);
+    assert.equal(retained.scheduleId, scheduleId);
+    assert.equal(retained.sessionId, sessionId);
+    assert.equal(retained.state, 'active');
+    assert.equal(retained.suspendedForUnload, false);
+
+    removeController(); removeController = undefined;
+    await fixed.fiber.await();
+    assert.equal(fixed.fiber.state, 0);
+    assert.equal(fixed.routes.size, 0);
+    removeController = fixed.ctx.provide('sessionController', {});
+    await fixed.fiber.await();
+    assert.equal(fixed.fiber.state, 2);
+    assert.equal(fixed.resumes(), 2);
+    assert.equal(fixed.ctx.alwaysOn.coordinator.requireTask(task.id).sessionId, sessionId);
+  } finally {
+    await fixed.close();
+    removeController?.();
     await rm(dir, { recursive: true, force: true });
   }
 });

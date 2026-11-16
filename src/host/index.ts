@@ -3,6 +3,7 @@ import { defineTool } from '@deepseek-ai/dsh-tools';
 import type { Agent } from '@deepseek-ai/dsh-agent';
 import type {} from '@deepseek-ai/dsh-session';
 import type {} from '@deepseek-ai/dsh-schedule';
+import type {} from '@deepseek-ai/dsh-api-session-controller';
 import type {} from '@deepseek-ai/dsh-client-connection';
 import type {} from '@deepseek-ai/dsh-host-webserver';
 import { resolve } from 'node:path';
@@ -16,6 +17,7 @@ import { createApi } from './api.js';
 export const name = 'abwoo-always-on';
 export const inject = [
   'schedule',
+  'sessionController',
   'agents',
   'sessions',
   'tools',

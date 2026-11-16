@@ -65,7 +65,7 @@ export async function apply(ctx: Context) {
           phase: fiber?.state ?? null, ...(failure ? { failure } : {}) });
       }
       const services = Object.fromEntries((['schedule', 'agents', 'sessions', 'tools',
-        'systemPrompt', 'connection', 'webServer', 'alwaysOn'] as const).map(key => [key, !!ctx.get(key)]));
+        'systemPrompt', 'connection', 'webServer', 'sessionController', 'alwaysOn'] as const).map(key => [key, !!ctx.get(key)]));
       return Response.json({ loaderAvailable: !!loader, services, entries });
     },
   }));
