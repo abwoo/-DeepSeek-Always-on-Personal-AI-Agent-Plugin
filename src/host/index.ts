@@ -84,7 +84,6 @@ export async function apply(ctx: Context, config: Config = {}) {
     };
     const c = new Coordinator(store, scheduler, notifications);
     if (process.env.ALWAYS_ON_ACCOUNT_EXECUTION_REQUIRED === '1') c.executionAllowed = () => false;
-    new AlwaysOnService(ctx, c, memory, notifications);
     ctx.on('llm/stream', async function* (_options, next) {
       if (c.executionAllowed?.() === false)
         throw new Error('Managed account execution is suspended or awaiting renewal');
@@ -419,6 +418,9 @@ export async function apply(ctx: Context, config: Config = {}) {
         store.close();
       }
     });
+    // Publish readiness only after recovery, routes and cleanup are installed.
+    // Dependents must never consume a partially initialized coordinator.
+    new AlwaysOnService(ctx, c, memory, notifications);
   } catch (error) {
     store.close();
     throw error;

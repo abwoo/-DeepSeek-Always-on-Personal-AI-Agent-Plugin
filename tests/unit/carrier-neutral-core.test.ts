@@ -58,3 +58,38 @@ test('real Cordis lifecycle: core Fetch routes and durable memory work without a
     await rm(dir, { recursive: true, force: true });
   }
 });
+
+test('real Cordis lifecycle: Always-on readiness is withheld until native recovery completes', async () => {
+  const ctx = new Context();
+  const dir = await mkdtemp(join(tmpdir(), 'always-on-readiness-'));
+  let releaseCatalog!: () => void;
+  let started!: () => void;
+  const recovery = new Promise<void>(resolve => { releaseCatalog = resolve; });
+  const entered = new Promise<void>(resolve => { started = resolve; });
+  const routes = new Map<string, unknown>();
+  const releases = Object.entries({
+    schedule: { catalog: async () => { started(); await recovery; return []; } },
+    agents: { list: () => [] }, sessions: {}, systemPrompt: {},
+    tools: { guard: () => {}, register: () => {} },
+    connection: { fetch: { register: (route: any) => {
+      routes.set(route.path, route); return () => routes.delete(route.path);
+    } } },
+  }).map(([name, value]) => ctx.provide(name, value));
+  const fiber = ctx.plugin(core, { dataDir: dir });
+  try {
+    await entered;
+    assert.equal(ctx.get('alwaysOn'), undefined, 'Managed dependents must not start during native recovery');
+    assert.equal(routes.size, 0);
+    releaseCatalog();
+    await fiber.await();
+    assert.equal(fiber.state, 2);
+    assert.ok(ctx.get('alwaysOn'));
+    assert.ok(routes.has('/api/always-on'));
+    assert.ok(routes.has('/api/always-on-sw.js'));
+  } finally {
+    releaseCatalog();
+    await fiber.dispose();
+    releases.reverse().forEach(dispose => dispose());
+    await rm(dir, { recursive: true, force: true });
+  }
+});
