@@ -23,6 +23,7 @@ jobs:
     timeout-minutes: 20
     env:
       ALWAYS_ON_DESKTOP_RESTART_PASSES: '4'
+      ALWAYS_ON_NATIVE_STARTUP_DIAGNOSTICS: '1'
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4

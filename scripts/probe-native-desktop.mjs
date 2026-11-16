@@ -273,6 +273,9 @@ async function boot(action) {
     }, null, 2));
     throw error;
   } finally {
+    await writeFile(join(output, `boot-${attempt}-startup.json`), JSON.stringify({
+      attempt, filteredDiagnostics: diagnosticLines,
+    }, null, 2));
     await browser?.close().catch(() => {});
     // Only this newly spawned disposable CI app tree. No user machine is touched.
     await stopTree(child);

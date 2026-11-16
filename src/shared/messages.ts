@@ -28,11 +28,16 @@ export function conversationRows(events: Array<{ type: string; seq: number; data
       }
     } else if (event.type === 'user/message' || event.type === 'assistant/message') {
       const message = event.type === 'user/message' ? event.data : event.data.message;
-      // Official Harness runtime snapshots contain internal paths/policy instructions,
-      // not conversation content. Keep the authoritative events unchanged; omit only
-      // this explicit native source from the normal Desktop/mobile chat projection.
-      // Never filter by text: a user's quoted system-reminder remains their message.
-      if (event.type === 'user/message' && message.source?.kind === 'runtime-context') continue;
+      // Native producers declare context independently of their kind. In particular,
+      // skill-catalog is a catalog, not runtime-context. These are model inputs,
+      // not ordinary chat. Preserve the durable events and the user's exact text.
+      const source = message.source;
+      const context = event.type === 'user/message' && source?.kind !== 'user';
+      if (
+        context &&
+        (source?.kind === 'runtime-context' ||
+          ['instructions', 'catalog', 'snapshot'].includes(source?.form))
+      ) continue;
       rows.set(message.id, {
         id: message.id,
         seq: event.seq,
@@ -42,7 +47,9 @@ export function conversationRows(events: Array<{ type: string; seq: number; data
               ? 'you'
               : 'context'
             : 'assistant',
-        text: text(message.content),
+        text: context && source?.form === 'notice' && typeof source.summary === 'string'
+          ? source.summary
+          : text(message.content),
       });
     }
   }
