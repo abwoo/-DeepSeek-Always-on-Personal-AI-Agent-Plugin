@@ -264,13 +264,19 @@ async function boot(action) {
           catch { routes[path] = 0; }
         }
         // No DOM text, query strings, headers, response bodies or credentials.
-        return { origin: location.origin, pathname: location.pathname, routes };
+        let startup;
+        try {
+          const response = await fetch('/api/always-on-phase0-startup');
+          if (response.ok) startup = await response.json();
+        } catch {}
+        return { origin: location.origin, pathname: location.pathname, routes, startup };
       }).catch(() => ({ unavailable: true })));
     }
     await writeFile(join(output, `boot-${attempt}-failure.json`), JSON.stringify({
       attempt, childExited: child.exitCode !== null, exitCode: child.exitCode,
       pages, filteredDiagnostics: diagnosticLines,
     }, null, 2));
+    console.log('NATIVE_BOOT_FAILURE ' + JSON.stringify({ attempt, pages }));
     throw error;
   } finally {
     await writeFile(join(output, `boot-${attempt}-startup.json`), JSON.stringify({

@@ -1,6 +1,7 @@
 /** Separate, private Phase 0 package. Never installs with the shipping Always-on bundle. */
 import type { Context } from '@deepseek-ai/cordis';
 import type {} from '@deepseek-ai/dsh-client-connection';
+import type {} from '@deepseek-ai/cordis-plugin-loader';
 import { z } from 'zod';
 import { connectProbe } from './probe-connection.js';
 // Harness SessionId is an opaque branded string, not a UUID contract.
@@ -16,6 +17,42 @@ export async function apply(ctx: Context) {
   const origin = process.env.ALWAYS_ON_PHASE0_REMOTE_ORIGIN;
   const token = process.env.ALWAYS_ON_PHASE0_REMOTE_TOKEN;
   if (!origin || !token) throw new Error('Phase 0 probe requires an explicitly authorized remote test Host');
+  // This endpoint exists only in the separately installed disposable CI probe.
+  // Read Loader state directly: Electron may not forward its Host's stderr.
+  // No config, error messages/stacks, paths, model text or credentials leave it.
+  ctx.effect(() => ctx.connection.fetch.register({
+    path: '/api/always-on-phase0-startup', methods: ['GET'], requestBody: 'buffered',
+    async fetch() {
+      const loader = ctx.get('loader');
+      const entries = [];
+      for (const entry of loader?.entries() ?? []) {
+        if (!/^@abwoo\/(?:deepseek-always-on|deepseek-always-on-desktop|always-on-desktop-remote-probe)$/.test(entry.options.name)) continue;
+        const fiber = entry.fiber;
+        let failure;
+        if (fiber?.state === 3) {
+          try { await fiber.await(); } catch (error) {
+            const e = error as Error & { code?: string };
+            const reasons = {
+              sqliteBusy: /database is locked|SQLITE_BUSY/i,
+              closedStore: /database is not open|database.*closed/i,
+              disposedContext: /disposed|inactive context/i,
+              duplicateRegistration: /already registered|duplicate/i,
+              missingService: /service.*not (?:found|available)|missing.*service/i,
+            };
+            failure = {
+              ...(typeof e?.code === 'string' && /^[A-Z][A-Z0-9_]{0,63}$/.test(e.code) ? { code: e.code } : {}),
+              categories: Object.entries(reasons).filter(([, pattern]) => pattern.test(String(e?.message ?? ''))).map(([key]) => key),
+            };
+          }
+        }
+        entries.push({ module: entry.options.name, enabled: !entry.disabled,
+          phase: fiber?.state ?? null, ...(failure ? { failure } : {}) });
+      }
+      const services = Object.fromEntries((['schedule', 'agents', 'sessions', 'tools',
+        'systemPrompt', 'connection', 'webServer', 'alwaysOn'] as const).map(key => [key, !!ctx.get(key)]));
+      return Response.json({ loaderAvailable: !!loader, services, entries });
+    },
+  }));
   const remote = await connectProbe(origin, token, process.env.ALWAYS_ON_PHASE0_ALLOW_LOOPBACK === '1');
   ctx.effect(() => () => remote.close());
   ctx.effect(() => ctx.connection.fetch.register({
