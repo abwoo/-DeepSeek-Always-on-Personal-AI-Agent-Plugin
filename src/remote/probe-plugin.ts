@@ -19,7 +19,8 @@ export async function apply(ctx: Context) {
   if (!origin || !token) throw new Error('Phase 0 probe requires an explicitly authorized remote test Host');
   // This endpoint exists only in the separately installed disposable CI probe.
   // Read Loader state directly: Electron may not forward its Host's stderr.
-  // No config, error messages/stacks, paths, model text or credentials leave it.
+  // No config, error messages, absolute paths, model text or credentials leave it.
+  // Stack observations contain only file basenames and line/column numbers.
   ctx.effect(() => ctx.connection.fetch.register({
     path: '/api/always-on-phase0-startup', methods: ['GET'], requestBody: 'buffered',
     async fetch() {
@@ -38,8 +39,17 @@ export async function apply(ctx: Context) {
               disposedContext: /disposed|inactive context/i,
               duplicateRegistration: /already registered|duplicate/i,
               missingService: /service.*not (?:found|available)|missing.*service/i,
+              nullAccess: /Cannot (?:read|set) properties? of (?:undefined|null)/i,
+              notFunction: /is not a function/i,
+              duplicateService: /already provided|already exists/i,
             };
+            const frames = String(e?.stack ?? '').split('\n').slice(1, 7).flatMap(line => {
+              const match = line.match(/([a-zA-Z0-9_.-]+\.(?:m?js|ts)):(\d+):(\d+)/);
+              return match ? [{ file: match[1], line: Number(match[2]), column: Number(match[3]) }] : [];
+            });
             failure = {
+              type: /^(?:Error|TypeError|RangeError|SyntaxError|AggregateError|CordisError)$/.test(e?.name) ? e.name : 'unknown',
+              frames,
               ...(typeof e?.code === 'string' && /^[A-Z][A-Z0-9_]{0,63}$/.test(e.code) ? { code: e.code } : {}),
               categories: Object.entries(reasons).filter(([, pattern]) => pattern.test(String(e?.message ?? ''))).map(([key]) => key),
             };
