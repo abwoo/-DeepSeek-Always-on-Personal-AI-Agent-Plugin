@@ -1,0 +1,45 @@
+name: Clear obsolete native stabilization queue
+on:
+  push:
+    branches: ['v0.3/native-release-stabilization']
+    paths: ['.github/workflows/stabilization-queue-once.yml']
+permissions:
+  contents: read
+jobs:
+  cancel-obsolete-native-runs:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      actions: write
+      contents: read
+    steps:
+      - name: Cancel only unfinished obsolete native runs on this research branch
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        shell: bash
+        run: |
+          gh api "repos/$GH_REPO/actions/runs?branch=v0.3%2Fnative-release-stabilization&per_page=100" > runs.json
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          keep={'db00da084ae70c08dd7a8c53aac9476b63f3cd39','93a38720d710b382f5c482fe71a67cdb93ba69fd'}
+          names={'Phase 0 official macOS Desktop probe','Phase 0 official Windows Desktop probe','Native mobile builds'}
+          obsolete=[r for r in json.load(open('runs.json'))['workflow_runs']
+            if r['head_branch']=='v0.3/native-release-stabilization'
+            and r['name'] in names and r['status'] in {'queued','in_progress','pending','waiting'}
+            and r['head_sha'] not in keep]
+          Path('obsolete.txt').write_text(''.join(str(r['id'])+'\n' for r in obsolete))
+          Path('obsolete.json').write_text(json.dumps([{'runId':r['id'],'sourceCommit':r['head_sha'],'name':r['name'],'priorStatus':r['status']} for r in obsolete],indent=2))
+          print(Path('obsolete.json').read_text())
+          PY
+          while read -r run_id; do
+            test -n "$run_id" || continue
+            gh api --method POST "repos/$GH_REPO/actions/runs/$run_id/cancel" || exit 1
+          done < obsolete.txt
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: obsolete-native-run-cancellations
+          path: obsolete.json
+          retention-days: 14
