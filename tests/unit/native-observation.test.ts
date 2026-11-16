@@ -38,3 +38,30 @@ print('Native observation deadline and failure boundaries verified')
 `;
   assert.match(execFileSync('python3', ['-c', script], { encoding: 'utf8' }), /deadline and failure boundaries verified/);
 });
+
+test('ADB diagnostics cannot contaminate hierarchy XML or screenshot byte streams', () => {
+  const script = `
+import ast,pathlib,subprocess,types
+module=ast.parse(pathlib.Path('scripts/mobile-android-contract.py').read_text())
+selected=[node for node in module.body if isinstance(node,ast.FunctionDef) and node.name=='adb']
+xml=b'<?xml version="1.0"?><hierarchy/>'
+def run(command,**options):
+ assert command==['adb','exec-out','cat','/sdcard/native-contract.xml']
+ assert options['stdout']==subprocess.PIPE and options['stderr']==subprocess.PIPE
+ assert options['check'] is True and options['timeout']==35
+ return types.SimpleNamespace(stdout=xml,stderr=b'adb transport warning')
+transport=types.SimpleNamespace(run=run,PIPE=subprocess.PIPE)
+scope={'subprocess':transport,'evidence':{}}
+exec(compile(ast.Module(body=selected,type_ignores=[]),'<native ADB transport>','exec'),scope)
+assert scope['adb']('exec-out','cat','/sdcard/native-contract.xml')==xml
+assert scope['evidence']['adbDiagnosticCount']==1
+assert scope['evidence']['adbDiagnosticObservations']==[{'command':'exec-out','stderrBytes':21}]
+def fail(*args,**options):raise subprocess.CalledProcessError(1,args[0],stderr=b'error')
+transport.run=fail
+try:scope['adb']('exec-out','cat','/sdcard/native-contract.xml')
+except subprocess.CalledProcessError:pass
+else:raise AssertionError('ADB failure was masked')
+print('Native ADB byte and failure boundaries verified')
+`;
+  assert.match(execFileSync('python3', ['-c', script], { encoding: 'utf8' }), /byte and failure boundaries verified/);
+});

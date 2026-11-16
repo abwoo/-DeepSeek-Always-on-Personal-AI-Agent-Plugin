@@ -17,7 +17,13 @@ def snapshot_unavailable(kind):
  print('Native snapshot unavailable: '+kind,flush=True)
  return SnapshotUnavailable('Fresh native hierarchy unavailable: '+kind)
 
-def adb(*args):return subprocess.check_output(['adb',*map(str,args)],stderr=subprocess.STDOUT,timeout=35)
+def adb(*args):
+ result=subprocess.run(['adb',*map(str,args)],stdout=subprocess.PIPE,stderr=subprocess.PIPE,timeout=35,check=True)
+ if result.stderr:
+  evidence['adbDiagnosticCount']=evidence.get('adbDiagnosticCount',0)+1
+  observations=evidence.setdefault('adbDiagnosticObservations',[])
+  if len(observations)<20:observations.append({'command':str(args[0]) if args else '', 'stderrBytes':len(result.stderr)})
+ return result.stdout
 def get(path='/engineering/state',post=False):
  req=urllib.request.Request('https://127.0.0.1:8443'+path,method='POST' if post else 'GET')
  with urllib.request.urlopen(req,context=context,timeout=25) as r:return json.load(r)
