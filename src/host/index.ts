@@ -108,12 +108,22 @@ export async function apply(ctx: Context, config: Config = {}) {
           'Host restarted during schedule creation. Inspect the native task before recreating.';
         if (entry) {
           task.scheduleId = entry.id;
-          await scheduler.edit({ id: entry.id, action: 'update', patch: { active: false } });
+          const receipt = await scheduler.edit({ id: entry.id, action: 'update', patch: { active: false } }) as { id?: string; status?: string; code?: string };
+          if (receipt?.id !== entry.id || receipt.code || !['paused', 'ended'].includes(receipt.status ?? ''))
+            task.error = 'Task pause during recovery is unconfirmed; review before retrying.';
         }
         store.put('tasks', task.id, task);
       } else if (task.state === 'active' && task.suspendedForUnload && entry?.status === 'paused') {
-        await scheduler.edit({ id: entry.id, action: 'update', patch: { active: true } });
+        const receipt = await scheduler.edit({ id: entry.id, action: 'update', patch: { active: true } }) as { id?: string; status?: string; code?: string };
+        if (receipt?.id !== entry.id || receipt.code || receipt.status !== 'active') {
+          task.state = 'error';
+          task.suspendedForUnload = false;
+          task.error = 'Task restart is unconfirmed; review before retrying.';
+          store.put('tasks', task.id, task);
+          continue;
+        }
         task.suspendedForUnload = false;
+        delete task.error;
         store.put('tasks', task.id, task);
       } else if (
         task.state === 'active' &&

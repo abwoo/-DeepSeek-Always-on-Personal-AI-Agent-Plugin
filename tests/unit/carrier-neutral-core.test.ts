@@ -191,3 +191,57 @@ test('real Cordis startup: native new-once recovery waits for SessionController 
     await rm(dir, { recursive: true, force: true });
   }
 });
+
+test('real Cordis startup never promotes an unconfirmed native recovery receipt to an active task', async () => {
+  for (const mode of ['negative', 'wrong-id', 'paused', 'incomplete-create'] as const) {
+    const dir = await mkdtemp(join(tmpdir(), 'always-on-receipt-'));
+    const scheduleId = 'schedule-' + randomUUID(), sessionId = 'session-' + randomUUID();
+    const seed = new Store(join(dir, 'state.sqlite'));
+    const coordinator = new Coordinator(seed, {
+      create: async () => ({ id: scheduleId, target: { sessionId } }), edit: async () => ({}), run: async () => {},
+    }, new Notifications(seed));
+    const task = await coordinator.create({ title: 'Recovery receipt proof', instruction: 'Fixture only',
+      timing: { kind: 'after', after_seconds: 3600 } });
+    seed.put('tasks', task.id, { ...task, state: mode === 'incomplete-create' ? 'configuring' : 'active',
+      suspendedForUnload: mode !== 'incomplete-create' });
+    seed.close();
+    const ctx = new Context(), routes = new Map<string, any>();
+    let edits = 0;
+    const releases = Object.entries({
+      sessionController: {}, agents: { list: () => [] }, sessions: {}, systemPrompt: {},
+      tools: { guard: () => {}, register: () => {} },
+      schedule: {
+        catalog: async () => [{ id: scheduleId, status: mode === 'incomplete-create' ? 'active' : 'paused',
+          prompt: '[ALWAYS_ON_TRIGGER] ' + task.id, target: { kind: 'new_once', sessionId } }],
+        edit: async (request: any) => {
+          edits++; assert.equal(request.id, scheduleId);
+          return mode === 'wrong-id' ? { id: 'another-schedule', status: 'active' }
+            : mode === 'paused' ? { id: scheduleId, status: 'paused' }
+              : { id: scheduleId, code: 'schedule_not_found' };
+        },
+        create: async () => { throw new Error('Recovery must not recreate native identities'); },
+      },
+      connection: { fetch: { register: (route: any) => {
+        routes.set(route.path, route); return () => routes.delete(route.path);
+      } } },
+    }).map(([name, value]) => ctx.provide(name, value));
+    const fiber = ctx.plugin(core, { dataDir: dir });
+    try {
+      await fiber.await();
+      assert.equal(fiber.state, 2, 'One unconfirmed task must not remove the healthy API');
+      const response = await routes.get('/api/always-on').fetch(new Request('https://carrier.invalid/api/always-on'));
+      assert.equal(response.status, 200);
+      const retained = (await response.json()).tasks.find((value: any) => value.id === task.id);
+      assert.equal(retained.state, 'error');
+      assert.match(retained.error, /unconfirmed/);
+      assert.equal(retained.scheduleId, scheduleId);
+      assert.equal(retained.sessionId, sessionId);
+      assert.equal(retained.suspendedForUnload, false);
+      assert.equal(edits, 1);
+    } finally {
+      await fiber.dispose();
+      releases.reverse().forEach(dispose => dispose());
+      await rm(dir, { recursive: true, force: true });
+    }
+  }
+});
