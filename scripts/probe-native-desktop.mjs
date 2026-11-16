@@ -7,6 +7,7 @@ import { promisify } from 'node:util';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { setTimeout as delay } from 'node:timers/promises';
 import { createServer } from 'node:http';
+import { createHash } from 'node:crypto';
 import { dirname, join, resolve } from 'node:path';
 import { ManagedClient } from '../dist/shared/managed-client.js';
 import { connectProbe } from '../dist/remote/probe-connection.js';
@@ -679,15 +680,17 @@ try {
 } finally {
   await observer?.close();
   await stopTree(remoteProcess);
-  await writeFile(
-    join(
-      output,
-      process.argv.includes('--initialize')
-        ? 'initialize.json'
-        : process.argv.includes('--plugins-ui')
-          ? 'plugins-ui.json'
-          : 'plugin.json',
-    ),
-    JSON.stringify({ timestamp: new Date().toISOString(), ...evidence }, null, 2),
-  );
+  const filename = process.argv.includes('--initialize')
+    ? 'initialize.json'
+    : process.argv.includes('--plugins-ui') ? 'plugins-ui.json' : 'plugin.json';
+  const record = { timestamp: new Date().toISOString(), sourceCommit: process.env.GITHUB_SHA, ...evidence };
+  const bytes = JSON.stringify(record, null, 2);
+  await writeFile(join(output, filename), bytes);
+  // Successful records contain only fixture identities/origins and explicit scope flags.
+  // Failures keep their existing artifact; never expand arbitrary exception text into logs.
+  if (!('blocker' in evidence)) console.log('ALWAYS_ON_EVIDENCE ' + JSON.stringify({
+    path: join(output, filename), checkoutCommit: process.env.GITHUB_SHA,
+    sha256: createHash('sha256').update(bytes).digest('hex'),
+    base64: Buffer.from(bytes).toString('base64'), record,
+  }));
 }
