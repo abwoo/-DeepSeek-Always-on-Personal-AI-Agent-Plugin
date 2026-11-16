@@ -444,7 +444,12 @@ try {
         return response.json();
       });
       const task = state.tasks.find((t) => t.title === 'Native Desktop persistence proof');
-      if (!task?.id) throw new Error('UI mutation did not persist a task on the native Host');
+      if (!task?.id || !task.scheduleId || !task.sessionId)
+        throw new Error('UI mutation did not persist native task, Schedule and reserved Session identities');
+      if (task.state !== 'active' || typeof task.nextScheduledAt !== 'string')
+        throw new Error('Created native task was not confirmed as armed');
+      evidence.nativeScheduleId = task.scheduleId;
+      evidence.nativeTaskSessionId = task.sessionId;
       id = task.id;
       evidence.nativePlugin = true;
       await capture(page, 'native-plugin.png');
@@ -616,13 +621,20 @@ try {
     evidence.requestedRestartPasses = restartPasses;
     evidence.confirmedRestartPasses = 0;
     evidence.allRequestedRestartsPassed = false;
+    evidence.nativeScheduleRearmedAfterEveryRestart = false;
     for (let pass = 0; pass < restartPasses; pass++) {
       evidence.restartPersistence = false;
       await boot(async (page) => {
         await page.getByText('Always-on', { exact: true }).click();
         const state = await page.evaluate(async () => (await fetch('/api/always-on')).json());
-        if (!state.tasks.some((t) => t.id === id))
-          throw new Error('Task lost after actual Desktop process restart');
+        const restoredTask = state.tasks.find((t) => t.id === id);
+        if (!restoredTask) throw new Error('Task lost after actual Desktop process restart');
+        if (restoredTask.scheduleId !== evidence.nativeScheduleId ||
+            restoredTask.sessionId !== evidence.nativeTaskSessionId)
+          throw new Error('Native recovery changed the Schedule or reserved Session identity');
+        if (restoredTask.state !== 'active' || restoredTask.suspendedForUnload ||
+            restoredTask.error || typeof restoredTask.nextScheduledAt !== 'string')
+          throw new Error('Native task was not confirmed as rearmed after process restart');
         evidence.restartPersistence = true;
         evidence.taskId = id;
         await page.getByText('Remote Session probe', { exact: true }).click();
@@ -673,6 +685,7 @@ try {
       evidence.confirmedRestartPasses = pass + 1;
     }
     evidence.allRequestedRestartsPassed = true;
+    evidence.nativeScheduleRearmedAfterEveryRestart = true;
   }
 } catch (error) {
   evidence.blocker = error.message;
