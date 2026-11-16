@@ -19,7 +19,7 @@ export async function apply(ctx: Context) {
   if (!origin || !token) throw new Error('Phase 0 probe requires an explicitly authorized remote test Host');
   // This endpoint exists only in the separately installed disposable CI probe.
   // Read Loader state directly: Electron may not forward its Host's stderr.
-  // No config, error messages, absolute paths, model text or credentials leave it.
+  // No config, unredacted errors, absolute paths, model text or credentials leave it.
   // Stack observations contain only file basenames and line/column numbers.
   ctx.effect(() => ctx.connection.fetch.register({
     path: '/api/always-on-phase0-startup', methods: ['GET'], requestBody: 'buffered',
@@ -47,7 +47,13 @@ export async function apply(ctx: Context) {
               const match = line.match(/([a-zA-Z0-9_.-]+\.(?:m?js|ts)):(\d+):(\d+)/);
               return match ? [{ file: match[1], line: Number(match[2]), column: Number(match[3]) }] : [];
             });
+            const rawMessage = String(e?.message ?? '');
+            const message = /token|secret|password|cookie|authorization|bearer|pairing|credential|api.?key|private.?key/i.test(rawMessage)
+              ? '[credential-related error omitted]'
+              : rawMessage.replace(/(?:file:\/\/)?(?:[A-Za-z]:)?\/[^\s)'",]*/g, '[path]')
+                .replace(/[A-Za-z0-9+_=-]{24,}/g, '[opaque]').slice(0, 500);
             failure = {
+              message,
               type: /^(?:Error|TypeError|RangeError|SyntaxError|AggregateError|CordisError)$/.test(e?.name) ? e.name : 'unknown',
               frames,
               ...(typeof e?.code === 'string' && /^[A-Z][A-Z0-9_]{0,63}$/.test(e.code) ? { code: e.code } : {}),

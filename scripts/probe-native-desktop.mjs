@@ -610,8 +610,8 @@ try {
     }
     evidence.remoteReadableWithDesktopStopped = true;
     const restartPasses = Number(process.env.ALWAYS_ON_DESKTOP_RESTART_PASSES ?? 1);
-    if (!Number.isSafeInteger(restartPasses) || restartPasses < 1 || restartPasses > 12)
-      throw Error('Native restart pass count must be an integer from one to twelve');
+    if (!Number.isSafeInteger(restartPasses) || restartPasses < 1 || restartPasses > 24)
+      throw Error('Native restart pass count must be an integer from one to twenty-four');
     evidence.requestedRestartPasses = restartPasses;
     evidence.confirmedRestartPasses = 0;
     evidence.allRequestedRestartsPassed = false;
