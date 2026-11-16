@@ -388,6 +388,8 @@ export async function apply(ctx: Context, config: Config = {}) {
         })(),
       );
     });
+    // Native recovery, routes and hooks are ready before dependents activate.
+    new AlwaysOnService(ctx, c, memory, notifications);
     const pushTimer = setInterval(() => {
       for (const run of c.runs().filter((r) => r.status === 'queued')) {
         const task = c.requireTask(run.taskId);
@@ -418,9 +420,6 @@ export async function apply(ctx: Context, config: Config = {}) {
         store.close();
       }
     });
-    // Publish readiness only after recovery, routes and cleanup are installed.
-    // Dependents must never consume a partially initialized coordinator.
-    new AlwaysOnService(ctx, c, memory, notifications);
   } catch (error) {
     store.close();
     throw error;
