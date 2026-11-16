@@ -19,6 +19,10 @@ permissions:
   contents: read
 jobs:
   actual-desktop:
+    strategy:
+      fail-fast: false
+      matrix:
+        reproduction: [1, 2]
     runs-on: macos-15
     timeout-minutes: 20
     env:
@@ -88,13 +92,13 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: phase0-macos-native-evidence
+          name: phase0-macos-native-evidence-${{ matrix.reproduction }}
           path: .artifacts/macos-desktop/
           retention-days: 14
       - name: Save tested installable Desktop preview
         uses: actions/upload-artifact@v4
         with:
-          name: always-on-desktop-preview-macos
+          name: always-on-desktop-preview-macos-${{ matrix.reproduction }}
           path: abwoo-deepseek-always-on-desktop-0.3.0-dev.1.tgz
           retention-days: 14
           if-no-files-found: error
